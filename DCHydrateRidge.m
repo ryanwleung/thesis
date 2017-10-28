@@ -85,24 +85,24 @@ classdef DCHydrateRidge < BCFormation
         
         
         %%% Plotting subclass functions
-        function [ solFigure ] = PlotSol( obj , solFigure , exportTable , lineStyle )
-            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable , lineStyle );
+        function [ solFigure ] = PlotSol( obj , solFigure , exportTable )
+            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
             
             figure(solFigure)
             axis([0.08 0.125 60 160])
             title('Hydrate Ridge - Solubility Path')
         end
-        function [ sg2PFigure ] = PlotSg2P( obj , sg2PFigure , exportTable , transitionZoneProperties , lineStyle )
-            sg2PFigure = obj.PlotSg2P@BCFormation( sg2PFigure , exportTable , transitionZoneProperties , lineStyle );
+        function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
+            sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
-            figure(sg2PFigure)
+            figure(sat2PFigure)
             axis(obj.sgAxis)
             title('Hydrate Ridge - 2 Phase Case')
         end
-        function [ sg3PFigure ] = PlotSg3P( obj , sg3PFigure , exportTable , lineStyle )
-            sg3PFigure = obj.PlotSg3P@BCFormation( sg3PFigure , exportTable , lineStyle );
+        function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
+            sat3PFigure = obj.PlotSat3P@BCFormation( sat3PFigure , exportTable , lineStyle );
             
-            figure(sg3PFigure)
+            figure(sat3PFigure)
             axis(obj.sgAxis)
             title('Hydrate Ridge - 3 Phase Case')
         end        

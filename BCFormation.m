@@ -291,7 +291,7 @@ classdef BCFormation < handle
                 % Condition is when the LG and LH solubilities become equal
                 iteration = 0;
                 doWhileFlag = true;
-                while( doWhileFlag || abs(solubilityLG - solubilityLH) > 1e-6)
+                while( doWhileFlag || abs(solubilityLG - solubilityLH) > 1e-4)
                     doWhileFlag = false;
                     iteration = iteration + 1;
                     
@@ -366,24 +366,24 @@ classdef BCFormation < handle
         %%% Plotting methods
         function GenerateResultPlots( obj , exportTable , transitionZoneProperties )
             lineStyle2D = cell(1,3);
-            lineStyle2D{1} = 'b-.';
-            lineStyle2D{2} = 'g:';
-            lineStyle2D{3} = 'r--';
+            lineStyle2D{1} = 'r--';
+            lineStyle2D{2} = 'g--';
+%             lineStyle2D{3} = 'r--';
             
             lineStyle3D = cell(1,3);
-            lineStyle3D{1} = 'b-';
+            lineStyle3D{1} = 'r-';
             lineStyle3D{2} = 'g-';
-            lineStyle3D{3} = 'r-';
+%             lineStyle3D{3} = 'r-';
             
             solFigure = figure();
-            sg2PFigure = figure();
-            sg3PFigure = figure();
+            sat2PFigure = figure();
+            sat3PFigure = figure();
 %             pcgwFigure = figure();
 %             ratioFigure = figure();
 
-            solFigure = obj.PlotSol( solFigure , exportTable , lineStyle3D{1} );
-            sg2PFigure = obj.PlotSg2P( sg2PFigure , exportTable , transitionZoneProperties , lineStyle2D{1} );
-            sg3PFigure = obj.PlotSg3P( sg3PFigure , exportTable , lineStyle3D{1} );
+            solFigure = obj.PlotSol( solFigure , exportTable );
+            sat2PFigure = obj.PlotSat2P( sat2PFigure , exportTable , transitionZoneProperties , lineStyle2D );
+            sat3PFigure = obj.PlotSat3P( sat3PFigure , exportTable , lineStyle3D );
             
 %             [ pcgwFigure ] = PlotRockStrength( obj , pcgwFigure );
 %             [ ratioFigure ] = PlotFractureRatio( obj , ratioFigure );
@@ -397,7 +397,7 @@ classdef BCFormation < handle
 %                 
 %             end
         end
-        function [ solFigure ] = PlotSol( ~ , solFigure , exportTable , lineStyle )
+        function [ solFigure ] = PlotSol( ~ , solFigure , exportTable )
             depth = exportTable.Depth;
             solBulkLG = exportTable.GasBulkSol;
             solMinLG = exportTable.GasMinSol;
@@ -430,32 +430,40 @@ classdef BCFormation < handle
             set(gca,'YDir','Reverse')
             legend('Bulk LG', 'Bulk LH', 'Min LG', 'Min LH', 'Max LG', 'Max LH', 'Actual solubility')
         end       
-        function [ sg2PFigure ] = PlotSg2P( ~ , sg2PFigure , exportTable , transitionZoneProperties , lineStyle )
+        function [ sat2PFigure ] = PlotSat2P( ~ , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
             bulkEquilibrium3PIndex = transitionZoneProperties.Bulk3PSolEQLIndex;
             depth = exportTable.Depth;
+            
             sg2P = exportTable.GasSat2P;
             sg2P(1 : bulkEquilibrium3PIndex - 1) = 0;
             
+            sh2P = exportTable.HydrateSat2P;
+            sh2P(bulkEquilibrium3PIndex + 1 : end) = 0;     
+            
             [ depth , sg2P ] = BCFormation.GetModifiedPlotArrays2P( depth , sg2P , bulkEquilibrium3PIndex );
+            [ ~ , sh2P ] = BCFormation.GetModifiedPlotArrays2P( depth , sh2P , bulkEquilibrium3PIndex );
 
-            figure(sg2PFigure)
-            plot( sg2P , depth , lineStyle , 'linewidth' , 3 )
-%             hold on
-            xlabel('Gas saturation')
+            figure(sat2PFigure)
+            plot( sg2P , depth , lineStyle{1} , 'linewidth' , 3 )
+            hold on
+            plot( sh2P , depth , lineStyle{2} , 'linewidth' , 3 )
+            xlabel('Saturation')
             ylabel('Depth (mbsf)')
+            legend('Gas', 'Hydrate')
             set(gca,'YDir','Reverse')
-
-
         end
-        function [ sg3PFigure ] = PlotSg3P( ~ , sg3PFigure , exportTable , lineStyle )
+        function [ sg3PFigure ] = PlotSat3P( ~ , sg3PFigure , exportTable , lineStyle )
             depth = exportTable.Depth;
             sg3P = exportTable.GasSat3P;
+            sh3P = exportTable.HydrateSat3P;
             
             figure(sg3PFigure)
-            plot( sg3P , depth , lineStyle , 'linewidth' , 3 )
-%             hold on
-            xlabel('Gas saturation')
+            plot( sg3P , depth , lineStyle{1} , 'linewidth' , 3 )
+            hold on
+            plot( sh3P , depth , lineStyle{2} , 'linewidth' , 3 )
+            xlabel('Saturation')
             ylabel('Depth (mbsf)')
+            legend('Gas', 'Hydrate')
             set( gca , 'YDir' , 'Reverse' )
         end
         

@@ -101,24 +101,24 @@ classdef DCBlakeRidge < BCFormation
         end
         
         %%% Plotting subclass functions
-        function [ solFigure ] = PlotSol( obj , solFigure , exportTable , lineStyle )
-            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable , lineStyle );
+        function [ solFigure ] = PlotSol( obj , solFigure , exportTable )
+            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
             
             figure(solFigure)
             axis([0.155 0.205 420 520])
             title('Blake Ridge - Solubility Path')
         end
-        function [ sg2PFigure ] = PlotSg2P( obj , sg2PFigure , exportTable , transitionZoneProperties , lineStyle )
-            sg2PFigure = obj.PlotSg2P@BCFormation( sg2PFigure , exportTable , transitionZoneProperties , lineStyle );
+        function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
+            sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
-            figure(sg2PFigure)
+            figure(sat2PFigure)
             axis([0 0.2 460 510])
             title('Blake Ridge - 2 Phase Case')
         end
-        function [ sg3PFigure ] = PlotSg3P( obj , sg3PFigure , exportTable , lineStyle )
-            sg3PFigure = PlotSg3P@BCFormation( obj , sg3PFigure , exportTable , lineStyle );
+        function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
+            sat3PFigure = PlotSat3P@BCFormation( obj , sat3PFigure , exportTable , lineStyle );
             
-            figure(sg3PFigure)
+            figure(sat3PFigure)
             axis([0 0.2 460 510])
             title('Blake Ridge - 3 Phase Case')
         end
