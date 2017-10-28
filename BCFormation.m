@@ -341,16 +341,16 @@ classdef BCFormation < handle
             % Fraction of gas in a pore vs hydrate
             competitionFraction = 0.5;
             
-%             if( sh > sg )
-%                 adjustedSg = sg / competitionFraction;
-%                 adjustedSh = sh + sg;
-%             else
-%                 adjustedSg = sg + sh;
-%                 adjustedSh = sh / (1 - competitionFraction);
-%             end
+            if( sh > sg )
+                adjustedSg = sg / competitionFraction;
+                adjustedSh = sh + sg;
+            else
+                adjustedSg = sg + sh;
+                adjustedSh = sh / (1 - competitionFraction);
+            end
             
-            adjustedSg = sg;
-            adjustedSh = sh;
+%             adjustedSg = sg;
+%             adjustedSh = sh;
             
             pcgwMPa = obj.CalcPcgw( adjustedSg );
             pchwMPa = obj.CalcPchw( adjustedSh );
