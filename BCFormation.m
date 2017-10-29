@@ -45,7 +45,6 @@ classdef BCFormation < handle
                 solubilityCalculator.CalcBulkSolubilities( pressure , temperature , obj.salinityWtPercent );
             
             [ ~ , index3PBulkSolEQL ] = min( abs(temperature - T3PArray) );
-%             depth3PBulkSolEQL = depth(index3PBulkSolEQL);
             
             %%% Get max solubility (smallest pore) for LG and LH
             %%% along with associated 2P saturations
@@ -248,7 +247,7 @@ classdef BCFormation < handle
             sh3P = zeros(n,1);
             adjustedSol = zeros(n,1);
             
-            % Start of Newton's method
+            %%% Start of Newton's method
             
             % Perturbation for slope calculation
             eps = 1e-5;
@@ -257,36 +256,16 @@ classdef BCFormation < handle
             solubility = hydrateMaxSolubilityAtTop;
             
             for i = 1:n
-%             for i = n:-1:1
                 
                 i3P = indexArrayOf3PZone(i);
 
                 % Get previous Sg for inital guess of Sg
-                
                 if( i == 1)
                     sg = 0;
                 else
                     sg = sg3P(i - 1);
                 end
                 
-%                 if( i == n )
-%                     % hydrate ridge bottom sg
-% %                     sg = 0.495615110897242;
-% 
-%                     % blake ridge bottom sg
-%                     sg = 0.157738524846419;
-%                     sh = 0;
-%                     solubility = 0.1836;
-%                     sg3P(i) = sg;
-%                     sh3P(i) = sh;
-%                     adjustedSol(i) = solubility;                    
-%                     continue
-%                 else
-%                     sg = sg3P(i + 1);
-%                 end
-                
-                                
-                    
                 % Do while loop for Newton's method
                 % Condition is when the LG and LH solubilities become equal
                 iteration = 0;
