@@ -257,6 +257,9 @@ classdef BCFormation < handle
             
             for i = 1:n
                 
+                percentDone = 100 * i/n
+%                 pause(1)
+                
                 i3P = indexArrayOf3PZone(i);
 
                 % Get previous Sg for inital guess of Sg
@@ -270,7 +273,7 @@ classdef BCFormation < handle
                 % Condition is when the LG and LH solubilities become equal
                 iteration = 0;
                 doWhileFlag = true;
-                while( doWhileFlag || abs(solubilityLG - solubilityLH) > 1e-4)
+                while( doWhileFlag || abs(solubilityLG - solubilityLH) > 1e-6)
                     doWhileFlag = false;
                     iteration = iteration + 1;
                     
@@ -279,7 +282,10 @@ classdef BCFormation < handle
                                                                                 sg , solubility , ...
                                                                                 pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
                                                                                 gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
-                    yOld = solubilityLG - solubilityLH;
+                    yOld = solubilityLG - solubilityLH
+                    sg
+                    sh
+                    
                     
                     % Calculating f'(x)
                     [ ~ , solubilityLGPerturbed , solubilityLHPerturbed ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
@@ -289,8 +295,19 @@ classdef BCFormation < handle
                     yNew = solubilityLGPerturbed - solubilityLHPerturbed;
                     slope = (yNew - yOld)/eps;
                     
+                    
+                    if( iteration < 20 )
+                        slowingFactor = 1;
+                    else
+                        slowingFactor = slowingFactor * 0.9
+                        if( slowingFactor < 0.01 )
+                            slowingFactor = 0.01
+                        end
+                    end
+                    
+                    
                     % Calculating next iteration sg
-                    sg = sg - yOld/slope;
+                    sg = sg - slowingFactor * yOld/slope;
                     % Update solubility by taking the average of the 2
                     solubility = (solubilityLG + solubilityLH)/2;
                     

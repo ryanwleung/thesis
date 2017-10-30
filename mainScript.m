@@ -4,8 +4,8 @@ clear variables
 
 ch4Quantity = 40;
 
-formationInstance = DCHydrateRidge();
-% formationInstance = DCBlakeRidge();
+% formationInstance = DCHydrateRidge();
+formationInstance = DCBlakeRidge();
 
 [ exportTable , transitionZoneProperties ] = formationInstance.RunSolubilitySaturationRoutine( ch4Quantity );
 
