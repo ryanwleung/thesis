@@ -3,7 +3,7 @@ classdef DCHydrateRidge < BCFormation
         MICP1
     end
     properties (Constant)
-        sgAxis = [0 1 100 160];
+        satAxis = [0 1 100 160];
     end
     methods
         %%% Constructor
@@ -96,14 +96,14 @@ classdef DCHydrateRidge < BCFormation
             sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
             figure(sat2PFigure)
-            axis(obj.sgAxis)
+            axis(obj.satAxis)
             title('Hydrate Ridge - 2 Phase Case')
         end
         function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
             sat3PFigure = obj.PlotSat3P@BCFormation( sat3PFigure , exportTable , lineStyle );
             
             figure(sat3PFigure)
-            axis(obj.sgAxis)
+            axis(obj.satAxis)
             title('Hydrate Ridge - 3 Phase Case')
         end        
         

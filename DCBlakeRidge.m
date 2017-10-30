@@ -5,6 +5,9 @@ classdef DCBlakeRidge < BCFormation
         MICP1
         MICP2
     end
+    properties (Constant)
+        satAxis = [0 1 460 510];
+    end
     methods
         %%% Constructor
         function [ obj ] = DCBlakeRidge()
@@ -112,14 +115,14 @@ classdef DCBlakeRidge < BCFormation
             sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
             figure(sat2PFigure)
-            axis([0 0.2 460 510])
+            axis(obj.satAxis)
             title('Blake Ridge - 2 Phase Case')
         end
         function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
             sat3PFigure = PlotSat3P@BCFormation( obj , sat3PFigure , exportTable , lineStyle );
             
             figure(sat3PFigure)
-            axis([0 0.2 460 510])
+            axis(obj.satAxis)
             title('Blake Ridge - 3 Phase Case')
         end
         

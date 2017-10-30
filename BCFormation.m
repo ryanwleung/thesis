@@ -257,7 +257,7 @@ classdef BCFormation < handle
             
             for i = 1:n
                 
-                percentDone = 100 * i/n
+%                 percentDone = 100 * i/n
 %                 pause(1)
                 
                 i3P = indexArrayOf3PZone(i);
@@ -282,9 +282,9 @@ classdef BCFormation < handle
                                                                                 sg , solubility , ...
                                                                                 pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
                                                                                 gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
-                    yOld = solubilityLG - solubilityLH
-                    sg
-                    sh
+                    yOld = solubilityLG - solubilityLH;
+%                     sg
+%                     sh
                     
                     
                     % Calculating f'(x)
@@ -334,16 +334,29 @@ classdef BCFormation < handle
             sh = ( ch4Quantity - gramsCH4InCubicMeterWater + sg * (gramsCH4InCubicMeterWater - gasDensity) ) / ...
                     (obj.hydrateDensity * obj.methaneMassFractionInHydrate - gramsCH4InCubicMeterWater );
             
-            % Fraction of gas in a pore vs hydrate
-            competitionFraction = 0.5;
+            % Fraction of phase in a pore vs hydrate
+            competitionFractionOfGas = 0.5;
+            competitionFractionOfHydrate = 1 - competitionFractionOfGas;
             
-            if( sh > sg )
-                adjustedSg = sg / competitionFraction;
+            % Above equal pore size invasion point
+            if( sh/(sh + sg) > competitionFractionOfHydrate)
+                adjustedSg = sg / competitionFractionOfGas;
                 adjustedSh = sh + sg;
+            % Below equal pore size invasion point
             else
                 adjustedSg = sg + sh;
-                adjustedSh = sh / (1 - competitionFraction);
+                adjustedSh = sh / competitionFractionOfHydrate;
             end
+            
+            
+            
+%             if( sh > sg )
+%                 adjustedSg = sg / competitionFraction;
+%                 adjustedSh = sh + sg;
+%             else
+%                 adjustedSg = sg + sh;
+%                 adjustedSh = sh / (1 - competitionFraction);
+%             end
             
 %             adjustedSg = sg;
 %             adjustedSh = sh;
