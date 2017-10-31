@@ -4,6 +4,8 @@ classdef DCHydrateRidge < BCFormation
     end
     properties (Constant)
         satAxis = [0 1 100 160];
+%         solAxis = [0.08 0.125 60 160];
+        solAxis = [0.1 0.125 100 160];
     end
     methods
         %%% Constructor
@@ -89,7 +91,7 @@ classdef DCHydrateRidge < BCFormation
             solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
             
             figure(solFigure)
-            axis([0.08 0.125 60 160])
+            axis(obj.solAxis)
             title('Hydrate Ridge - Solubility Path')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )

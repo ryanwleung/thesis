@@ -335,6 +335,13 @@ classdef BCFormation < handle
                     (obj.hydrateDensity * obj.methaneMassFractionInHydrate - gramsCH4InCubicMeterWater );
             
             % Fraction of phase in a pore vs hydrate
+%             competitionFractionOfGas = 0.019;
+%             competitionFractionOfGas = 0.2;
+%             competitionFractionOfGas = 0.35;
+%             competitionFractionOfGas = 0.65;
+%             competitionFractionOfGas = 0.8;
+%             competitionFractionOfGas = 0.981;
+            
             competitionFractionOfGas = 0.5;
             competitionFractionOfHydrate = 1 - competitionFractionOfGas;
             

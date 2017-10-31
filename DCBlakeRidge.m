@@ -7,6 +7,8 @@ classdef DCBlakeRidge < BCFormation
     end
     properties (Constant)
         satAxis = [0 1 460 510];
+%         solAxis = [0.155 0.205 420 520];
+        solAxis = [0.18 0.19 470 510];
     end
     methods
         %%% Constructor
@@ -108,7 +110,7 @@ classdef DCBlakeRidge < BCFormation
             solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
             
             figure(solFigure)
-            axis([0.155 0.205 420 520])
+            axis(obj.solAxis)
             title('Blake Ridge - Solubility Path')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
