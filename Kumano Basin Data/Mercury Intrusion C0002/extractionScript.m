@@ -15,6 +15,18 @@ end
 
 MICPCellArray = cell(nFile, 1);
 
+
+
+sigmaHgAir = 485; % dynes/cm
+sigmaGasWater = 72; % dynes/cm
+sigmaHydrateWater = 27; % dynes/cm
+
+thetaHgAir = 140; % deg
+thetaGasWater = 180; % deg
+thetaHydrateWater = 180; % deg
+
+conversionPsiToMpa = 1/145.03774; % multiply by this
+
 for iFile = 1:nFile
     tempMatrix = xlsread(allNames{iFile});
 
@@ -24,26 +36,20 @@ for iFile = 1:nFile
     end
     
     MICP = table();
-    MICP.SNW = tempMatrix(:, 3);
-    MICP.PcGW = tempMatrix(:, 1);
+    MICP.SNW = tempMatrix(:, 2);
     
+    MICP.PcGW = tempMatrix(:, 1) .* (sigmaGasWater * cosd(thetaGasWater)) ...
+                                  / (sigmaHgAir * cosd(thetaHgAir)); % psi
+    MICP.PcHW = tempMatrix(:, 1) .* (sigmaHydrateWater * cosd(thetaHydrateWater)) ...
+                                  / (sigmaHgAir * cosd(thetaHgAir)); % psi
     
+    MICP.PcGW = MICP.PcGW .* conversionPsiToMpa;
+    MICP.PcHW = MICP.PcHW .* conversionPsiToMpa;
     
+    % Convert pore throat radius in microns to pore throat diameter in meters
+    MICP.PoreThroatDiameter = tempMatrix(:, 4) .* 2 ./ 1e6;
     
-%     tempTable = readtable(allNames{iFile});
-%     tempDescriptionLogical = ~strncmp(tempTable.Properties.VariableNames, 'Var', 3);
-%     tempTable.Properties.Description = tempTable.Properties.VariableNames{tempDescriptionLogical};
-%     
-
-%     for iColumn = 1:nColumn
-%         while isempty( tempTable{1, iColumn} )
-%             tempTable(1, iColumn) = [];
-%         end
-%     end
-    
-    
-    
-    
+    MICPCellArray{iFile} = MICP;
 end
 
 
