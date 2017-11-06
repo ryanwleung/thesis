@@ -1,6 +1,7 @@
 classdef DCKumanoBasin < BCFormation
     properties
         MICP % Cell array of tables
+        colorOrder % array containing order index of loaded MICP tables
     end
     properties (Constant)
         satAxis = [0 1 100 160];
@@ -24,7 +25,7 @@ classdef DCKumanoBasin < BCFormation
             
             
             % Loads MICP from a .mat file into the object property MICP
-            obj.MICP = DCKumanoBasin.LoadMICP();
+            [obj.MICP, obj.colorOrder] = DCKumanoBasin.LoadMICP();
         end
         
         %%% Petrophysical calculations
@@ -53,22 +54,42 @@ classdef DCKumanoBasin < BCFormation
         
         function PlotMICP( obj )
             figure
-            n = numel(obj.MICP);
+            n = numel(obj.MICP);            
             for i = 1:n
+                PcGW = obj.MICP{i}.PcGW;
+                SNW = obj.MICP{i}.SNW;
                 hold on
-                plot(1 - obj.MICP{i}.SNW, obj.MICP{i}.PcGW, 'Linewidth', 2)
+                plot(SNW, PcGW, 'Linewidth', 1)
+                textTable = obj.MICP{i};
+                textTable(textTable.SNW == 0, :) = [];
+                textIndex = round(i / n * height(textTable));
+                text(textTable.SNW(textIndex), textTable.PcGW(textIndex), num2str(obj.MICP{i}.Properties.UserData))
             end
             xlabel('1 - S_n_w, or S_w')
             ylabel('Pc in MPa')
             title('Primary Drainage Capillary Pressure Curve')
+            set(gca, 'XDir', 'reverse')
             set(gca, 'Yscale', 'log')
         end
         function PlotCumPSD( obj )
             figure
             n = numel(obj.MICP);
             for i = 1:n
+                PoreThroatDiameter = obj.MICP{i}.PoreThroatDiameter;
+                SNW = obj.MICP{i}.SNW;
+                
                 hold on
-                plot(obj.MICP{i}.PoreThroatDiameter, obj.MICP{i}.SNW, 'Linewidth', 2)
+                plot(PoreThroatDiameter, SNW, 'Linewidth', 1)
+                
+                x = i/n;
+                if x == 1
+                    y = Pcgw(end);
+                else
+                    y = Pcgw(find(x < SNW, 1));
+                end
+                text(x, y, num2str(obj.MICP{i}.Properties.UserData))
+                
+                
             end
             xlabel('Pore diameter in meters')
             ylabel('S_n_w')
@@ -270,8 +291,17 @@ classdef DCKumanoBasin < BCFormation
             cd(oldDir)
             save('MICP_KB.mat', 'MICPCellArray')
         end
-        function [ result ] = LoadMICP()
+        function [ result , colorOrder ] = LoadMICP()
+            MICPCellArray = [];
+            % Loads MICPCellArray
             load('MICP_KB.mat');
+            
+            n = numel(MICPCellArray);
+            depthOrder = zeros(n, 1);
+            for i = 1:n
+                depthOrder(i) = MICPCellArray{i}.Properties.UserData;
+            end
+            [~, colorOrder] = sort(depthOrder);
             result = MICPCellArray;
         end
     end
