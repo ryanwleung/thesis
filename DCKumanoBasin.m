@@ -48,18 +48,23 @@ classdef DCKumanoBasin < BCFormation
                 end
             end
         end
-
+        
+        
+        
+        
+        
+        
         %%% Plotting subclass functions
-        
-        
         function PlotMICP( obj )
             figure
             n = numel(obj.MICP);            
             for i = 1:n
                 PcGW = obj.MICP{i}.PcGW;
                 SNW = obj.MICP{i}.SNW;
+                
                 hold on
                 plot(SNW, PcGW, 'Linewidth', 1)
+                
                 textTable = obj.MICP{i};
                 textTable(textTable.SNW == 0, :) = [];
                 textIndex = round(i / n * height(textTable));
@@ -81,15 +86,10 @@ classdef DCKumanoBasin < BCFormation
                 hold on
                 plot(PoreThroatDiameter, SNW, 'Linewidth', 1)
                 
-                x = i/n;
-                if x == 1
-                    y = Pcgw(end);
-                else
-                    y = Pcgw(find(x < SNW, 1));
-                end
-                text(x, y, num2str(obj.MICP{i}.Properties.UserData))
-                
-                
+                textTable = obj.MICP{i};
+                textTable(textTable.SNW == 0, :) = [];
+                textIndex = round(i / n * height(textTable));
+                text(textTable.PoreThroatDiameter(textIndex), textTable.SNW(textIndex), num2str(obj.MICP{i}.Properties.UserData))
             end
             xlabel('Pore diameter in meters')
             ylabel('S_n_w')
@@ -109,6 +109,9 @@ classdef DCKumanoBasin < BCFormation
             for i = 1:n
                 hold on
                 plot(obj.MICP{i}.PoreThroatDiameter(1:end - 1), slope{i}, 'Linewidth', 2)
+                
+                [textSlope, textIndex] = max(slope{i});
+                text(obj.MICP{i}.PoreThroatDiameter(textIndex), textSlope, num2str(obj.MICP{i}.Properties.UserData))                
             end
             xlabel('Pore diameter in meters')
             switch stringType
@@ -122,6 +125,9 @@ classdef DCKumanoBasin < BCFormation
             set(gca, 'XDir', 'reverse')
             set(gca, 'Xscale', 'log')
         end
+        
+        
+        
         
         
         

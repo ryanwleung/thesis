@@ -22,9 +22,9 @@ clear variables
 
 formationInstance = DCKumanoBasin();
 formationInstance.PlotMICP();
-% formationInstance.PlotCumPSD();
+formationInstance.PlotCumPSD();
 % formationInstance.PlotPSD( 'linear' );
-% formationInstance.PlotPSD( 'log' );
+formationInstance.PlotPSD( 'log' );
 
 
 
