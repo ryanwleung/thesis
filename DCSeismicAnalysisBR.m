@@ -3,6 +3,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         graphTop
         graphBottom
         
+        quantityArray
+        
         SaturationLF
         Dickens
     end
@@ -24,9 +26,18 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             obj.depthArray = (obj.minDepth : 1 : obj.maxDepth)';
             
-            
+            obj.quantityArray = (1:1:40)';
             
             obj.SaturationLF = obj.LoadPhaseBehaviorBlakeRidge();
+            
+            obj.Dickens = obj.LoadDickensBlakeRidge();
+            
+            
+        end
+        
+        %%% Main function
+        function RunSeismicAnalysisRoutine( obj )
+            
             
             
             
@@ -67,9 +78,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             GasGrid(65:end, 9) = GasGrid(end, 9);
             GasGrid(67:end, 10) = GasGrid(end, 10);
             
-            quantityArray = (6:1:40)';
-            n = numel(quantityArray);
             
+            
+            
+            n = numel(obj.quantityArray);
             
             ThreePhaseTop = zeros(1, n);
             ThreePhaseBottom = zeros(1, n);
@@ -79,7 +91,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             
             for i = 1:n
-                iQuantity = quantityArray(i);
+                iQuantity = obj.quantityArray(i);
                 
                 ThreePhaseTop(i) = sum(~any(GasGrid(:, iQuantity + 1), 2)) + 1;
                 ThreePhaseBottom(i) = sum(any(HydrateGrid(:, iQuantity + 1), 2));
@@ -103,7 +115,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             
         end
-        function [ Dickens ] = LoadDickensBlakeRidge( depthArray , SaturationLF )
+        function [ Dickens ] = LoadDickensBlakeRidge( obj )
             % Returns CH4 quantity vs depth using Dickens et al. 1997
             % Input array is in mbsf
             % Output array is in rounded 
@@ -112,17 +124,20 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             Dickens = load('Blake Ridge Data\Phase Behavior\MethaneQuantity.mat');
             % Column 1 is CH4 quantity
             % Colume 2 is mbsf
-            Dickens.MethaneQuantity(:,1) = Dickens.MethaneQuantity(:,1).*16.04; % conversion from mol CH4 to g CH4 (per dm^3)
+            Dickens.MethaneQuantity(:, 1) = Dickens.MethaneQuantity(:, 1) .* 16.04; % conversion from mol CH4 to g CH4 (per dm^3)
 
             % X is CH4 quantity
             % Y is mbsf
-            [X,Y] = meshgrid( linspace(0,40,41) , depthArray );
+            [X, Y] = meshgrid(linspace(0, 40, 41), obj.depthArray);
+            
+            hydrateSat = [zeros(numel(obj.depthArray), 1), obj.SaturationLF.Hydrate];
+            gasSat = [zeros(numel(obj.depthArray), 1), obj.SaturationLF.Gas];
+            
+            interpSh = interp2(X, Y, hydrateSat, Dickens.MethaneQuantity(:, 1), Dickens.MethaneQuantity(:, 2));
+            interpSg = interp2(X, Y, gasSat, Dickens.MethaneQuantity(:, 1), Dickens.MethaneQuantity(:, 2));
 
-            Sh_interpolated = interp2( X , Y , SaturationLF.Hydrate , Dickens.MethaneQuantity(:,1) , Dickens.MethaneQuantity(:,2) );
-            Sg_interpolated = interp2( X , Y , SaturationLF.Gas , Dickens.MethaneQuantity(:,1) , Dickens.MethaneQuantity(:,2) );
-
-            Dickens.Hydrate = interp1( Dickens.MethaneQuantity(:,2) , Sh_interpolated , depthArray );
-            Dickens.Gas = interp1( Dickens.MethaneQuantity(:,2) , Sg_interpolated , depthArray );
+            Dickens.Hydrate = interp1( Dickens.MethaneQuantity(:,2) , interpSh , obj.depthArray );
+            Dickens.Gas = interp1( Dickens.MethaneQuantity(:,2) , interpSg , obj.depthArray );
 
             Dickens.Hydrate(isnan(Dickens.Hydrate)) = 0;
             Dickens.Gas(isnan(Dickens.Gas)) = 0;
@@ -154,11 +169,11 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % scatter( Sg_interpolated , Dickens.MethaneQuantity(:,2) )
             % hold on
             axis_2 = subplot(2,1,2);
-            h = plot( Dickens.Hydrate , depthArray );
+            h = plot( Dickens.Hydrate , obj.depthArray );
             set(h,'LineWidth',2.5);
             set(h,'Color',[0 .5 0]);
             hold on
-            h = plot( Dickens.Gas , depthArray , 'r--' );
+            h = plot( Dickens.Gas , obj.depthArray , 'r--' );
             set(h,'LineWidth',2.5);
             set(gca,'YDir','Reverse')
             axis([0 0.2 100 600])

@@ -2,6 +2,9 @@ classdef DCBlakeRidge < BCFormation
     properties
         LDT
         DIT
+        GR
+        BRG
+        
         MICP1
         MICP2
     end
@@ -28,6 +31,8 @@ classdef DCBlakeRidge < BCFormation
                         
             obj.LDT = DCBlakeRidge.LoadLDT();
             obj.DIT = DCBlakeRidge.LoadDIT();
+            obj.GR = DCBlakeRidge.LoadGR();
+            obj.BRG = DCBlakeRidge.LoadBRG();
             
             obj.MICP1 = DCBlakeRidge.LoadMICP1();
             obj.MICP2 = DCBlakeRidge.LoadMICP2();
@@ -279,6 +284,91 @@ classdef DCBlakeRidge < BCFormation
             DIT.Fixed_SFLU = interp1(DIT.Depth,DIT.SFLU,DIT.Fixed_Depth);
             
             result = DIT;
+        end
+        function [ result ] = LoadGR()
+            % GR.file_ID = fopen(uigetfile('*.dat','Select Gamma Ray Log'));
+            GR.file_ID = fopen('164-995B_ngt-dit.dat');
+
+            GR.Header1_HOLE = fgetl(GR.file_ID);
+            GR.Header2_LEG = fgetl(GR.file_ID);
+            GR.Header3_TOP = fgetl(GR.file_ID);
+            GR.Header4_BOTTOM = fgetl(GR.file_ID);
+
+            % Add functionality to determine SizeCapture
+            GR.Header5_TOOLNAME = fgets(GR.file_ID);
+            GR.Header6_TOOLUNITS = fgetl(GR.file_ID);
+
+            GR.TOP_DEPTH = sscanf(GR.Header3_TOP,'%*s %f');
+            GR.BOTTOM_DEPTH = sscanf(GR.Header4_BOTTOM,'%*s %f');
+            GR.ScannedData = fscanf(GR.file_ID,'%f',[11 Inf])';
+            fclose(GR.file_ID);
+
+            GR.Depth = GR.ScannedData(:,1);
+            GR.SGR = GR.ScannedData(:,2);
+            GR.CGR = GR.ScannedData(:,3);
+            GR.THOR = GR.ScannedData(:,4);
+            GR.URAN = GR.ScannedData(:,5);
+            GR.POTA = GR.ScannedData(:,6);
+            GR.W1NG = GR.ScannedData(:,7);
+            GR.W2NG = GR.ScannedData(:,8);
+            GR.W3NG = GR.ScannedData(:,9);
+            GR.W4NG = GR.ScannedData(:,10);
+            GR.W5NG = GR.ScannedData(:,11);
+
+            GR.Fixed_Depth_TOP = ceil(GR.TOP_DEPTH);
+            GR.Fixed_Depth_BOTTOM = floor(GR.BOTTOM_DEPTH);
+            GR.Depth_Interval = GR.Fixed_Depth_BOTTOM - GR.Fixed_Depth_TOP + 1;
+            GR.Fixed_Depth = linspace(GR.Fixed_Depth_TOP,GR.Fixed_Depth_BOTTOM,GR.Depth_Interval)';
+
+            GR.Fixed_SGR = interp1(GR.Depth,GR.SGR,GR.Fixed_Depth);
+            GR.Fixed_CGR = interp1(GR.Depth,GR.CGR,GR.Fixed_Depth);
+            GR.Fixed_THOR = interp1(GR.Depth,GR.THOR,GR.Fixed_Depth);
+            GR.Fixed_URAN = interp1(GR.Depth,GR.URAN,GR.Fixed_Depth);
+            GR.Fixed_POTA = interp1(GR.Depth,GR.POTA,GR.Fixed_Depth);
+            GR.Fixed_W1NG = interp1(GR.Depth,GR.W1NG,GR.Fixed_Depth);
+            GR.Fixed_W2NG = interp1(GR.Depth,GR.W2NG,GR.Fixed_Depth);
+            GR.Fixed_W3NG = interp1(GR.Depth,GR.W3NG,GR.Fixed_Depth);
+            GR.Fixed_W4NG = interp1(GR.Depth,GR.W4NG,GR.Fixed_Depth);
+            GR.Fixed_W5NG = interp1(GR.Depth,GR.W5NG,GR.Fixed_Depth);
+            
+            result = GR;
+        end
+        function [ result ] = LoadBRG()
+            % BRG.file_ID = fopen(uigetfile('*.dat','Select Sonic Log'));
+            BRG.file_ID = fopen('164-995B_sst-brg.dat');
+
+            BRG.Header1_TITLE = fgetl(BRG.file_ID);
+            BRG.Header2_HOLE = fgetl(BRG.file_ID);
+            BRG.Header3_LEG = fgetl(BRG.file_ID);
+            BRG.Header4_TOOL = fgetl(BRG.file_ID);
+            BRG.Header5_OPERATOR = fgetl(BRG.file_ID);
+            BRG.Header6_DATE = fgetl(BRG.file_ID);
+            BRG.Header7_BLANK = fgetl(BRG.file_ID);
+            BRG.Header8_NOTE = fgetl(BRG.file_ID);
+            BRG.Header9_DATA = fgetl(BRG.file_ID);
+            BRG.Header10_BLANK = fgetl(BRG.file_ID);
+            BRG.Header11_UNITS = fgetl(BRG.file_ID);
+
+            BRG.ScannedData = fscanf(BRG.file_ID,'%f',[3 Inf])';
+
+            BRG.Depth = flip(BRG.ScannedData(:,1));
+            BRG.VP = flip(BRG.ScannedData(:,2));
+            BRG.VS = flip(BRG.ScannedData(:,3));
+
+            BRG.TOP_DEPTH = BRG.Depth(1);
+            BRG.BOTTOM_DEPTH = BRG.Depth(size(BRG.Depth,1));
+
+            fclose(BRG.file_ID);
+
+            BRG.Fixed_Depth_TOP = ceil(BRG.TOP_DEPTH);
+            BRG.Fixed_Depth_BOTTOM = floor(BRG.BOTTOM_DEPTH);
+            BRG.Depth_Interval = BRG.Fixed_Depth_BOTTOM - BRG.Fixed_Depth_TOP + 1;
+            BRG.Fixed_Depth = linspace(BRG.Fixed_Depth_TOP,BRG.Fixed_Depth_BOTTOM,BRG.Depth_Interval)';
+
+            BRG.Fixed_VP = interp1(BRG.Depth,BRG.VP,BRG.Fixed_Depth);
+            BRG.Fixed_VS = interp1(BRG.Depth,BRG.VS,BRG.Fixed_Depth);
+            
+            result = BRG;
         end
         function [ result ] = LoadMICP1()
             MICP1.file_ID = fopen('MICP1_BR.dat');
