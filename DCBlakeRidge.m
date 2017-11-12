@@ -20,7 +20,8 @@ classdef DCBlakeRidge < BCFormation
 
             obj.seafloorDepth = 2780;           % mbsl
             obj.minDepth = 1;                   % mbsf
-            obj.maxDepth = 650;                 % mbsf
+%             obj.maxDepth = 650;                 % mbsf
+            obj.maxDepth = 700;                 % mbsf
             obj.depthIncrement = 0.5;           % m
             obj.depthArray = (obj.minDepth : obj.depthIncrement : obj.maxDepth)';
             
