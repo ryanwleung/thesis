@@ -20,14 +20,15 @@ clear variables
 %%% the MICP is saved in MATLAB
 % DCKumanoBasin.ExtractMICP();
 
-formationInstance = DCKumanoBasin();
-formationInstance.PlotMICP();
-formationInstance.PlotCumPSD();
-% formationInstance.PlotPSD( 'linear' );
-formationInstance.PlotPSD( 'log' );
+% formationInstance = DCKumanoBasin();
+% formationInstance.PlotMICP();
+% formationInstance.PlotCumPSD();
+% % formationInstance.PlotPSD( 'linear' );
+% formationInstance.PlotPSD( 'log' );
 
 
-
+obj = DCSeismicAnalysisBR();
+obj.RunSeismicAnalysisRoutine();
 
 
 

@@ -2,6 +2,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
     properties
         graphTop
         graphBottom
+        saturationBottom
         
         quantityArray
         
@@ -9,11 +10,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         Dickens
     end
     properties (Constant)
-        referenceTemperature = 18; % deg C
         liuTop = 3200; % mbsl
         liuBottom = 3300; % mbsl
         saturationTop = 200; % mbsf
-        saturationBottom = 650; % mbsf
         
         clayK = 21.2*10^9; % Pa
     end
@@ -23,22 +22,62 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             obj.graphTop = obj.liuTop - obj.seafloorDepth; % mbsf
             obj.graphBottom = obj.liuBottom - obj.seafloorDepth; % mbsf
-            
+            obj.saturationBottom = obj.maxDepth; % mbsf
+
             obj.depthArray = (obj.minDepth : 1 : obj.maxDepth)';
             
-            obj.quantityArray = (1:1:40)';
+            obj.quantityArray = (1 : 1 : 40)';
             
             obj.SaturationLF = obj.LoadPhaseBehaviorBlakeRidge();
             
-            obj.Dickens = obj.LoadDickensBlakeRidge();
+%             obj.Dickens = obj.LoadDickensBlakeRidge();
             
             
         end
         
         %%% Main function
         function RunSeismicAnalysisRoutine( obj )
+            %%% Make main table
+            data = table();
+            data.Depth = obj.depthArray;
+            nDepth = numel(obj.depthArray);
             
-            
+            %%% Load log data into table
+            data.Resistivity = nan(nDepth, 1);
+            data.Resistivity(obj.DIT.Fixed_Depth_TOP : obj.DIT.Fixed_Depth_BOTTOM) = obj.DIT.Fixed_IDPH;
+
+            data.GammaRay = nan(nDepth, 1);
+            data.GammaRay(obj.GR.Fixed_Depth_TOP : obj.GR.Fixed_Depth_BOTTOM) = obj.GR.Fixed_SGR;
+
+            data.VP = nan(nDepth, 1);
+            data.VP(obj.BRG.Fixed_Depth_TOP : obj.BRG.Fixed_Depth_BOTTOM) = obj.BRG.Fixed_VP;
+
+            data.VS = nan(nDepth, 1);
+            data.VS(obj.BRG.Fixed_Depth_TOP : obj.BRG.Fixed_Depth_BOTTOM) = obj.BRG.Fixed_VS;
+
+            data.Density = nan(nDepth, 1);
+            data.Density(obj.LDT.Fixed_Depth_TOP : obj.LDT.Fixed_Depth_BOTTOM) = obj.LDT.Fixed_RHOB;
+
+            %%% Methane quantity for loop
+            nQuantity = numel(obj.quantityArray);
+            for iQuantity = 1:nQuantity
+                quantity = obj.quantityArray(iQuantity);
+                
+
+                
+                data.Sh = obj.SaturationLF.Hydrate(:, iQuantity);
+                data.Sg = obj.SaturationLF.Gas(:, iQuantity);
+                data.Sw = 1 - data.Sh - data.Sg;
+                
+                
+                % Gets indices of depths at BSR and BGHSZ
+                Wave.BSR = find(data.Depth == obj.graphTop + obj.SaturationLF.Top3P(iQuantity));
+                Wave.BGHSZ = find(data.Depth == obj.graphTop + obj.SaturationLF.Bottom3P(iQuantity));
+                Wave.rickerFrequency = 30;
+                
+                data.Porosity = obj.CalcPorosity(data.Resistivity, data.Sw);
+                
+            end
             
             
             
@@ -199,7 +238,42 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         
         
         
-        
+        function [ Porosity ] = CalcPorosity( obj , Rt , Sw )
+            % Calculates Rw based on Ro, To, and T at the specified depth
+
+            depth = obj.depthArray ./ 1000;         % convert to km
+            temperatureGradient995 = 38.5;   % C deg/km (36.9 for well 997)
+            seafloorTemperature995 = 3;  % C deg
+
+            referenceRo = .24;         % ohm-m (.223)
+            referenceTemp = 18;        % C deg, given in input geophysics file
+
+            a = 0.9;
+            m = 2.7;
+            n = 1.9386;
+
+            temperature = seafloorTemperature995 + depth .* temperatureGradient995;
+            Rw = referenceRo .* (referenceTemp + 21.5) ./ (temperature + 21.5);
+            Porosity = (a .* Rw ./ Rt ...
+                            ./ (Sw .^ n)) ...
+                            .^ (1 ./ m);
+            
+            %%% OLD CODE
+            %{
+            Assumed_PPM = 32;
+
+            % best fit function
+            Ro = .8495 + 2.986e-4.*Depth*1000;
+
+            Saturation_Hydrate = 1 - (Ro./Resistivity_t).^(1/Coeff_n);
+            Saturation_Hydrate(Saturation_Hydrate<0)=0;
+
+            Old_Porosity = (Coeff_a.*Rw./Resistivity_t).^(1/Coeff_m);
+            Old_Porosity_Corrected = Old_Porosity./(1 - Saturation_Hydrate);
+            %}
+        end
+
+
         
         
         
