@@ -22,9 +22,31 @@ clear variables
 
 % formationInstance = DCKumanoBasin();
 % formationInstance.PlotMICP();
+<<<<<<< HEAD
+% formationInstance.
+PlotCumPSD();
+% % formationInstance.PlotPSD( 'linear' );
+% formationInstance.PlotPSD( 'log' );
+<<<<<<< HEAD
+
+
+seismicInstance = DCSeismicAnalysisBR();
+seismicInstance.RunSeismicAnalysisRoutine();
+
+
+
+
+
+
+
+
+=======
+>>>>>>> 75fb1eba223d99279a20e43402f14bd6462377f2
+=======
 % formationInstance.PlotCumPSD();
 % % formationInstance.PlotPSD( 'linear' );
 % formationInstance.PlotPSD( 'log' );
+>>>>>>> 75fb1eba223d99279a20e43402f14bd6462377f2
 
 
 obj = DCSeismicAnalysisBR();
