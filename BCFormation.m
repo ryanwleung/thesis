@@ -114,7 +114,7 @@ classdef BCFormation < handle
         %%% General calculations
         function [ pressure ] = CalcPressure( obj , depth )
             hydrostaticGradient = obj.waterDensity / 1000 * .433 .* 22620.6; % pa/m (converted from psi/ft)
-            hydrostaticGradient = 10 * 1e6 / 1000;
+%             hydrostaticGradient = 10 * 1e6 / 1000;
             pressure = hydrostaticGradient.*(depth + obj.seafloorDepth); % Pa
 
         end

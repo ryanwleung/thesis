@@ -14,9 +14,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         liuBottom = 3300; % mbsl
         saturationTop = 200; % mbsf
         
+        sandK = 38*10^9; % Pa
         clayK = 21.2*10^9; % Pa
+        waterK = 2.688*10^9; % Pa
+        
     end
     methods
+        %%% Constructor
         function [ obj ] = DCSeismicAnalysisBR()
             obj@DCBlakeRidge()
             
@@ -42,21 +46,26 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             data.Depth = obj.depthArray;
             nDepth = numel(obj.depthArray);
             
+            data.Pressure = obj.CalcPressure(data.Depth);
+            
             %%% Load log data into table
             data.Resistivity = nan(nDepth, 1);
             data.Resistivity(obj.DIT.Fixed_Depth_TOP : obj.DIT.Fixed_Depth_BOTTOM) = obj.DIT.Fixed_IDPH;
-
+            
             data.GammaRay = nan(nDepth, 1);
             data.GammaRay(obj.GR.Fixed_Depth_TOP : obj.GR.Fixed_Depth_BOTTOM) = obj.GR.Fixed_SGR;
-
+            
+            % VP in m^3/s
             data.VP = nan(nDepth, 1);
             data.VP(obj.BRG.Fixed_Depth_TOP : obj.BRG.Fixed_Depth_BOTTOM) = obj.BRG.Fixed_VP;
-
+            
+            % VS in m^3/s
             data.VS = nan(nDepth, 1);
             data.VS(obj.BRG.Fixed_Depth_TOP : obj.BRG.Fixed_Depth_BOTTOM) = obj.BRG.Fixed_VS;
-
-            data.Density = nan(nDepth, 1);
-            data.Density(obj.LDT.Fixed_Depth_TOP : obj.LDT.Fixed_Depth_BOTTOM) = obj.LDT.Fixed_RHOB;
+            
+            % Density in kg/m^3
+            data.BulkDensity = nan(nDepth, 1);
+            data.BulkDensity(obj.LDT.Fixed_Depth_TOP : obj.LDT.Fixed_Depth_BOTTOM) = obj.LDT.Fixed_RHOB .* 1000;
 
             %%% Methane quantity for loop
             nQuantity = numel(obj.quantityArray);
@@ -77,6 +86,42 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 
                 data.Porosity = obj.CalcPorosity(data.Resistivity, data.Sw);
                 
+                % Gas bulk modulus in Pa
+                data.GasK = data.Pressure;
+                
+                % Bulk modulus from VP and VS in Pa
+                data.BulkK = data.BulkDensity .* (data.VP .^ 2 - (4/3) .* (data.VS .^ 2));
+                
+                
+                
+                hydrateK = 6.414*10^9; % Pa
+                
+                % Fluid modulus using isostress average (volume-weighted harmonic mean) 
+                data.FluidK = 1 ./ ...
+                                (data.Sw ./ obj.waterK ...
+                               + data.Sg ./ data.GasK ...
+                               + data.Sh ./ hydrateK);
+                
+                data.GrainK = obj.CalcGrainK(data.GammaRay);
+                
+                data.FrameK = obj.CalcFrameK(data.Porosity, data.GrainK);
+                
+                data.ShearG = data.BulkDensity .* data.VS .^ 2;
+                
+                %%% Fluid substitution
+                data.BulkKFS = obj.CalcBulkKFluidSubstituted(data.Porosity, data.FluidK, data.GrainK, data.FrameK);
+                
+                data.BulkDensityFS = obj.CalcBulkDensityFluidSubstituted(data.GammaRay, data.Porosity, data.Sw, data.Sg, data.Sh);
+                
+                data.VSFS = (data.ShearG ./ data.BulkDensityFS) .^ (1/2);
+                
+                data.VPFS = ( data.BulkKFS ./ data.BulkDensityFS ...
+                                + (4/3) .* data.VSFS .^ 2 ...
+                            ) .^ (1/2);
+                
+                Wave = obj.FindIntervalOfOneSeismicWavelength(data.VPFS, Wave);
+                
+                
             end
             
             
@@ -84,6 +129,150 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         
         
+        %%% Rock physics calculations
+        function [ Porosity ] = CalcPorosity( obj , Rt , Sw )
+            % Calculates Rw based on Ro, To, and T at the specified depth
+
+            depth = obj.depthArray ./ 1000;         % convert to km
+            temperatureGradient995 = 38.5;   % C deg/km (36.9 for well 997)
+            seafloorTemperature995 = 3;  % C deg
+
+            referenceRo = .24;         % ohm-m (.223)
+            referenceTemp = 18;        % C deg, given in input geophysics file
+
+            a = 0.9;
+            m = 2.7;
+            n = 1.9386;
+
+            temperature = seafloorTemperature995 + depth .* temperatureGradient995;
+            Rw = referenceRo .* (referenceTemp + 21.5) ./ (temperature + 21.5);
+            Porosity = (a .* Rw ./ Rt ...
+                            ./ (Sw .^ n)) ...
+                            .^ (1 ./ m);
+            
+            %%% OLD CODE
+            %{
+            Assumed_PPM = 32;
+
+            % best fit function
+            Ro = .8495 + 2.986e-4.*Depth*1000;
+
+            Saturation_Hydrate = 1 - (Ro./Resistivity_t).^(1/Coeff_n);
+            Saturation_Hydrate(Saturation_Hydrate<0)=0;
+
+            Old_Porosity = (Coeff_a.*Rw./Resistivity_t).^(1/Coeff_m);
+            Old_Porosity_Corrected = Old_Porosity./(1 - Saturation_Hydrate);
+            %}
+        end
+        function [ grainK ] = CalcGrainK( obj , gamma )  
+            % Assumed normalizing terms
+            shaleFreeSGR = 12;
+            shalePureSGR = 110;
+            
+            distanceSGR = shalePureSGR - shaleFreeSGR;
+            gammaNormalized = (gamma - shaleFreeSGR) ./ distanceSGR;
+            gammaNormalized(gammaNormalized < 0) = 0;
+            gammaNormalized(gammaNormalized > 1) = 1;
+            
+            voigtK = gammaNormalized .* obj.clayK ...
+                    + (1 - gammaNormalized) .* obj.sandK;
+            reussK = (obj.sandK .* obj.clayK) ...
+                        ./ (gammaNormalized .* obj.sandK ...
+                            + (1 - gammaNormalized) .* obj.clayK);
+            grainK = (1/2) .* (voigtK + reussK);
+        end
+        function [ frameK ] = CalcFrameK( ~ , porosity , grainK )
+            
+            frameK = grainK ...
+                    .* 10 .^ (3.02 - 7.372 .* porosity);
+            return
+            
+            frameK = grainK .* (bulkK .* (porosity .* (grainK - fluidK) + fluidK) - grainK .* fluidK) ...
+                ./ (porosity .* grainK .* (grainK - fluidK) + fluidK .* (bulkK - grainK));
+        end
+        function [ bulkKFS ] = CalcBulkKFluidSubstituted( ~ , porosity , fluidK , grainK , frameK )
+            
+            Q = (fluidK .* (grainK - frameK)) ...
+                ./ (porosity .* (grainK - fluidK));
+            
+            bulkKFS = grainK .* ((frameK + Q) ...
+                                ./ (grainK + Q));   
+        end
+        function [ bulkDensityFS ] = CalcBulkDensityFluidSubstituted( obj , gamma , porosity , Sw , Sg , Sh )
+            waterDensity = obj.waterDensity / 1000; % g/cm^3
+            gasDensity = 0.3; % g/cm^3
+            hydrateDensity = (0.924 + 0.933) / 2; % g/cm^3
+            clayDensity = 2.6; % g/cm^3
+            sandDensity = 2.7; % g/cm^3
+            
+            shaleFreeSGR = 12;
+            shalePureSGR = 110;
+            
+            distanceSGR = shalePureSGR - shaleFreeSGR;
+            gammaNormalized = (gamma - shaleFreeSGR)./distanceSGR;
+            gammaNormalized(gammaNormalized < 0) = 0;
+            gammaNormalized(gammaNormalized > 1) = 1;
+            
+            porosity(porosity < 0) = 0;
+            porosity(porosity > 1) = 1;
+            
+            fluidDensity = Sw .* waterDensity ...
+                         + Sg .* gasDensity ...
+                         + Sh .* hydrateDensity;
+             
+            matrixDensity = gammaNormalized .* clayDensity ...
+                            + (1 - gammaNormalized) .* sandDensity;
+            
+            bulkDensityFS = porosity .* fluidDensity ...
+                            + (1 - porosity) .* matrixDensity;
+            
+            bulkDensityFS = bulkDensityFS .* 1000; % convert g/cm^3 to kg/m^3
+        end
+        function [ Wave ] = FindIntervalOfOneSeismicWavelength( ~ , VPFS , Wave )
+            % This finds the index above the BSR and the index below the
+            % BGHSZ to have an interval over which we average the fluid
+            % substituted parameters
+            % 
+            % Calculates the average VP starting with depth one meter above
+            % the BSR and finds the wavelength using lambda = VP/freqency
+            %
+            % Iterates by increasing this search interval until the
+            % calculated wavelength lambda = the thickness of the search
+            % interval
+            
+            if isempty(Wave.BSR) || isempty(Wave.BGHSZ)
+                Wave.topWavelengthIndex = [];
+                Wave.bottomWavelengthIndex = [];
+                return
+            end
+            
+            
+            iterateTop = true;
+            iterateBottom = true;
+            iterationThickness = 0;
+            
+            while iterateTop || iterateBottom
+                iterationThickness = iterationThickness + 1;
+                
+                topVelocity = mean(VPFS(Wave.BSR - iterationThickness : Wave.BSR - 1));
+                topWavelength = topVelocity / Wave.rickerFrequency;
+                
+                bottomVelocity = mean(VPFS(Wave.BGHSZ + 1 : Wave.BGHSZ + iterationThickness));
+                bottomWavelength = bottomVelocity / Wave.rickerFrequency;
+                
+                if iterateTop && (topWavelength - iterationThickness) < 0.5
+                    Wave.topWavelengthIndex = Wave.BSR - iterationThickness;
+                    iterateTop = false;
+                end
+                
+                if iterateBottom && (bottomWavelength - iterationThickness) < 0.5
+                    Wave.bottomWavelengthIndex = Wave.BGHSZ + iterationThickness;
+                    iterateBottom = false;
+                end
+            end
+        end
+        
+        %%% Loading methods
         function [ SaturationLF ] = LoadPhaseBehaviorBlakeRidge( obj )
             % Loads saturation data from hydrate and gas grabit array .mat files and
             % saves into struct Saturation with fields 'Hydrate' and 'Gas'
@@ -117,24 +306,26 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             GasGrid(65:end, 9) = GasGrid(end, 9);
             GasGrid(67:end, 10) = GasGrid(end, 10);
             
-            
-            
-            
             n = numel(obj.quantityArray);
             
-            ThreePhaseTop = zeros(1, n);
-            ThreePhaseBottom = zeros(1, n);
+            ThreePhaseTop = nan(1, n);
+            ThreePhaseBottom = nan(1, n);
             
             HydrateFull = zeros(numel(obj.depthArray), n);
             GasFull = zeros(numel(obj.depthArray), n);
             
-            
             for i = 1:n
                 iQuantity = obj.quantityArray(i);
                 
-                ThreePhaseTop(i) = sum(~any(GasGrid(:, iQuantity + 1), 2)) + 1;
-                ThreePhaseBottom(i) = sum(any(HydrateGrid(:, iQuantity + 1), 2));
+                hasGasLogical = GasGrid(:, iQuantity + 1) > 0;
+                if any(hasGasLogical)
+                    ThreePhaseTop(i) = find(hasGasLogical, 1, 'first');
+                end
                 
+                hasHydrateLogical = HydrateGrid(:, iQuantity + 1) > 0;
+                if any(hasHydrateLogical)
+                    ThreePhaseBottom(i) = find(hasHydrateLogical, 1, 'last');
+                end
                 
                 HydrateFull(obj.saturationTop:obj.graphTop - 1, i) = HydrateGrid(1, i);
                 HydrateFull(obj.graphTop:obj.graphBottom, i) = HydrateGrid(:, i);
@@ -232,48 +423,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             figure_1.Position(3) = 320;
             set(findall(figure_1,'-property','FontSize'),'FontSize',8)
             set(findall(figure_1,'-property','FontName'),'FontName','Arial')
-        end
+        end        
         
         
-        
-        
-        
-        function [ Porosity ] = CalcPorosity( obj , Rt , Sw )
-            % Calculates Rw based on Ro, To, and T at the specified depth
-
-            depth = obj.depthArray ./ 1000;         % convert to km
-            temperatureGradient995 = 38.5;   % C deg/km (36.9 for well 997)
-            seafloorTemperature995 = 3;  % C deg
-
-            referenceRo = .24;         % ohm-m (.223)
-            referenceTemp = 18;        % C deg, given in input geophysics file
-
-            a = 0.9;
-            m = 2.7;
-            n = 1.9386;
-
-            temperature = seafloorTemperature995 + depth .* temperatureGradient995;
-            Rw = referenceRo .* (referenceTemp + 21.5) ./ (temperature + 21.5);
-            Porosity = (a .* Rw ./ Rt ...
-                            ./ (Sw .^ n)) ...
-                            .^ (1 ./ m);
-            
-            %%% OLD CODE
-            %{
-            Assumed_PPM = 32;
-
-            % best fit function
-            Ro = .8495 + 2.986e-4.*Depth*1000;
-
-            Saturation_Hydrate = 1 - (Ro./Resistivity_t).^(1/Coeff_n);
-            Saturation_Hydrate(Saturation_Hydrate<0)=0;
-
-            Old_Porosity = (Coeff_a.*Rw./Resistivity_t).^(1/Coeff_m);
-            Old_Porosity_Corrected = Old_Porosity./(1 - Saturation_Hydrate);
-            %}
-        end
-
-
+        %%% Unused methods
         
         
         
@@ -282,4 +435,26 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         
     end
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
