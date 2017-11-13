@@ -121,6 +121,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 
                 Wave = obj.FindIntervalOfOneSeismicWavelength(data.VPFS, Wave);
                 
+                originalResolutionFlag = true;
+                
+                [ data , Wave ] = obj.CalcAverageProperties(data, Wave, originalResolutionFlag);
                 
             end
             
@@ -271,6 +274,56 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 end
             end
         end
+        function [ data , Wave ] = CalcAverageProperties( obj , data , Wave , originalResolutionFlag )
+            
+            data.VPFSAvg = data.VPFS;
+            data.BulkDensityFSAvg = data.BulkDensityFS;
+            data.VSFSAvg = data.VSFS;
+            
+            if isempty(Wave.topWavelengthIndex) || isempty(Wave.bottomWavelengthIndex)
+                return
+            end
+            
+            Wave.topLimit = obj.saturationTop;
+            
+            % Averaged VP
+            AVO.vp1 = mean(data.VPFSAvg(Wave.topWavelengthIndex : Wave.BSR - 1));
+            AVO.vp2 = mean(data.VPFSAvg(Wave.BSR : Wave.BGHSZ));
+            AVO.vp3 = mean(data.VPFSAvg(Wave.BGHSZ + 1 : Wave.bottomWavelengthIndex));
+            
+            data.VPFSAvg(Wave.topLimit : Wave.BSR - 1) = AVO.vp1;
+            if ~originalResolutionFlag
+                data.VPFSAvg(Wave.BSR : Wave.BGHSZ) = AVO.vp2;
+            end
+            data.VPFSAvg(Wave.BGHSZ + 1 : end) = AVO.vp3;
+            
+            
+            % Averaged Density
+            AVO.density1 = mean(data.BulkDensityFSAvg(Wave.topWavelengthIndex : Wave.BSR - 1));
+            AVO.density2 = mean(data.BulkDensityFSAvg(Wave.BSR : Wave.BGHSZ));
+            AVO.density3 = mean(data.BulkDensityFSAvg(Wave.BGHSZ + 1 : Wave.bottomWavelengthIndex));
+            
+            data.BulkDensityFSAvg(Wave.topLimit : Wave.BSR - 1) = AVO.density1;
+            if ~originalResolutionFlag
+                data.BulkDensityFSAvg(Wave.BSR : Wave.BGHSZ) = AVO.density2;
+            end
+            data.BulkDensityFSAvg(Wave.BGHSZ + 1 : end) = AVO.density3;
+            
+            
+            % Averaged VS            
+            AVO.vs1 = mean(data.VSFSAvg(Wave.topWavelengthIndex : Wave.BSR - 1));
+            AVO.vs2 = mean(data.VSFSAvg(Wave.BSR : Wave.BGHSZ));
+            AVO.vs3 = mean(data.VSFSAvg(Wave.BGHSZ + 1 : Wave.bottomWavelengthIndex));
+            
+            data.VSFSAvg(Wave.topLimit : Wave.BSR - 1) = AVO.vs1;
+            if ~originalResolutionFlag
+                data.VSFSAvg(Wave.BSR : Wave.BGHSZ) = AVO.vs2;
+            end
+            data.VSFSAvg(Wave.BGHSZ + 1 : end) = AVO.vs3;
+        end
+        
+        
+        
         
         %%% Loading methods
         function [ SaturationLF ] = LoadPhaseBehaviorBlakeRidge( obj )
