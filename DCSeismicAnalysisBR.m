@@ -40,11 +40,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         
         %%% Main function
-        function RunSeismicAnalysisRoutine( obj )
+        function [ data , Wave ] = RunSeismicAnalysisRoutine( obj )
             %%% Make main table
             data = table();
             data.Depth = obj.depthArray;
             nDepth = numel(obj.depthArray);
+                        
+            
+            
             
             data.Pressure = obj.CalcPressure(data.Depth);
             
@@ -69,10 +72,17 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
 
             %%% Methane quantity for loop
             nQuantity = numel(obj.quantityArray);
+            
+            % Instantiate storage variables
+            Wave.seismogram = cell(nQuantity, 1);
+            Wave.reflectance = cell(nQuantity, 2);
+            Wave.thickness3P = cell(nQuantity, 1);
+            Wave.peak = cell(nQuantity, 2);
+            Wave.trough = cell(nQuantity, 2);
+            
             for iQuantity = 1:nQuantity
                 quantity = obj.quantityArray(iQuantity);
                 
-
                 
                 data.Sh = obj.SaturationLF.Hydrate(:, iQuantity);
                 data.Sg = obj.SaturationLF.Gas(:, iQuantity);
@@ -87,37 +97,30 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 data.Porosity = obj.CalcPorosity(data.Resistivity, data.Sw);
                 
                 % Gas bulk modulus in Pa
-                data.GasK = data.Pressure;
+                data.GasK = obj.CalcGasK(data.Pressure);
                 
                 % Bulk modulus from VP and VS in Pa
-                data.BulkK = data.BulkDensity .* (data.VP .^ 2 - (4/3) .* (data.VS .^ 2));
-                
-                
+                data.BulkK = obj.CalcBulkK(data.BulkDensity, data.VP, data.VS);
                 
                 hydrateK = 6.414*10^9; % Pa
                 
                 % Fluid modulus using isostress average (volume-weighted harmonic mean) 
-                data.FluidK = 1 ./ ...
-                                (data.Sw ./ obj.waterK ...
-                               + data.Sg ./ data.GasK ...
-                               + data.Sh ./ hydrateK);
+                data.FluidK = obj.CalcFluidK(data.Sw, obj.waterK, data.Sg, data.GasK, data.Sh, hydrateK);
                 
                 data.GrainK = obj.CalcGrainK(data.GammaRay);
                 
                 data.FrameK = obj.CalcFrameK(data.Porosity, data.GrainK);
                 
-                data.ShearG = data.BulkDensity .* data.VS .^ 2;
+                data.ShearG = obj.CalcShearG(data.BulkDensity, data.VS);
                 
                 %%% Fluid substitution
                 data.BulkKFS = obj.CalcBulkKFluidSubstituted(data.Porosity, data.FluidK, data.GrainK, data.FrameK);
                 
                 data.BulkDensityFS = obj.CalcBulkDensityFluidSubstituted(data.GammaRay, data.Porosity, data.Sw, data.Sg, data.Sh);
                 
-                data.VSFS = (data.ShearG ./ data.BulkDensityFS) .^ (1/2);
+                data.VSFS = obj.CalcVSFS(data.ShearG, data.BulkDensityFS);
                 
-                data.VPFS = ( data.BulkKFS ./ data.BulkDensityFS ...
-                                + (4/3) .* data.VSFS .^ 2 ...
-                            ) .^ (1/2);
+                data.VPFS = obj.CalcVPFS(data.BulkKFS, data.BulkDensityFS, data.VSFS);
                 
                 Wave = obj.FindIntervalOfOneSeismicWavelength(data.VPFS, Wave);
                 
@@ -125,10 +128,30 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 
                 [ data , Wave ] = obj.CalcAverageProperties(data, Wave, originalResolutionFlag);
                 
+                data.Impedance = obj.CalcImpedance(data.BulkDensityFSAvg, data.VPFSAvg);
+                
+                data.ReflectionCoefficient = obj.CalcReflectionCoefficient(data.Impedance);
+                
+                data.ConvolutionDt = obj.CalcConvolutionDt(data.VPFS, data.VPFSAvg, originalResolutionFlag);
+                
+                data.TimeSeries = obj.CalcTimeSeries(data.ConvolutionDt);
+                
+                
+                
+                [ ~ , ~ , Wave.seismogram{iQuantity} ] = obj.CalcSeismogram( Wave.rickerFrequency , data.TimeSeries , data.ReflectionCoefficient );
+                
+                [ peakValue , peakIndex ] = findpeaks(Wave.seismogram{iQuantity});
+                Wave.peak{iQuantity, 1} = peakValue(1);
+                Wave.peak{iQuantity, 2} = peakValue(2);
+%                 Wave.trough = 
+                Wave.thickness3P{iQuantity} = data.Depth(Wave.BGHSZ) - data.Depth(Wave.BSR);
+                
+                
+                
+                
+                
+                
             end
-            
-            
-            
         end
         
         
@@ -167,6 +190,18 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             Old_Porosity_Corrected = Old_Porosity./(1 - Saturation_Hydrate);
             %}
         end
+        function [ gasK ] = CalcGasK( ~ , hydrostaticPressure )
+            gasK = hydrostaticPressure;
+        end
+        function [ bulkK ] = CalcBulkK( ~ , bulkDensity , VP , VS )
+            bulkK = bulkDensity .* (VP .^ 2 - (4/3) .* (VS .^ 2));
+        end
+        function [ fluidK ] = CalcFluidK( ~ , Sw , waterK , Sg , gasK , Sh , hydrateK )
+            fluidK = 1 ./ ...
+                    (Sw ./ waterK ...
+                   + Sg ./ gasK ...
+                   + Sh ./ hydrateK);
+        end
         function [ grainK ] = CalcGrainK( obj , gamma )  
             % Assumed normalizing terms
             shaleFreeSGR = 12;
@@ -192,6 +227,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             frameK = grainK .* (bulkK .* (porosity .* (grainK - fluidK) + fluidK) - grainK .* fluidK) ...
                 ./ (porosity .* grainK .* (grainK - fluidK) + fluidK .* (bulkK - grainK));
+        end
+        function [ shearG ] = CalcShearG( ~ , bulkDensity , VS )
+            shearG = bulkDensity .* VS .^ 2;
         end
         function [ bulkKFS ] = CalcBulkKFluidSubstituted( ~ , porosity , fluidK , grainK , frameK )
             
@@ -230,6 +268,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                             + (1 - porosity) .* matrixDensity;
             
             bulkDensityFS = bulkDensityFS .* 1000; % convert g/cm^3 to kg/m^3
+        end
+        function [ VSFS ] = CalcVSFS( ~ , shearG , bulkDensityFS )
+            VSFS = (shearG ./ bulkDensityFS) .^ (1/2);
+        end
+        function [ VPFS ] = CalcVPFS( ~ , bulkKFS , bulkDensityFS , VSFS )
+            VPFS = ( bulkKFS ./ bulkDensityFS ...
+                        + (4/3) .* VSFS .^ 2 ...
+                   ) .^ (1/2);
         end
         function [ Wave ] = FindIntervalOfOneSeismicWavelength( ~ , VPFS , Wave )
             % This finds the index above the BSR and the index below the
@@ -321,6 +367,49 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             data.VSFSAvg(Wave.BGHSZ + 1 : end) = AVO.vs3;
         end
+        function [ impedance ] = CalcImpedance( ~ , bulkDensityFSAvg , VPFSAvg )
+            impedance = bulkDensityFSAvg .* VPFSAvg;
+        end
+        function [ reflectionCoefficient ] = CalcReflectionCoefficient( ~ , impedance )
+            I1 = impedance(1 : end - 1);
+            I2 = impedance(2 : end);
+            R = (I1 - I2) ...
+             ./ (I1 + I2);
+            
+            reflectionCoefficient = [R; 0];
+        end
+        function [ dt ] = CalcConvolutionDt( ~ , VPFS , VPFSAvg , originalResolutionFlag )
+            if originalResolutionFlag
+                dt = 1 ./ VPFS;
+            else
+                dt = 1 ./ VPFSAvg;
+            end
+        end
+        function [ timeSeries ] = CalcTimeSeries( ~ , convolutionDt )
+            convolutionDt(isnan(convolutionDt)) = 0;
+            timeSeries = cumsum(convolutionDt);
+        end
+        function [ F , T , C ] = CalcSeismogram( ~ , rickerFrequency , timeSeries , reflectionCoefficient )
+            
+            reflectionCoefficient(isnan(reflectionCoefficient)) = 0;
+            
+            
+            f = (1 - 2 * pi ^ 2 * rickerFrequency ^ 2 .* timeSeries .^ 2) ...
+                .* exp(-1 * pi ^ 2 * rickerFrequency ^ 2 .* timeSeries .^ 2);
+            F = flipud(f);
+            F(end + 1 : end + length(timeSeries)) = f;
+            T = flipud(timeSeries .* -1);
+            T(end + 1 : end + length(timeSeries)) = timeSeries;
+            C = filter(reflectionCoefficient, 1, F);
+            C = C(end / 2 + 1 : end);
+        end
+%         function [  ] = ( obj )
+%             
+%         end
+        
+        
+        
+        
         
         
         
@@ -476,7 +565,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             figure_1.Position(3) = 320;
             set(findall(figure_1,'-property','FontSize'),'FontSize',8)
             set(findall(figure_1,'-property','FontName'),'FontName','Arial')
-        end        
+        end
         
         
         %%% Unused methods

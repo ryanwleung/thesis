@@ -29,7 +29,7 @@ clear variables
 
 
 obj = DCSeismicAnalysisBR();
-obj.RunSeismicAnalysisRoutine();
+[ data , Wave ] = obj.RunSeismicAnalysisRoutine();
 
 
 
