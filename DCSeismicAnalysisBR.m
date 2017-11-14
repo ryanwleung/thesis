@@ -39,13 +39,12 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
         end
         
-        %%% Main function
-        function [ data , Wave ] = RunSeismicAnalysisRoutine( obj )
+        %%% Main methods
+        function [ data , Wave ] = RunSeismicAnalysisRoutine( obj , caseString )
             %%% Make main table
             data = table();
             data.Depth = obj.depthArray;
             nDepth = numel(obj.depthArray);
-                        
             
             
             
@@ -69,21 +68,47 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % Density in kg/m^3
             data.BulkDensity = nan(nDepth, 1);
             data.BulkDensity(obj.LDT.Fixed_Depth_TOP : obj.LDT.Fixed_Depth_BOTTOM) = obj.LDT.Fixed_RHOB .* 1000;
-
+            
+            
+            %%% Adjust for parameter sensitivity
+            switch caseString
+                case 'ParameterSensitivity'
+                    upperBoundIndex = 415;
+                    lowerBoundIndex = 630;
+                    data.Resistivity(:) = mean(data.Resistivity(upperBoundIndex : lowerBoundIndex));
+                    data.GammaRay(:) = mean(data.GammaRay(upperBoundIndex : lowerBoundIndex));
+                    data.VP(:) = mean(data.VP(upperBoundIndex : lowerBoundIndex));
+                    data.VS(:) = mean(data.VS(upperBoundIndex : lowerBoundIndex));
+                    data.BulkDensity(:) = mean(data.BulkDensity(upperBoundIndex : lowerBoundIndex));
+            end
+            
+            
+            
+            
+            
+            
+            
+            
             %%% Methane quantity for loop
             nQuantity = numel(obj.quantityArray);
             
             % Instantiate storage variables
             Wave.seismogram = cell(nQuantity, 1);
-            Wave.reflectance = cell(nQuantity, 2);
             Wave.thickness3P = cell(nQuantity, 1);
             Wave.peak = cell(nQuantity, 2);
-            Wave.trough = cell(nQuantity, 2);
+            Wave.time = cell(nQuantity, 1);
+            Wave.depth = data.Depth;
+            
+            Wave.bulkKFS = cell(nQuantity, 1);
+            Wave.bulkDensityFS = cell(nQuantity, 1);
+            Wave.VSFS = cell(nQuantity, 1);
+            Wave.VPFS = cell(nQuantity, 1);
+            
             
             for iQuantity = 1:nQuantity
                 quantity = obj.quantityArray(iQuantity);
                 
-                
+                %{
                 data.Sh = obj.SaturationLF.Hydrate(:, iQuantity);
                 data.Sg = obj.SaturationLF.Gas(:, iQuantity);
                 data.Sw = 1 - data.Sh - data.Sg;
@@ -139,23 +164,91 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 
                 
                 [ ~ , ~ , Wave.seismogram{iQuantity} ] = obj.CalcSeismogram( Wave.rickerFrequency , data.TimeSeries , data.ReflectionCoefficient );
+                %}
                 
-                [ peakValue , peakIndex ] = findpeaks(Wave.seismogram{iQuantity});
+                
+                [ seismogram , timeSeries , thickness , parameterSensitivity ] ...
+                    = obj.RunRockPhysicsRoutine(data, Wave, iQuantity, caseString);
+                
+                
+                Wave.seismogram{iQuantity} = seismogram;
+                Wave.time{iQuantity} = timeSeries;
+                Wave.thickness3P{iQuantity} = thickness;
+                
+                [ peakValue , peakIndex ] = findpeaks(seismogram);
                 Wave.peak{iQuantity, 1} = peakValue(1);
                 Wave.peak{iQuantity, 2} = peakValue(2);
-%                 Wave.trough = 
-                Wave.thickness3P{iQuantity} = data.Depth(Wave.BGHSZ) - data.Depth(Wave.BSR);
                 
-                
-                
-                
+                Wave.bulkKFS{iQuantity} = parameterSensitivity.bulkKFS;
+                Wave.bulkDensityFS{iQuantity} = parameterSensitivity.bulkDensityFS;
+                Wave.VSFS{iQuantity} = parameterSensitivity.VSFS;
+                Wave.VPFS{iQuantity} = parameterSensitivity.VPFS;
                 
                 
             end
         end
+        function [ seismogram , timeSeries , thickness , parameterSensitivity ] = ...
+                RunRockPhysicsRoutine( obj , data , Wave , iQuantity , caseString )
+            
+            seismogram = [];
+            timeSeries = [];
+            thickness = [];
+            parameterSensitivity = [];
+            
+            
+            
+            
+            
+            
+            data.Sh = obj.SaturationLF.Hydrate(:, iQuantity);
+            data.Sg = obj.SaturationLF.Gas(:, iQuantity);
+            data.Sw = 1 - data.Sh - data.Sg;
+            % Gets indices of depths at BSR and BGHSZ
+            Wave.BSR = find(data.Depth == obj.graphTop + obj.SaturationLF.Top3P(iQuantity));
+            Wave.BGHSZ = find(data.Depth == obj.graphTop + obj.SaturationLF.Bottom3P(iQuantity));
+            Wave.rickerFrequency = 30;
+            data.Porosity = obj.CalcPorosity(data.Resistivity, data.Sw);
+            % Gas bulk modulus in Pa
+            data.GasK = obj.CalcGasK(data.Pressure);
+            % Bulk modulus from VP and VS in Pa
+            data.BulkK = obj.CalcBulkK(data.BulkDensity, data.VP, data.VS);
+            hydrateK = 6.414*10^9; % Pa
+            % Fluid modulus using isostress average (volume-weighted harmonic mean) 
+            data.FluidK = obj.CalcFluidK(data.Sw, obj.waterK, data.Sg, data.GasK, data.Sh, hydrateK);
+            data.GrainK = obj.CalcGrainK(data.GammaRay);
+            data.FrameK = obj.CalcFrameK(data.Porosity, data.GrainK);
+            data.ShearG = obj.CalcShearG(data.BulkDensity, data.VS);
+
+            %%% Fluid substitution
+            data.BulkKFS = obj.CalcBulkKFluidSubstituted(data.Porosity, data.FluidK, data.GrainK, data.FrameK);
+            data.BulkDensityFS = obj.CalcBulkDensityFluidSubstituted(data.GammaRay, data.Porosity, data.Sw, data.Sg, data.Sh);
+            data.VSFS = obj.CalcVSFS(data.ShearG, data.BulkDensityFS);
+            data.VPFS = obj.CalcVPFS(data.BulkKFS, data.BulkDensityFS, data.VSFS);
+            
+            Wave = obj.FindIntervalOfOneSeismicWavelength(data.VPFS, Wave);
+            originalResolutionFlag = true;
+            [ data , Wave ] = obj.CalcAverageProperties(data, Wave, originalResolutionFlag);
+            data.Impedance = obj.CalcImpedance(data.BulkDensityFSAvg, data.VPFSAvg);
+            data.ReflectionCoefficient = obj.CalcReflectionCoefficient(data.Impedance);
+            data.ConvolutionDt = obj.CalcConvolutionDt(data.VPFS, data.VPFSAvg, originalResolutionFlag);
+            data.TimeSeries = obj.CalcTimeSeries(data.ConvolutionDt);
+            
+            [ ~ , ~ , seismogram ] = obj.CalcSeismogram( Wave.rickerFrequency , data.TimeSeries , data.ReflectionCoefficient );
+            timeSeries = data.TimeSeries;
+            thickness = data.Depth(Wave.BGHSZ) - data.Depth(Wave.BSR);
+            
+            switch caseString
+                case 'ParameterSensitivity'
+                    parameterSensitivity.bulkKFS = data.BulkKFS;
+                    parameterSensitivity.bulkDensityFS = data.BulkDensityFS;
+                    parameterSensitivity.VSFS = data.VSFS;
+                    parameterSensitivity.VPFS = data.VPFS;
+            end
+            
+            
+        end
         
-        
-        %%% Rock physics calculations
+        %%% Rock physics calculation methods
         function [ Porosity ] = CalcPorosity( obj , Rt , Sw )
             % Calculates Rw based on Ro, To, and T at the specified depth
 
@@ -410,9 +503,106 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         
         
         
-        
-        
-        
+        %%% Plotting methods
+        %{
+        function PlotParameterSensitivity( obj , Wave )
+            % Methane quantities 6->40 g/dm^3 is indexed 1->35
+            quantity = [1 10 18 27 35];
+            figure
+            
+            % VP
+            axis_1 = subplot(2,2,4);
+            % Hard coded Sw = 1 case for the 2nd forloop
+            plot( Wave.depth , %%%Data.VP(:,2) , 'k:' , 'linewidth' , 2.5 )
+            c = colormap(jet(size(Wave.seismogram_data,2)));
+            for ii = quantity
+                hold on
+                plot( Data.log(:,1) , Data.VP(:,ii) , 'Color' , c(ii,:)' , 'linewidth' , 2.5 );
+            end
+            xlabel('Depth (mbsf)')
+            ylabel('Compressional wave velocity (m/s)')
+            axis([450 510 600 2400])
+            % legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            title('d')
+            % c3 = colorbar('Limits',[6 Max_Concentration],...
+            %     'Ticks',linspace(6,40,5),...
+            %     'TickLabels',linspace(6,40,5));
+            % caxis([6 Max_Concentration])
+            % c3.Label.String = 'Methane quantity (g/dm^3 of pore volume)';
+            % c3.Label.FontSize = 11;
+
+            % VS
+            % figure
+            % plot( Data.log(:,1) , Data.log(:,5) , 'k.' , 'linewidth' , 2.5 )
+            % hold on
+            axis_2 = subplot(2,2,3);
+            % Hard coded Sw = 1 case for the 2nd forloop
+            plot( Data.log(:,1) , Data.VS(:,2) , 'k:' , 'linewidth' , 2.5 )
+            c = colormap(jet(size(Wave.seismogram_data,2)));
+            for ii = quantity
+                hold on
+                plot( Data.log(:,1) , Data.VS(:,ii) , 'Color' , c(ii,:)' , 'linewidth' , 2.5 );
+            end
+            xlabel('Depth (mbsf)')
+            ylabel('Shear wave velocity (m/s)')
+            axis([450 510 400 600])
+            legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            title('c')
+
+
+            % Density
+            % figure
+            % plot( Data.log(:,1) , Data.log(:,6) , 'k.' , 'linewidth' , 2.5 )
+            % hold on
+            axis_3 = subplot(2,2,2);
+            % Hard coded Sw = 1 case for the 2nd forloop
+            plot( Data.log(:,1) , Data.Density(:,2) , 'k:' , 'linewidth' , 2.5 )
+            c = colormap(jet(size(Wave.seismogram_data,2)));
+            for ii = quantity
+                hold on
+                plot( Data.log(:,1) , Data.Density(:,ii) , 'Color' , c(ii,:)' , 'linewidth' , 2.5 );
+            end
+            xlabel('Depth (mbsf)')
+            ylabel('Bulk density (g/cm^3)')
+            axis([450 510 1.5 1.8])
+            % legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            title('b')
+
+            % K Bulk Modulus
+            % figure
+            % plot( Data.log(:,1) , Data.log(:,8) , 'k.' , 'linewidth' , 2.5 )
+            % hold on
+            axis_4 = subplot(2,2,1);
+            % Hard coded Sw = 1 case for the 2nd forloop
+            plot( Data.log(:,1) , Data.K_bulk(:,2) , 'k:' , 'linewidth' , 2.5 )
+            c = colormap(jet(size(Wave.seismogram_data,2)));
+            for ii = quantity
+                hold on
+                plot( Data.log(:,1) , Data.K_bulk(:,ii) , 'Color' , c(ii,:)' , 'linewidth' , 2.5 );
+            end
+            xlabel('Depth (mbsf)')
+            ylabel('Bulk modulus (Pa)')
+            axis([450 510 7e8 7e9])
+            % legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            title('a')
+
+
+
+            axis_1.Position = [.61 .09 .35 .37];
+            axis_2.Position = [.11 .09 .35 .37];
+            axis_3.Position = [.61 .58 .35 .37];
+            axis_4.Position = [.11 .58 .35 .37];
+
+
+
+
+
+            figure_1 = gcf;
+            figure_1.Position(3) = 416;
+            set(findall(figure_1,'-property','FontSize'),'FontSize',8)
+            set(findall(figure_1,'-property','FontName'),'FontName','Arial')
+        end
+        %}
         
         %%% Loading methods
         function [ SaturationLF ] = LoadPhaseBehaviorBlakeRidge( obj )
