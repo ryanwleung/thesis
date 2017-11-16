@@ -31,7 +31,7 @@ clear variables
 obj = DCSeismicAnalysisBR();
 [ data , Wave ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity');
 
-
+obj.PlotParameterSensitivity(Wave);
 
 
 
