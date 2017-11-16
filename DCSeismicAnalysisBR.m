@@ -10,6 +10,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         Dickens
     end
     properties (Constant)
+        temperatureGradient995 = 38.5;   % C deg/km (36.9 for well 997)
+        seafloorTemperature995 = 3;  % C deg
+        
         liuTop = 3200; % mbsl
         liuBottom = 3300; % mbsl
         saturationTop = 200; % mbsf
@@ -19,6 +22,11 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         waterK = 2.688*10^9; % Pa
         
         selectedQuantities = [6 15 23 32 40];
+        
+        aHelgerudK = -1.09e-2; % GPa/C deg
+        bHelgerudK = 3.8e-3; % GPa/MPa
+        cHelgerudK = 8.39; % GPa
+        
     end
     methods
         %%% Constructor
@@ -41,7 +49,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         
         %%% Main methods
-        function [ data , Wave ] = RunSeismicAnalysisRoutine( obj , caseString )
+        function [ Wave , data ] = RunSeismicAnalysisRoutine( obj , caseString )
             %%% Make main table
             data = table();
             data.Depth = obj.depthArray;
@@ -50,6 +58,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             
             data.Pressure = obj.CalcPressure(data.Depth);
+            data.Temperature = obj.CalcTemperature995();
             
             %%% Load log data into table
             data.Resistivity = nan(nDepth, 1);
@@ -69,15 +78,15 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % Density in kg/m^3
             data.BulkDensity = nan(nDepth, 1);
             data.BulkDensity(obj.LDT.Fixed_Depth_TOP : obj.LDT.Fixed_Depth_BOTTOM) = obj.LDT.Fixed_RHOB .* 1000;
+
             
+            data.HydrateK = obj.CalcHydrateK(data.Pressure, data.Temperature);
             
             
             testFlag = true;
 %             testFlag = false;
-            
-            
             if testFlag
-                data.Porosity = obj.CalcPorosity(data.Resistivity, 1);
+                data.Porosity = obj.CalcPorosity(data.Resistivity, 1, data.Temperature);
             end
             
             
@@ -93,12 +102,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     data.VP(:) = mean(data.VP(upperBoundIndex : lowerBoundIndex));
                     data.VS(:) = mean(data.VS(upperBoundIndex : lowerBoundIndex));
                     data.BulkDensity(:) = mean(data.BulkDensity(upperBoundIndex : lowerBoundIndex));
+                    
+%                     data.HydrateK(:) = mean(data.HydrateK(upperBoundIndex : lowerBoundIndex));
             end
-            
-            
-            
-            
-            
             
             
             
@@ -120,65 +126,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             for iQuantity = 1:nQuantity
                 quantity = obj.quantityArray(iQuantity);
-                
-                %{
-                data.Sh = obj.SaturationLF.Hydrate(:, iQuantity);
-                data.Sg = obj.SaturationLF.Gas(:, iQuantity);
-                data.Sw = 1 - data.Sh - data.Sg;
-                
-                
-                % Gets indices of depths at BSR and BGHSZ
-                Wave.BSR = find(data.Depth == obj.graphTop + obj.SaturationLF.Top3P(iQuantity));
-                Wave.BGHSZ = find(data.Depth == obj.graphTop + obj.SaturationLF.Bottom3P(iQuantity));
-                Wave.rickerFrequency = 30;
-                
-                data.Porosity = obj.CalcPorosity(data.Resistivity, data.Sw);
-                
-                % Gas bulk modulus in Pa
-                data.GasK = obj.CalcGasK(data.Pressure);
-                
-                % Bulk modulus from VP and VS in Pa
-                data.BulkK = obj.CalcBulkK(data.BulkDensity, data.VP, data.VS);
-                
-                hydrateK = 6.414*10^9; % Pa
-                
-                % Fluid modulus using isostress average (volume-weighted harmonic mean) 
-                data.FluidK = obj.CalcFluidK(data.Sw, obj.waterK, data.Sg, data.GasK, data.Sh, hydrateK);
-                
-                data.GrainK = obj.CalcGrainK(data.GammaRay);
-                
-                data.FrameK = obj.CalcFrameK(data.Porosity, data.GrainK);
-                
-                data.ShearG = obj.CalcShearG(data.BulkDensity, data.VS);
-                
-                %%% Fluid substitution
-                data.BulkKFS = obj.CalcBulkKFluidSubstituted(data.Porosity, data.FluidK, data.GrainK, data.FrameK);
-                
-                data.BulkDensityFS = obj.CalcBulkDensityFluidSubstituted(data.GammaRay, data.Porosity, data.Sw, data.Sg, data.Sh);
-                
-                data.VSFS = obj.CalcVSFS(data.ShearG, data.BulkDensityFS);
-                
-                data.VPFS = obj.CalcVPFS(data.BulkKFS, data.BulkDensityFS, data.VSFS);
-                
-                Wave = obj.FindIntervalOfOneSeismicWavelength(data.VPFS, Wave);
-                
-                originalResolutionFlag = true;
-                
-                [ data , Wave ] = obj.CalcAverageProperties(data, Wave, originalResolutionFlag);
-                
-                data.Impedance = obj.CalcImpedance(data.BulkDensityFSAvg, data.VPFSAvg);
-                
-                data.ReflectionCoefficient = obj.CalcReflectionCoefficient(data.Impedance);
-                
-                data.ConvolutionDt = obj.CalcConvolutionDt(data.VPFS, data.VPFSAvg, originalResolutionFlag);
-                
-                data.TimeSeries = obj.CalcTimeSeries(data.ConvolutionDt);
-                
-                
-                
-                [ ~ , ~ , Wave.seismogram{iQuantity} ] = obj.CalcSeismogram( Wave.rickerFrequency , data.TimeSeries , data.ReflectionCoefficient );
-                %}
-                
                 
                 [ seismogram , timeSeries , thickness , parameterSensitivity ] ...
                     = obj.RunRockPhysicsRoutine(data, Wave, iQuantity, caseString, testFlag);
@@ -247,7 +194,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             data.BulkK = obj.CalcBulkK(data.BulkDensity, data.VP, data.VS);
             hydrateK = 6.414*10^9; % Pa
             % Fluid modulus using isostress average (volume-weighted harmonic mean) 
-            data.FluidK = obj.CalcFluidK(data.Sw, obj.waterK, data.Sg, data.GasK, data.Sh, hydrateK);
+            data.FluidK = obj.CalcFluidK(data.Sw, obj.waterK, data.Sg, data.GasK, data.Sh, data.HydrateK);
             data.GrainK = obj.CalcGrainK(data.GammaRay);
             data.FrameK = obj.CalcFrameK(data.Porosity, data.GrainK);
             data.ShearG = obj.CalcShearG(data.BulkDensity, data.VS);
@@ -282,21 +229,22 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         
         %%% Rock physics calculation methods
-        function [ Porosity ] = CalcPorosity( obj , Rt , Sw )
+        function [ temperature ] = CalcTemperature995( obj )
+            depth = obj.depthArray ./ 1000; % convert to km
+            temperature = obj.seafloorTemperature995 + depth .* obj.temperatureGradient995; % in C deg
+        end
+        function [ Porosity ] = CalcPorosity( obj , Rt , Sw , temperature )
             % Calculates Rw based on Ro, To, and T at the specified depth
-
-            depth = obj.depthArray ./ 1000;         % convert to km
-            temperatureGradient995 = 38.5;   % C deg/km (36.9 for well 997)
-            seafloorTemperature995 = 3;  % C deg
-
+%             depth = obj.depthArray ./ 1000;         % convert to km
+            
             referenceRo = .24;         % ohm-m (.223)
             referenceTemp = 18;        % C deg, given in input geophysics file
-
+            
             a = 0.9;
             m = 2.7;
             n = 1.9386;
-
-            temperature = seafloorTemperature995 + depth .* temperatureGradient995;
+            
+%             temperature = obj.seafloorTemperature995 + depth .* obj.temperatureGradient995;
             Rw = referenceRo .* (referenceTemp + 21.5) ./ (temperature + 21.5);
             Porosity = (a .* Rw ./ Rt ...
                             ./ (Sw .^ n)) ...
@@ -318,6 +266,16 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         function [ gasK ] = CalcGasK( ~ , hydrostaticPressure )
             gasK = hydrostaticPressure;
+        end
+        function [ hydrateK ] = CalcHydrateK( obj , hydrostaticPressure , temperature )
+            a = obj.aHelgerudK;
+            b = obj.bHelgerudK;
+            c = obj.cHelgerudK;
+            
+            hydrateK = a .* temperature ...
+                     + b .* hydrostaticPressure ./ 1e6 ...
+                     + c; % in GPa
+            hydrateK = hydrateK .* 1e9; % in Pa
         end
         function [ bulkK ] = CalcBulkK( ~ , bulkDensity , VP , VS )
             bulkK = bulkDensity .* (VP .^ 2 - (4/3) .* (VS .^ 2));
@@ -539,6 +497,49 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         
         %%% Plotting methods
         %
+        function PlotPhaseSaturations( obj , Wave )
+            
+            figObj = figure;
+            
+%             quantity = [6 23 40];
+            quantity = [12 26 40];
+            n = numel(quantity);
+            
+            
+            
+            for i = 1:n
+                iQuantity = quantity(i);
+                
+                subplot(1, 3, i)
+                hold on
+                plot(obj.SaturationLF.Hydrate(:, iQuantity), Wave.depth, ...
+                    'Color', [0 .5 0], ...
+                    'LineWidth', 2.5);
+                plot(obj.SaturationLF.Gas(:, iQuantity), Wave.depth, ...
+                    'Color', [1 0 0], ...
+                    'LineWidth', 2.5);
+%                 axis([0 0.2 420 520])
+                axis([0 0.31 420 520])
+                xlabel('Fluid saturations')
+                ylabel('Depth (mbsf)')
+                if i == 1
+                    legend('Hydrate saturation', 'Gas saturation')
+                end
+                set(gca,'YDir','Reverse')
+                
+%                 titleString = strcat('Methane Quantity = ', num2str(iQuantity), ' (g/dm^3 of pore volume)');
+                switch i
+                    case 1
+                        titleString = 'a)';
+                    case 2
+                        titleString = 'b)';
+                    case 3
+                        titleString = 'c)';
+                end
+                title(titleString)
+            end
+            
+        end
         function PlotParameterSensitivity( obj , Wave )
             quantity = obj.selectedQuantities;
             

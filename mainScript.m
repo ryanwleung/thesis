@@ -29,9 +29,10 @@ clear variables
 
 
 obj = DCSeismicAnalysisBR();
-[ data , Wave ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity');
+[ Wave , data ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity');
 
 obj.PlotParameterSensitivity(Wave);
+obj.PlotPhaseSaturations(Wave);
 
 
 
