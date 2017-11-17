@@ -49,8 +49,18 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         
         %%% Main methods
-        function [ Wave , data ] = RunSeismicAnalysisRoutine( obj , caseString )
-            %%% Make main table
+        function [ Wave , data , WaveBase , dataBase ] = RunSeismicAnalysisRoutine( obj , caseString , baseFlag )
+            %%% Instantiate optional base (Sw = 1) calculation variables
+            WaveBase = struct();
+            dataBase = table();
+            
+            
+            %%% Instantiate Wave struct
+            Wave.rickerFrequency = 30;
+
+            
+            
+            %%% Instantiate main table
             data = table();
             data.Depth = obj.depthArray;
             nDepth = numel(obj.depthArray);
@@ -83,8 +93,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             data.HydrateK = obj.CalcHydrateK(data.Pressure, data.Temperature);
             
             
-            testFlag = true;
-%             testFlag = false;
+%             testFlag = true;
+            testFlag = false;
             if testFlag
                 data.Porosity = obj.CalcPorosity(data.Resistivity, 1, data.Temperature);
             end
@@ -103,7 +113,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     data.VS(:) = mean(data.VS(upperBoundIndex : lowerBoundIndex));
                     data.BulkDensity(:) = mean(data.BulkDensity(upperBoundIndex : lowerBoundIndex));
                     
-%                     data.HydrateK(:) = mean(data.HydrateK(upperBoundIndex : lowerBoundIndex));
+                    data.HydrateK(:) = mean(data.HydrateK(upperBoundIndex : lowerBoundIndex));
             end
             
             
@@ -124,6 +134,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             Wave.VPFS = cell(nQuantity, 1);
             
             
+            %%% Run base case for parameter sensitivity
+            if baseFlag
+                [ ~ , ~ , ~ , WaveBase ] ...
+                        = obj.RunRockPhysicsRoutine(data, Wave, 0, caseString, testFlag);
+            end
+            
+            %%% For loop through all methane quantities
             for iQuantity = 1:nQuantity
                 quantity = obj.quantityArray(iQuantity);
                 
@@ -162,20 +179,28 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             parameterSensitivity = [];
             
             
+            Wave.BSR = [];
+            Wave.BGHSZ = [];
+            
+            if iQuantity == 0
+                data.Sh = zeros(height(data), 1);
+                data.Sg = zeros(height(data), 1);
+                data.Sw = ones(height(data), 1);
+            else
+                data.Sh = obj.SaturationLF.Hydrate(:, iQuantity);
+                data.Sg = obj.SaturationLF.Gas(:, iQuantity);
+                data.Sw = 1 - data.Sh - data.Sg;
+                
+                % Gets indices of depths at BSR and BGHSZ
+                Wave.BSR = find(data.Depth == obj.graphTop + obj.SaturationLF.Top3P(iQuantity));
+                Wave.BGHSZ = find(data.Depth == obj.graphTop + obj.SaturationLF.Bottom3P(iQuantity));
+            end
             
             
             
-            
-            data.Sh = obj.SaturationLF.Hydrate(:, iQuantity);
-            data.Sg = obj.SaturationLF.Gas(:, iQuantity);
-            data.Sw = 1 - data.Sh - data.Sg;
-            % Gets indices of depths at BSR and BGHSZ
-            Wave.BSR = find(data.Depth == obj.graphTop + obj.SaturationLF.Top3P(iQuantity));
-            Wave.BGHSZ = find(data.Depth == obj.graphTop + obj.SaturationLF.Bottom3P(iQuantity));
-            Wave.rickerFrequency = 30;
             
             if ~testFlag
-                data.Porosity = obj.CalcPorosity(data.Resistivity, data.Sw);
+                data.Porosity = obj.CalcPorosity(data.Resistivity, data.Sw, data.Temperature);
             end
             
             % Gas bulk modulus in Pa
@@ -540,20 +565,18 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             
         end
-        function PlotParameterSensitivity( obj , Wave )
+        function PlotParameterSensitivity( obj , Wave , WaveBase )
             quantity = obj.selectedQuantities;
-            
-            figure
-            
-            
             colorStream = colormap(jet(numel(Wave.seismogram)));
+            
+            figure1 = figure(1);
             
             %%% VP
             axis1 = subplot(2, 2, 4);
             hold on
-            % Hard coded Sw = 1 case for the 2nd forloop
-%             plot( Wave.depth , %%%Data.VP(:,2) , 'k:' , 'linewidth' , 2.5 )
-            
+            % Base case
+            plot(Wave.depth, WaveBase.VPFS, 'k:', 'linewidth', 2.5)
+            % Quantity cases
             for iQuantity = quantity
                 plot(Wave.depth, Wave.VPFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
             end
@@ -565,11 +588,11 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             %%% VS
             axis2 = subplot(2, 2, 3);
             hold on
-            % Hard coded Sw = 1 case for the 2nd forloop
-%             plot( Data.log(:,1) , Data.VS(:,2) , 'k:' , 'linewidth' , 2.5 )
+            % Base case
+            plot(Wave.depth, WaveBase.VSFS, 'k:', 'linewidth', 2.5)
+            % Quantity cases
             for iQuantity = quantity
                 plot(Wave.depth, Wave.VSFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
-%                 plot( Data.log(:,1) , Data.VS(:,iQuantity) , 'Color' , colorStream(iQuantity,:)' , 'linewidth' , 2.5 );
             end
             xlabel('Depth (mbsf)')
             ylabel('Shear wave velocity (m/s)')
@@ -581,29 +604,25 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             %%% Density
             axis3 = subplot(2, 2, 2);
             hold on
-%             % Hard coded Sw = 1 case for the 2nd forloop
-%             plot( Data.log(:,1) , Data.Density(:,2) , 'k:' , 'linewidth' , 2.5 )
+            % Base case
+            plot(Wave.depth, WaveBase.bulkDensityFS ./ 1000, 'k:', 'linewidth', 2.5)
+            % Quantity cases
             for iQuantity = quantity
                 plot(Wave.depth, Wave.bulkDensityFS{iQuantity} ./ 1000, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
-%                 plot( Data.log(:,1) , Data.Density(:,iQuantity) , 'Color' , colorStream(iQuantity,:)' , 'linewidth' , 2.5 );
             end
             xlabel('Depth (mbsf)')
             ylabel('Bulk density (g/cm^3)')
             axis([450 510 1.5 1.8])
             title('b')
 
-            % K Bulk Modulus
-            % figure
-            % plot( Data.log(:,1) , Data.log(:,8) , 'k.' , 'linewidth' , 2.5 )
-            % hold on
+            %%% Bulk modulus
             axis4 = subplot(2, 2, 1);
             hold on
-            % Hard coded Sw = 1 case for the 2nd forloop
-%             plot( Data.log(:,1) , Data.K_bulk(:,2) , 'k:' , 'linewidth' , 2.5 )
-%             colorStream = colormap(jet(size(Wave.seismogram_data,2)));
+            % Base case
+            plot(Wave.depth, WaveBase.bulkKFS, 'k:', 'linewidth', 2.5)
+            % Quantity cases
             for iQuantity = quantity
                 plot(Wave.depth, Wave.bulkKFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
-%                 plot( Data.log(:,1) , Data.K_bulk(:,iQuantity) , 'Color' , colorStream(iQuantity,:)' , 'linewidth' , 2.5 );
             end
             xlabel('Depth (mbsf)')
             ylabel('Bulk modulus (Pa)')
@@ -626,10 +645,64 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
 
 
 
-            figure1 = gcf;
+%             figure1 = gcf;
             figure1.Position(3) = 416;
             set(findall(figure1,'-property','FontSize'),'FontSize',8)
             set(findall(figure1,'-property','FontName'),'FontName','Arial')
+            
+            
+            
+%             return
+            
+            figure2 = figure(2);
+            
+            %%% Depth series seismogram
+            axis5 = subplot(2,1,1);
+            hold on
+            % 3 phase bulk equilibrium depth line
+            BEQL3P = 481; % mbsf
+            plot([BEQL3P, BEQL3P], [-1, 1], '--' , 'Color' , [.4 .4 .4] , 'linewidth' , 1.5 );
+
+            figureCellArray = cell(numel(quantity), 1);
+            figureNumber = 0;
+
+            for iQuantity = quantity
+                figureNumber = figureNumber + 1;
+                figureCellArray{figureNumber} = plot(Wave.depth, Wave.seismogram{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
+            end
+            axis([380 580 -.35 .2])
+            xlabel('Depth (mbsf)')
+            ylabel('Amplitude')
+            title('a) Depth Series')
+            legend( [figureCellArray{:}], '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+
+            % Plots SEISMOGRAM vs TIME SERIES
+            % figure
+
+            axis_6 = subplot(2,1,2);
+            % % Hard coded Sw = 1 case for the 2nd forloop
+            % plot( Wave.time - Wave.time(Wave.depth == 380) , Wave.seismogram_data(:,2) , 'k:' , 'linewidth' , 2.5 )
+            colorStream = colormap(jet(size(Wave.seismogram_data,2)));
+            for iQuantity = Sensitivity_CH4_quantity
+                hold on
+                plot( Wave.time - Wave.time(Wave.depth == 380) , Wave.seismogram_data(:,iQuantity) , 'Color' , colorStream(iQuantity,:)' , 'linewidth' , 2.5 );
+            end
+            axis([0 Wave.time(Wave.depth == 580) - Wave.time(Wave.depth == 380) -.35 .2])
+            xlabel('Time (seconds)')
+            ylabel('Amplitude')
+            title('b) Time Series')
+            legend( '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+
+
+
+            axis5.Position = [.13 .56 .79 .39];
+            axis_6.Position = [.13 .07 .79 .39];
+
+
+%             figure2 = gcf;
+            figure2.Position(3) = 416;
+            set(findall(figure2,'-property','FontSize'),'FontSize',8)
+            set(findall(figure2,'-property','FontName'),'FontName','Arial')
         end
         %}
         
