@@ -4,6 +4,7 @@ classdef DCBlakeRidge < BCFormation
         DIT
         GR
         BRG
+        CALI
         
         MICP1
         MICP2
@@ -34,6 +35,7 @@ classdef DCBlakeRidge < BCFormation
             obj.DIT = DCBlakeRidge.LoadDIT();
             obj.GR = DCBlakeRidge.LoadGR();
             obj.BRG = DCBlakeRidge.LoadBRG();
+            obj.CALI = DCBlakeRidge.LoadCALIHLDT();
             
             obj.MICP1 = DCBlakeRidge.LoadMICP1();
             obj.MICP2 = DCBlakeRidge.LoadMICP2();
@@ -370,6 +372,34 @@ classdef DCBlakeRidge < BCFormation
             BRG.Fixed_VS = interp1(BRG.Depth,BRG.VS,BRG.Fixed_Depth);
             
             result = BRG;
+        end
+        function [ CALI ] = LoadCALIHLDT()
+            % DIT.file_ID = fopen(uigetfile('*.dat','Select Dual Induction Tool Log'));
+            CALI.file_ID = fopen('164-995B_cali-hldt.dat');
+
+            CALI.Header1_HOLE = fgetl(CALI.file_ID);
+            CALI.Header2_LEG = fgetl(CALI.file_ID);
+            CALI.Header3_TOP = fgetl(CALI.file_ID);
+            CALI.Header4_BOTTOM = fgetl(CALI.file_ID);
+            CALI.Header5_TOOLNAME = fgets(CALI.file_ID);
+            CALI.Header6_TOOLUNITS = fgetl(CALI.file_ID);
+
+            CALI.TOP_DEPTH = sscanf(CALI.Header3_TOP,'%*s %f');
+            CALI.BOTTOM_DEPTH = sscanf(CALI.Header4_BOTTOM,'%*s %f');
+            CALI.ScannedData = fscanf(CALI.file_ID,'%f',[2 Inf])';
+            fclose(CALI.file_ID);
+
+            CALI.Depth = CALI.ScannedData(:,1);
+            CALI.Diameter = CALI.ScannedData(:,2);
+
+
+            % CALI.Fixed_Depth_TOP = ceil(CALI.TOP_DEPTH);
+            % CALI.Fixed_Depth_BOTTOM = floor(CALI.BOTTOM_DEPTH);
+            % CALI.Depth_Interval = CALI.Fixed_Depth_BOTTOM - CALI.Fixed_Depth_TOP + 1;
+            % CALI.Fixed_Depth = linspace(CALI.Fixed_Depth_TOP,CALI.Fixed_Depth_BOTTOM,CALI.Depth_Interval)';
+            % CALI.Fixed_IDPH = interp1(CALI.Depth,CALI.IDPH,CALI.Fixed_Depth);
+            % CALI.Fixed_IMPH = interp1(CALI.Depth,CALI.IMPH,CALI.Fixed_Depth);
+            % CALI.Fixed_SFLU = interp1(CALI.Depth,CALI.SFLU,CALI.Fixed_Depth);
         end
         function [ result ] = LoadMICP1()
             MICP1.file_ID = fopen('MICP1_BR.dat');

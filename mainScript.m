@@ -31,10 +31,10 @@ baseFlag = true;
 obj = DCSeismicAnalysisBR();
 [ Wave , data , WaveBase , dataBase ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity', baseFlag);
 
-obj.PlotParameterSensitivity(Wave, WaveBase);
+% obj.PlotParameterSensitivity(Wave, WaveBase);
 % obj.PlotPhaseSaturations(Wave);
 
-
+obj.PlotBackgroundProperties(dataBase )
 
 
 
