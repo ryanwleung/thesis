@@ -29,22 +29,23 @@ clear variables
 
 obj = DCSeismicAnalysisBR();
 
+test = 2;
 
+if test == 1
+    baseFlag = true;
+    [ WaveParameterSensitivity , ~ , WaveBase , dataBase ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity', baseFlag);
+    obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBase)
 
-baseFlag = true;
-[ WaveParameterSensitivity , ~ , WaveBase , dataBase ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity', baseFlag);
+    obj.PlotPhaseSaturations(WaveParameterSensitivity)
 
-obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBase)
-% obj.PlotPhaseSaturations(WaveParameterSensitivity)
-% 
-% obj.PlotBackgroundProperties(dataBase)
-% 
-% obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
+    obj.PlotBackgroundProperties(dataBase)
 
-% baseFlag = false;
-% [ WaveOriginalResolution , data , ~ , ~ ] = obj.RunSeismicAnalysisRoutine('OriginalResolution', baseFlag);
-% 
-% obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
+    obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
+elseif test == 2
+    baseFlag = false;
+    [ WaveOriginalResolution , data , ~ , ~ ] = obj.RunSeismicAnalysisRoutine('OriginalResolution', baseFlag);
 
+    obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
+end
 
 

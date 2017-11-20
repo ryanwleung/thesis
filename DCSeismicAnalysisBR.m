@@ -161,6 +161,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 Wave.time{iQuantity} = timeSeries;
                 Wave.thickness3P{iQuantity} = thickness;
                 
+                %%% NEED TO FIX THIS ALGORITHM
                 [ peakValue , peakIndex ] = findpeaks(seismogram);
                 
                 switch numel(peakValue)
@@ -173,12 +174,23 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 
                 
                 % probably do switch case for para and original (store VP)
-                if ~isempty(parameterSensitivity)
-                    Wave.bulkKFS{iQuantity} = parameterSensitivity.bulkKFS;
-                    Wave.bulkDensityFS{iQuantity} = parameterSensitivity.bulkDensityFS;
-                    Wave.VSFS{iQuantity} = parameterSensitivity.VSFS;
-                    Wave.VPFS{iQuantity} = parameterSensitivity.VPFS;
+                
+                switch caseString
+                    case 'ParameterSensitivity'
+                        Wave.bulkKFS{iQuantity} = parameterSensitivity.bulkKFS;
+                        Wave.bulkDensityFS{iQuantity} = parameterSensitivity.bulkDensityFS;
+                        Wave.VSFS{iQuantity} = parameterSensitivity.VSFS;
+                        Wave.VPFS{iQuantity} = parameterSensitivity.VPFS;
+                    case 'OriginalResolution'
+                        Wave.VPFS{iQuantity} = parameterSensitivity.VPFS;
                 end
+                
+%                 if ~isempty(parameterSensitivity)
+%                     Wave.bulkKFS{iQuantity} = parameterSensitivity.bulkKFS;
+%                     Wave.bulkDensityFS{iQuantity} = parameterSensitivity.bulkDensityFS;
+%                     Wave.VSFS{iQuantity} = parameterSensitivity.VSFS;
+%                     Wave.VPFS{iQuantity} = parameterSensitivity.VPFS;
+%                 end
                 
             end
         end
@@ -272,6 +284,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     parameterSensitivity.bulkKFS = data.BulkKFS;
                     parameterSensitivity.bulkDensityFS = data.BulkDensityFS;
                     parameterSensitivity.VSFS = data.VSFS;
+                    parameterSensitivity.VPFS = data.VPFS;
+                case 'OriginalResolution'
                     parameterSensitivity.VPFS = data.VPFS;
             end
             
@@ -521,13 +535,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             timeSeries = cumsum(convolutionDt);
         end
         function [ F , T , C ] = CalcSeismogram( ~ , rickerFrequency , timeSeries , reflectionCoefficient )
-%             logical = isnan(reflectionCoefficient);
-%             timeSeries(logical) = [];
-%             reflectionCoefficient(logical) = [];
+            logical = isnan(reflectionCoefficient);
             
-            reflectionCoefficient(isnan(reflectionCoefficient)) = 0;
+            zerosToAddAfterDeletion = zeros(sum(logical), 1);
+            timeSeries(logical) = [];
+            reflectionCoefficient(logical) = [];
             
             
+            %%% Original code
             f = (1 - 2 * pi ^ 2 * rickerFrequency ^ 2 .* timeSeries .^ 2) ...
                 .* exp(-1 * pi ^ 2 * rickerFrequency ^ 2 .* timeSeries .^ 2);
             F = flipud(f);
@@ -536,6 +551,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             T(end + 1 : end + length(timeSeries)) = timeSeries;
             C = filter(reflectionCoefficient, 1, F);
             C = C(end / 2 + 1 : end);
+            %%%
+            
+            C = [zerosToAddAfterDeletion; C];
         end
         
         
@@ -913,9 +931,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis2 = subplot(2, 1, 2);
             hold on
             colorStream = colormap(jet(nQuantity));
-            for iQuantity = iQuantity:nQuantity % FIX THIS  TOO @@@@@@@@@@@
-                plot(Wave.time{iQuantity} - Wave.time{iQuantity}(Wave.depth == 380) , Wave.seismogram{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5)
-%                 plot(Wave.time - Wave.time(Wave.depth == 380),Wave.seismogram_data(:,iQuantity),'Color',colorStream(iQuantity,:)' , 'linewidth' , 1 );
+            for iQuantity = startIndex:nQuantity % FIX THIS TOO @@@@@@@@@@@
+                plot(Wave.time{iQuantity} - Wave.time{iQuantity}(Wave.depth == 380) , Wave.seismogram{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 1)
             end
             axis([0 Wave.time{iQuantity}(Wave.depth == 580) - Wave.time{iQuantity}(Wave.depth == 380) -.35 .2])
             xlabel('Time (seconds)')
@@ -935,6 +952,25 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             set(findall(figure1,'-property','FontSize'),'FontSize',8)
             set(findall(figure1,'-property','FontName'),'FontName','Arial')
         end
+        function PlotVelocityStructureOriginalResolution( obj , Wave )
+            quantity = obj.selectedQuantities;
+            
+            figure
+            colorStream = jet(numel(Wave.VPFS));
+            
+            % Hard coded Sw = 1 case for the 2nd methane quantity forloop
+%             plot( Data.log(:,1) , Data.VP(:,2) , 'k:' , 'linewidth' , 2.5 )
+            for iQuantity = quantity
+                hold on
+                plot( Data.log(:,1) , Data.VP(:,iQuantity) , 'Color' , colorStream(iQuantity,:)' , 'linewidth' , 2.5 );
+            end
+            xlabel('Depth (mbsf)')
+            ylabel('Compressional wave velocity (m/s)')
+            axis([450 510 600 2200])
+            legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            title('Preupscaled Compressional Wave Velocity')
+        end
+        
         %%% Loading methods
         function [ SaturationLF ] = LoadPhaseBehaviorBlakeRidge( obj )
             % Loads saturation data from hydrate and gas grabit array .mat files and
