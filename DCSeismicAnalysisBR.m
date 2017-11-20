@@ -27,6 +27,11 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         bHelgerudK = 3.8e-3; % GPa/MPa
         cHelgerudK = 8.39; % GPa
         
+        phiReferenceRo = 0.24 % ohm-m (.223)
+        phiReferenceTemp = 18; % C deg
+        phiA = 0.9;
+        phiM = 2.7;
+        phiN = 1.9386;
     end
     methods
         %%% Constructor
@@ -166,11 +171,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                         Wave.peak{iQuantity, 2} = peakValue(2);
                 end
                 
-                Wave.bulkKFS{iQuantity} = parameterSensitivity.bulkKFS;
-                Wave.bulkDensityFS{iQuantity} = parameterSensitivity.bulkDensityFS;
-                Wave.VSFS{iQuantity} = parameterSensitivity.VSFS;
-                Wave.VPFS{iQuantity} = parameterSensitivity.VPFS;
                 
+                % probably do switch case for para and original (store VP)
+                if ~isempty(parameterSensitivity)
+                    Wave.bulkKFS{iQuantity} = parameterSensitivity.bulkKFS;
+                    Wave.bulkDensityFS{iQuantity} = parameterSensitivity.bulkDensityFS;
+                    Wave.VSFS{iQuantity} = parameterSensitivity.VSFS;
+                    Wave.VPFS{iQuantity} = parameterSensitivity.VPFS;
+                end
                 
             end
         end
@@ -235,7 +243,20 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             data.VPFS = obj.CalcVPFS(data.BulkKFS, data.BulkDensityFS, data.VSFS);
             
             Wave = obj.FindIntervalOfOneSeismicWavelength(data.VPFS, Wave);
-            originalResolutionFlag = true;
+            
+            switch caseString
+                case 'OriginalResolution'
+                    originalResolutionFlag = true;
+                otherwise
+%                     originalResolutionFlag = false;
+                    % it appears that I
+                    % always use the original resolution (no averaging of
+                    % values within the 3P zone
+                    originalResolutionFlag = true;
+            end
+            
+            
+            
             [ data , Wave ] = obj.CalcAverageProperties(data, Wave, originalResolutionFlag);
             data.Impedance = obj.CalcImpedance(data.BulkDensityFSAvg, data.VPFSAvg);
             data.ReflectionCoefficient = obj.CalcReflectionCoefficient(data.Impedance);
@@ -263,17 +284,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             temperature = obj.seafloorTemperature995 + depth .* obj.temperatureGradient995; % in C deg
         end
         function [ Porosity ] = CalcPorosity( obj , Rt , Sw , temperature )
-            % Calculates Rw based on Ro, To, and T at the specified depth
-%             depth = obj.depthArray ./ 1000;         % convert to km
+            referenceRo = obj.phiReferenceRo;
+            referenceTemp = obj.phiReferenceTemp;
             
-            referenceRo = .24;         % ohm-m (.223)
-            referenceTemp = 18;        % C deg, given in input geophysics file
+            a = obj.phiA;
+            m = obj.phiM;
+            n = obj.phiN;
             
-            a = 0.9;
-            m = 2.7;
-            n = 1.9386;
-            
-%             temperature = obj.seafloorTemperature995 + depth .* obj.temperatureGradient995;
             Rw = referenceRo .* (referenceTemp + 21.5) ./ (temperature + 21.5);
             Porosity = (a .* Rw ./ Rt ...
                             ./ (Sw .^ n)) ...
@@ -447,39 +464,39 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             Wave.topLimit = obj.saturationTop;
             
             % Averaged VP
-            AVO.vp1 = mean(data.VPFSAvg(Wave.topWavelengthIndex : Wave.BSR - 1));
-            AVO.vp2 = mean(data.VPFSAvg(Wave.BSR : Wave.BGHSZ));
-            AVO.vp3 = mean(data.VPFSAvg(Wave.BGHSZ + 1 : Wave.bottomWavelengthIndex));
+            vp1 = mean(data.VPFSAvg(Wave.topWavelengthIndex : Wave.BSR - 1));
+            vp2 = mean(data.VPFSAvg(Wave.BSR : Wave.BGHSZ));
+            vp3 = mean(data.VPFSAvg(Wave.BGHSZ + 1 : Wave.bottomWavelengthIndex));
             
-            data.VPFSAvg(Wave.topLimit : Wave.BSR - 1) = AVO.vp1;
+            data.VPFSAvg(Wave.topLimit : Wave.BSR - 1) = vp1;
             if ~originalResolutionFlag
-                data.VPFSAvg(Wave.BSR : Wave.BGHSZ) = AVO.vp2;
+                data.VPFSAvg(Wave.BSR : Wave.BGHSZ) = vp2;
             end
-            data.VPFSAvg(Wave.BGHSZ + 1 : end) = AVO.vp3;
+            data.VPFSAvg(Wave.BGHSZ + 1 : end) = vp3;
             
             
             % Averaged Density
-            AVO.density1 = mean(data.BulkDensityFSAvg(Wave.topWavelengthIndex : Wave.BSR - 1));
-            AVO.density2 = mean(data.BulkDensityFSAvg(Wave.BSR : Wave.BGHSZ));
-            AVO.density3 = mean(data.BulkDensityFSAvg(Wave.BGHSZ + 1 : Wave.bottomWavelengthIndex));
+            density1 = mean(data.BulkDensityFSAvg(Wave.topWavelengthIndex : Wave.BSR - 1));
+            density2 = mean(data.BulkDensityFSAvg(Wave.BSR : Wave.BGHSZ));
+            density3 = mean(data.BulkDensityFSAvg(Wave.BGHSZ + 1 : Wave.bottomWavelengthIndex));
             
-            data.BulkDensityFSAvg(Wave.topLimit : Wave.BSR - 1) = AVO.density1;
+            data.BulkDensityFSAvg(Wave.topLimit : Wave.BSR - 1) = density1;
             if ~originalResolutionFlag
-                data.BulkDensityFSAvg(Wave.BSR : Wave.BGHSZ) = AVO.density2;
+                data.BulkDensityFSAvg(Wave.BSR : Wave.BGHSZ) = density2;
             end
-            data.BulkDensityFSAvg(Wave.BGHSZ + 1 : end) = AVO.density3;
+            data.BulkDensityFSAvg(Wave.BGHSZ + 1 : end) = density3;
             
             
             % Averaged VS            
-            AVO.vs1 = mean(data.VSFSAvg(Wave.topWavelengthIndex : Wave.BSR - 1));
-            AVO.vs2 = mean(data.VSFSAvg(Wave.BSR : Wave.BGHSZ));
-            AVO.vs3 = mean(data.VSFSAvg(Wave.BGHSZ + 1 : Wave.bottomWavelengthIndex));
+            vs1 = mean(data.VSFSAvg(Wave.topWavelengthIndex : Wave.BSR - 1));
+            vs2 = mean(data.VSFSAvg(Wave.BSR : Wave.BGHSZ));
+            vs3 = mean(data.VSFSAvg(Wave.BGHSZ + 1 : Wave.bottomWavelengthIndex));
             
-            data.VSFSAvg(Wave.topLimit : Wave.BSR - 1) = AVO.vs1;
+            data.VSFSAvg(Wave.topLimit : Wave.BSR - 1) = vs1;
             if ~originalResolutionFlag
-                data.VSFSAvg(Wave.BSR : Wave.BGHSZ) = AVO.vs2;
+                data.VSFSAvg(Wave.BSR : Wave.BGHSZ) = vs2;
             end
-            data.VSFSAvg(Wave.BGHSZ + 1 : end) = AVO.vs3;
+            data.VSFSAvg(Wave.BGHSZ + 1 : end) = vs3;
         end
         function [ impedance ] = CalcImpedance( ~ , bulkDensityFSAvg , VPFSAvg )
             impedance = bulkDensityFSAvg .* VPFSAvg;
@@ -504,6 +521,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             timeSeries = cumsum(convolutionDt);
         end
         function [ F , T , C ] = CalcSeismogram( ~ , rickerFrequency , timeSeries , reflectionCoefficient )
+%             logical = isnan(reflectionCoefficient);
+%             timeSeries(logical) = [];
+%             reflectionCoefficient(logical) = [];
             
             reflectionCoefficient(isnan(reflectionCoefficient)) = 0;
             
@@ -527,7 +547,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         
         
         %%% Plotting methods
-        
         function PlotPhaseSaturations( obj , Wave )
             
             figure1 = figure();
@@ -661,7 +680,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             for iQuantity = quantity
                 figureNumber = figureNumber + 1;
-                figureCellArray{figureNumber} = plot(Wave.depth, Wave.seismogram{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
+                figureCellArray{figureNumber} = plot(Wave.depth, Wave.seismogram{iQuantity}, ...
+                                                    'Color', colorStream(iQuantity,:)', ...
+                                                    'linewidth', 2.5);
             end
             axis([380 580 -.35 .2])
             xlabel('Depth (mbsf)')
@@ -673,7 +694,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             %%% Time series seismogram
             axis6 = subplot(2, 1, 2);
             hold on
-            for iQuantity = quantity
+            for iQuantity = quantity % FIX THIS @@@@@@@@@@@
                 plot(Wave.time{iQuantity} - Wave.time{iQuantity}(Wave.depth == 380) , Wave.seismogram{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5)
             end       
             axis([0 Wave.time{iQuantity}(Wave.depth == 580) - Wave.time{iQuantity}(Wave.depth == 380) -.35 .2])
@@ -691,302 +712,229 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         function PlotBackgroundProperties( obj , dataBase )
             
-            BSR_top_estimate = 456; % mbsf
-            BSR_bottom_estimate = 472; % mbsf
-            three_phase_bulk_equilibrium = 481; % mbsf
-
-            BSR_top_line = [BSR_top_estimate BSR_top_estimate];
-            BSR_bottom_line = [BSR_bottom_estimate BSR_bottom_estimate];
-            bulk_EQL_line = [three_phase_bulk_equilibrium three_phase_bulk_equilibrium];
-
+            BSRTop = 456; % mbsf
+            BSRBottom = 472; % mbsf
+            bulkEQLDepth = 481; % mbsf
+            bulkEQLLine = [bulkEQLDepth bulkEQLDepth];
+            
+            depthAxis = [160 500];
+            
             plotLineWidth = 1.5;
             markerLineWidth = 1.25;
-
-
-
-
-
-
+            labelLineFont = 8;
+            
             figure1 = figure();
-
+            
             figure1.Position(3) = 800;
-            set(findall(figure1,'-property','FontSize'),'FontSize',8)
-            set(findall(figure1,'-property','FontName'),'FontName','Arial')
-
-
-            %%% Gamma ray
-            leftLimit = 12;
-            rightLimit = 110;    
-            xLine = [leftLimit rightLimit];
-
-            axis1 = subplot(1,7,1);
-
-            rectangle('Position', [leftLimit, BSR_top_estimate, rightLimit - leftLimit, BSR_bottom_estimate - BSR_top_estimate], ...
-                        'FaceColor', [0.8, 0.8, 0.8], ...
-                        'EdgeColor', 'k');
-            hold on
-
-            xText = leftLimit + 0.02*(rightLimit - leftLimit);
-            text(xText, (BSR_top_estimate + BSR_bottom_estimate)/2, 'BSR')
-            text(xText, bulk_EQL_line(1) + (BSR_bottom_estimate - BSR_top_estimate)/2, '3P EQL')
-
-
-
-            plot(dataBase.GammaRay, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
-            ylabel('Depth (mbsf)')
-            set(gca,'YDir','Reverse')
-            xlabel('Gamma ray (gAPI)','FontSize',8)
-
-            axis([leftLimit rightLimit 160 500])
-            title('a')    
-            hold on
-        %     plot( x_line , BSR_top_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-        %     plot( x_line , BSR_bottom_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-            plot( xLine , bulk_EQL_line , 'k--' , 'linewidth' , markerLineWidth )    
-
-            axis1.FontSize = 8;
-            axis1.XTick = [30 65 100];
-
-
-
-
-            % Caliper
-            leftLimit = 4;
-            rightLimit = 10;    
-            xLine = [leftLimit rightLimit];
-
-            bit_diameter = 10.125; % inches
-            bit_radius = bit_diameter ./ 2;
-            CALI.Radius = obj.CALI.Diameter ./ 2;
-
-            axis2 = subplot(1,7,2);
-
-            rectangle('Position', [leftLimit, BSR_top_estimate, rightLimit - leftLimit, BSR_bottom_estimate - BSR_top_estimate], ...
-                        'FaceColor', [0.8, 0.8, 0.8], ...
-                        'EdgeColor', 'k');
-            hold on
-%             plot(dataBase.GammaRay, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
-            plot( CALI.Radius , obj.CALI.Depth , 'k' , 'linewidth' , .5 )
-            hold on
-            plot( [bit_radius bit_radius] , [160 500] , 'k-.' , 'linewidth' , 1 )
-
-
-
-        %     plot( -CALI.Radius , CALI.Depth , 'k' , 'linewidth' , plot_width )
-
-            set(gca,'YDir','Reverse')
-            xlabel('Hole radius (in)')
-            axis([leftLimit rightLimit 160 500])
-            title('b')    
-            hold on
-        %     plot( x_line , BSR_top_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-        %     plot( x_line , BSR_bottom_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-            plot( xLine , bulk_EQL_line , 'k--' , 'linewidth' , markerLineWidth )    
-
-
-
-
-
-            axis2.FontSize = 8;
-            axis2.YTickLabel = [];
-            axis2.XTick = [5 7 9];
-
-
-
-
-
-
-
-
-            % Resisitivity
-            leftLimit = 0.5;
-            rightLimit = 1.5;
-            xLine = [leftLimit rightLimit];
-
-            axis3 = subplot(1,7,3);
-
-            rectangle('Position', [leftLimit, BSR_top_estimate, rightLimit - leftLimit, BSR_bottom_estimate - BSR_top_estimate], ...
-                        'FaceColor', [0.8, 0.8, 0.8], ...
-                        'EdgeColor', 'k');
-            hold on
-
-            plot(dataBase.Resistivity, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
-%             plot( Data.log(:,21) , Data.log(:,1) , 'k' , 'linewidth' , plotLineWidth )
-            set(gca,'YDir','Reverse')
-            xlabel('Resistivity (ohm-m)')
-            axis([leftLimit rightLimit 160 500])
-            title('c')
-            hold on
-        %     plot( x_line , BSR_top_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-        %     plot( x_line , BSR_bottom_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-            plot( xLine , bulk_EQL_line , 'k--' , 'linewidth' , markerLineWidth )
-
-            axis3.FontSize = 8;
-            axis3.YTickLabel = [];
-            axis3.XTick = [0.6 1 1.4];
-
-
-
-
-
-
-            % Calculated porosity
-            leftLimit = 0.4;
-            rightLimit = 0.8;
-            xLine = [leftLimit rightLimit];
-
-            axis4 = subplot(1,7,4);
-
-            rectangle('Position', [leftLimit, BSR_top_estimate, rightLimit - leftLimit, BSR_bottom_estimate - BSR_top_estimate], ...
-                        'FaceColor', [0.8, 0.8, 0.8], ...
-                        'EdgeColor', 'k');
-            hold on    
-            plot(dataBase.Porosity, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
-%             plot( Data.log(:,3) , Data.log(:,1) , 'k' , 'linewidth' , plotLineWidth )
-            set(gca,'YDir','Reverse')
-            xlabel('Porosity')
-            axis([leftLimit rightLimit 160 500])
-            title('d')  
-            hold on
-        %     plot( x_line , BSR_top_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-        %     plot( x_line , BSR_bottom_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-            plot( xLine , bulk_EQL_line , 'k--' , 'linewidth' , markerLineWidth )
-
-
-            axis4.FontSize = 8;
-            axis4.YTickLabel = [];
-            axis4.XTick = [0.45 0.6 0.75];
+            set(findall(figure1, '-property', 'FontSize'), 'FontSize', 8)
+            set(findall(figure1, '-property', 'FontName'), 'FontName', 'Arial')
             
-            
-            
-            
-            % Bulk density
-            leftLimit = 1.3;
-            rightLimit = 1.9;    
-            xLine = [leftLimit rightLimit];
-
-            axis5 = subplot(1,7,5);
-
-
-            rectangle('Position', [leftLimit, BSR_top_estimate, rightLimit - leftLimit, BSR_bottom_estimate - BSR_top_estimate], ...
-                        'FaceColor', [0.8, 0.8, 0.8], ...
-                        'EdgeColor', 'k');
-            hold on
-
-            xText = leftLimit + 0.02*(rightLimit - leftLimit);
-            text(xText, (BSR_top_estimate + BSR_bottom_estimate)/2, 'BSR')
-            text(xText, bulk_EQL_line(1) + 0.6*(BSR_bottom_estimate - BSR_top_estimate), '3P EQL')    
-
-
-            plot(dataBase.BulkDensity ./ 1000, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
-%             plot( Data.log(:,6) , Data.log(:,1) , 'k' , 'linewidth' , plotLineWidth )
-            ylabel('Depth (mbsf)')
-            set(gca,'YDir','Reverse')
-            xlabel('Bulk density (g/cm^3)')
-            axis([leftLimit rightLimit 160 500])
-            title('e')
-            hold on
-        %     plot( x_line , BSR_top_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-        %     plot( x_line , BSR_bottom_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-            plot( xLine , bulk_EQL_line , 'k--' , 'linewidth' , markerLineWidth )    
-
-            axis5.FontSize = 8;
-
-
-            % VP
-            leftLimit = 1400;
-            rightLimit = 2000;    
-            xLine = [leftLimit rightLimit];
-
-            axis6 = subplot(1,7,6);
-
-            rectangle('Position', [leftLimit, BSR_top_estimate, rightLimit - leftLimit, BSR_bottom_estimate - BSR_top_estimate], ...
-                        'FaceColor', [0.8, 0.8, 0.8], ...
-                        'EdgeColor', 'k');
-            hold on    
-            plot(dataBase.VP, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
-%             plot( Data.log(:,4) , Data.log(:,1) , 'k' , 'linewidth' , plotLineWidth )
-            set(gca,'YDir','Reverse')
-            xlabel('P-velocity (m/s)')
-            axis([leftLimit rightLimit 160 500])
-            title('f')
-            hold on
-        %     plot( x_line , BSR_top_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-        %     plot( x_line , BSR_bottom_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-            plot( xLine , bulk_EQL_line , 'k--' , 'linewidth' , markerLineWidth )    
-
-            axis6.FontSize = 8;
-            axis6.YTickLabel = [];
-            axis6.XTick = [1500 1700 1900];
-
-
-
-            % VS
-            leftLimit = 100;
-            rightLimit = 900;    
-            xLine = [leftLimit rightLimit];
-
-            axis7 = subplot(1,7,7);
-
-            rectangle('Position', [leftLimit, BSR_top_estimate, rightLimit - leftLimit, BSR_bottom_estimate - BSR_top_estimate], ...
-                        'FaceColor', [0.8, 0.8, 0.8], ...
-                        'EdgeColor', 'k');
-            hold on
-            plot(dataBase.VS, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
-%             plot( Data.log(:,5) , Data.log(:,1) , 'k' , 'linewidth' , plotLineWidth )
-            set(gca,'YDir','Reverse')
-            xlabel('S-velocity (m/s)')
-            axis([leftLimit rightLimit 160 500])
-            title('g')
-            hold on
-        %     plot( x_line , BSR_top_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-        %     plot( x_line , BSR_bottom_line , 'k--' , 'linewidth' , line_width )
-        %     hold on
-            plot( xLine , bulk_EQL_line , 'k--' , 'linewidth' , markerLineWidth )
-
-            axis7.FontSize = 8;
-            axis7.YTickLabel = [];
-            axis7.XTick = [250 500 750];
-
-
             interval = 0.13;
             gap = 0.01;
-            xx = 0.06;
-            axis1.Position(1) = xx;
-            axis1.Position(3) = interval - gap;
-            xx = xx + interval;
-            axis2.Position(1) = xx;
-            axis2.Position(3) = interval - gap;
-            xx = xx + interval;
-            axis3.Position(1) = xx;
-            axis3.Position(3) = interval - gap;
-            xx = xx + interval;
-            axis4.Position(1) = xx;
-            axis4.Position(3) = interval - gap;            
-            xx = xx + interval;
-            axis5.Position(1) = xx;
-            axis5.Position(3) = interval - gap;
-            xx = xx + interval;
-            axis6.Position(1) = xx;
-            axis6.Position(3) = interval - gap;
-            xx = xx + interval;
-            axis7.Position(1) = xx;
-            axis7.Position(3) = interval - gap;
+            xStart = 0.06;            
+            
+            bitRadius = 10.125 ./ 2; % inches
+            
+            n = 7;
+            xCell = cell(n, 1);
+            yCell = cell(n, 1);
+            limitCell = cell(n, 1);
+            axisCell = cell(n, 1);
+            titleCell = cell(n, 1);
+            xLabelCell = cell(n, 1);
+            xTickCell = cell(n, 1);
+            
+            xTickCell{1} = [30 65 100];
+            xTickCell{2} = [-10 -5 0 5 10];
+            xTickCell{3} = [0.6 1 1.4];
+            xTickCell{4} = [0.45 0.6 0.75];
+            xTickCell{5} = [1.4 1.6 1.8];
+            xTickCell{6} = [1500 1700 1900];
+            xTickCell{7} = [250 500 750];
+            
+            xCell{1} = dataBase.GammaRay;
+            xCell{2} = obj.CALI.Diameter;
+            xCell{3} = dataBase.Resistivity;
+            xCell{4} = dataBase.Porosity;
+            xCell{5} = dataBase.BulkDensity ./ 1000;
+            xCell{6} = dataBase.VP;
+            xCell{7} = dataBase.VS;
+            
+            yCell{1} = dataBase.Depth;
+            yCell{2} = obj.CALI.Depth;
+            yCell{3} = dataBase.Depth;
+            yCell{4} = dataBase.Depth;
+            yCell{5} = dataBase.Depth;
+            yCell{6} = dataBase.Depth;
+            yCell{7} = dataBase.Depth;
+            
+            
+            limitCell{1} = [12 110];
+            limitCell{2} = [-11 11];
+            limitCell{3} = [0.5 1.5];
+            limitCell{4} = [0.4 0.8];
+            limitCell{5} = [1.3 1.9];
+            limitCell{6} = [1400 2000];
+            limitCell{7} = [100 900];
+            
+            titleCell{1} = 'a';
+            titleCell{2} = 'b';
+            titleCell{3} = 'c';
+            titleCell{4} = 'd';
+            titleCell{5} = 'e';
+            titleCell{6} = 'f';
+            titleCell{7} = 'g';
+            
+            xLabelCell{1} = 'Gamma ray (gAPI)';
+            xLabelCell{2} = 'Hole radius (in)';
+            xLabelCell{3} = 'Resistivity (ohm-m)';
+            xLabelCell{4} = 'Porosity';
+            xLabelCell{5} = 'Bulk density (g/cm^3)';
+            xLabelCell{6} = 'P-velocity (m/s)';
+            xLabelCell{7} = 'S-velocity (m/s)';
+            
+            
+            
+            for i = 1:n
+                
+                leftLimit = limitCell{i}(1);
+                rightLimit = limitCell{i}(2);    
+                xLine = [leftLimit rightLimit];
+                
+                if i == 7
+                    temp = axisCell{6}.Position;
+                    axisCell{6}.Position = axisCell{5}.Position;
+                end
+                
+                axisCell{i} = subplot(1, 7, i);
+                axisCell{i}.FontSize = 8;
+                axisCell{i}.XTick = xTickCell{i};
+                
+                if i == 7
+                    axisCell{6}.Position = temp;
+                end                
+                
+                if i ~= 1
+                    axisCell{i}.YTickLabel = [];
+                end
+                hold on
+
+                DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+                
+                if i == 2
+                    caliperRadius = xCell{i} ./ 2;
+                    plot(caliperRadius, yCell{i}, 'k', 'Linewidth', 0.5)
+                    plot(-caliperRadius, yCell{i}, 'k', 'Linewidth', 0.5)
+                    plot([bitRadius bitRadius], depthAxis, 'k-.', 'Linewidth', 1)
+                    plot([-bitRadius -bitRadius], depthAxis, 'k-.', 'Linewidth', 1)
+                elseif i == 3
+                    semilogx(xCell{i}, yCell{i}, 'k', 'Linewidth', plotLineWidth)
+%                     plot(xCell{i}, yCell{i}, 'k', 'Linewidth', plotLineWidth)
+                    grid on
+                else
+                    plot(xCell{i}, yCell{i}, 'k', 'Linewidth', plotLineWidth)
+                end
+                
+                set(gca, 'YDir', 'Reverse')
+                xlabel(xLabelCell{i}, 'Fontsize', 8)
+                axis([leftLimit rightLimit depthAxis(1) depthAxis(2)])
+                title(titleCell{i})
+                
+                if i == 1
+                    ylabel('Depth (mbsf)')
+                    text(-13, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
+                    text(-28, bulkEQLLine(1), '3P EQL', 'Fontsize', labelLineFont)                    
+                end
+                
+                plot(xLine, bulkEQLLine, 'k--', 'Linewidth', markerLineWidth)                
+                
+                axisCell{i}.Position(1) = xStart;
+                axisCell{i}.Position(3) = interval - gap;
+                xStart = xStart + interval;                
+            end
+        end
+        function PlotThicknessVsQuantity( obj , Wave )
+            
+            startIndex = 6;
+            xData = obj.quantityArray(startIndex : end);
+            yData = [Wave.thickness3P{startIndex : end}]';
+            
+            logFitType = fittype('a + b*log(x)', ...
+                'dependent', {'y'}, ...
+                'independent', {'x'}, ...
+                'coefficients', {'a', 'b'});
+            [logFit logGOF] = fit(xData, yData, logFitType)
+            
+            figure
+            axis1 = plot(logFit, 'r-', ...
+                        xData, yData, 'ks');
+
+            set(axis1, 'Linewidth', 1.5)
+            xlabel('Methane quantity (g/dm^3 of pore volume)')
+            ylabel('Transition zone thickness (m)')
+            axis([xData(1) xData(end) -inf inf])
+            set(gca, 'XScale', 'log')
+            legend('Data points', 'Logarithmic fit')
         end
         
+        
+        function PlotSeismogramOriginalResolution( obj , Wave )
+            figure1 = figure();
+            startIndex = 6;
+            nQuantity = numel(Wave.seismogram);
+            
+            %%% Depth series seismogram
+            axis1 = subplot(2, 1, 1);
+            hold on
+            colorStream = colormap(jet(nQuantity));
+            
+            BEQL3P = 481; % mbsf
+            plot([BEQL3P, BEQL3P], [-1, 1], '--', ...
+                    'Color', [.4 .4 .4], 'Linewidth', 1.5)
+            
+            for iQuantity = startIndex:nQuantity
+                
+                plot(Wave.depth, Wave.seismogram{iQuantity}, ...
+                                                    'Color', colorStream(iQuantity,:)', ...
+                                                    'linewidth', 1);
+            end
+            axis([380 580 -.35 .2])
+            xlabel('Depth (mbsf)')
+            ylabel('Amplitude')
+            title('a) Depth Series')
+            c1 = colorbar('Limits', [6 40], ...
+                          'Ticks', linspace(6, 40, 5), ...
+                          'TickLabels', linspace(6, 40, 5));
+            caxis([6 40])
+            c1.Label.String = 'Methane quantity (g/dm^3 of pore volume)';
+            c1.Label.FontSize = 8;
+            
+            %%% Time series seismogram
+            axis2 = subplot(2, 1, 2);
+            hold on
+            colorStream = colormap(jet(nQuantity));
+            for iQuantity = iQuantity:nQuantity % FIX THIS  TOO @@@@@@@@@@@
+                plot(Wave.time{iQuantity} - Wave.time{iQuantity}(Wave.depth == 380) , Wave.seismogram{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5)
+%                 plot(Wave.time - Wave.time(Wave.depth == 380),Wave.seismogram_data(:,iQuantity),'Color',colorStream(iQuantity,:)' , 'linewidth' , 1 );
+            end
+            axis([0 Wave.time{iQuantity}(Wave.depth == 580) - Wave.time{iQuantity}(Wave.depth == 380) -.35 .2])
+            xlabel('Time (seconds)')
+            ylabel('Amplitude')
+            title('b) Time Series')
+            c2 = colorbar('Limits', [6 40], ...
+                          'Ticks', linspace(6, 40, 5), ...
+                          'TickLabels', linspace(6, 40, 5));
+            caxis([6 40])
+            c2.Label.String = 'Methane quantity (g/dm^3 of pore volume)';
+            c2.Label.FontSize = 8;
+            
+            axis1.Position = [.13 .56 .63 .39];
+            axis2.Position = [.13 .07 .61 .39];
+            
+            figure1.Position(3) = 416;
+            set(findall(figure1,'-property','FontSize'),'FontSize',8)
+            set(findall(figure1,'-property','FontName'),'FontName','Arial')
+        end
         %%% Loading methods
         function [ SaturationLF ] = LoadPhaseBehaviorBlakeRidge( obj )
             % Loads saturation data from hydrate and gas grabit array .mat files and
@@ -1140,14 +1088,18 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             set(findall(figure_1,'-property','FontName'),'FontName','Arial')
         end
         
-        
+    
         %%% Unused methods
         
         
         
     end
     methods (Static)
-        
+        function DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+            rectangle('Position', [leftLimit, BSRTop, rightLimit - leftLimit, BSRBottom - BSRTop], ...
+                        'FaceColor', [0.8, 0.8, 0.8], ...
+                        'EdgeColor', 'k');            
+        end
     end
 end
 

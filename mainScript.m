@@ -27,20 +27,24 @@ clear variables
 % formationInstance.PlotPSD( 'log' );
 
 
-baseFlag = true;
 obj = DCSeismicAnalysisBR();
-[ Wave , data , WaveBase , dataBase ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity', baseFlag);
-
-% obj.PlotParameterSensitivity(Wave, WaveBase);
-% obj.PlotPhaseSaturations(Wave);
-
-obj.PlotBackgroundProperties(dataBase )
 
 
 
+baseFlag = true;
+[ WaveParameterSensitivity , ~ , WaveBase , dataBase ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity', baseFlag);
 
+obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBase)
+% obj.PlotPhaseSaturations(WaveParameterSensitivity)
+% 
+% obj.PlotBackgroundProperties(dataBase)
+% 
+% obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
 
-
+% baseFlag = false;
+% [ WaveOriginalResolution , data , ~ , ~ ] = obj.RunSeismicAnalysisRoutine('OriginalResolution', baseFlag);
+% 
+% obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
 
 
 
