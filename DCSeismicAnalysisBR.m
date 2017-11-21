@@ -98,8 +98,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             data.HydrateK = obj.CalcHydrateK(data.Pressure, data.Temperature);
             
             
-%             newPorosityFlag = true;
-            newPorosityFlag = false;
+            newPorosityFlag = true;
+%             newPorosityFlag = false;
+            
             if newPorosityFlag
                 data.Porosity = obj.CalcPorosity(data.Resistivity, 1, data.Temperature);
             end
@@ -952,22 +953,23 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             set(findall(figure1,'-property','FontSize'),'FontSize',8)
             set(findall(figure1,'-property','FontName'),'FontName','Arial')
         end
-        function PlotVelocityStructureOriginalResolution( obj , Wave )
+        function PlotVelocityStructureOriginalResolution( obj , WaveBase , Wave )
             quantity = obj.selectedQuantities;
             
             figure
             colorStream = jet(numel(Wave.VPFS));
-            
-            % Hard coded Sw = 1 case for the 2nd methane quantity forloop
-%             plot( Data.log(:,1) , Data.VP(:,2) , 'k:' , 'linewidth' , 2.5 )
+            %%% VP
+            % Base case
+            plot(Wave.depth, WaveBase.VPFS, 'k:', 'linewidth', 2.5)
+            % Methane quantity cases
             for iQuantity = quantity
                 hold on
-                plot( Data.log(:,1) , Data.VP(:,iQuantity) , 'Color' , colorStream(iQuantity,:)' , 'linewidth' , 2.5 );
+                plot(Wave.depth, Wave.VPFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'Linewidth', 2.5 );
             end
             xlabel('Depth (mbsf)')
             ylabel('Compressional wave velocity (m/s)')
             axis([450 510 600 2200])
-            legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            legend('0 g/dm^3', '6 g/dm^3', '15 g/dm^3', '23 g/dm^3', '32 g/dm^3', '40 g/dm^3')
             title('Preupscaled Compressional Wave Velocity')
         end
         

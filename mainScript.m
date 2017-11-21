@@ -1,5 +1,5 @@
 clc
-close all
+% close all
 clear variables
 
 % ch4Quantity = 40;
@@ -33,8 +33,8 @@ test = 2;
 
 if test == 1
     baseFlag = true;
-    [ WaveParameterSensitivity , ~ , WaveBase , dataBase ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity', baseFlag);
-    obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBase)
+    [ WaveParameterSensitivity , ~ , WaveBaseParameterSensitivity , dataBase ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity', baseFlag);
+    obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBaseParameterSensitivity)
 
     obj.PlotPhaseSaturations(WaveParameterSensitivity)
 
@@ -42,10 +42,11 @@ if test == 1
 
     obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
 elseif test == 2
-    baseFlag = false;
-    [ WaveOriginalResolution , data , ~ , ~ ] = obj.RunSeismicAnalysisRoutine('OriginalResolution', baseFlag);
+    baseFlag = true;
+    [ WaveOriginalResolution , ~ , WaveBaseOriginalResolution , ~ ] = obj.RunSeismicAnalysisRoutine('OriginalResolution', baseFlag);
 
     obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
+    obj.PlotVelocityStructureOriginalResolution(WaveBaseOriginalResolution, WaveOriginalResolution)
 end
 
 
