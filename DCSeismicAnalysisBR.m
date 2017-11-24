@@ -4,6 +4,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         graphBottom
         saturationBottom
         
+        depthArrayFull
+        
         quantityArray
         
         SaturationLF
@@ -21,6 +23,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         clayK = 21.2*10^9; % Pa
         waterK = 2.688*10^9; % Pa
         
+        seaVP = 1485; % m/s
+        
         selectedQuantities = [6 15 23 32 40];
         
         aHelgerudK = -1.09e-2; % GPa/C deg
@@ -32,6 +36,11 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         phiA = 0.9;
         phiM = 2.7;
         phiN = 1.9386;
+        
+        
+        
+        axisMaxAmplitude = 0.1;
+        axisMinAmplitude = -0.2;
     end
     methods
         %%% Constructor
@@ -43,6 +52,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             obj.saturationBottom = obj.maxDepth; % mbsf
 
             obj.depthArray = (obj.minDepth : 1 : obj.maxDepth)';
+            obj.depthArrayFull = [(1 : 1 : obj.seafloorDepth)'; obj.depthArray + obj.seafloorDepth];
             
             obj.quantityArray = (1 : 1 : 40)';
             
@@ -136,7 +146,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             Wave.thickness3P = cell(nQuantity, 1);
             Wave.peak = cell(nQuantity, 2);
             Wave.time = cell(nQuantity, 1);
-            Wave.depth = data.Depth;
+%             Wave.depth = data.Depth;
             
             Wave.bulkKFS = cell(nQuantity, 1);
             Wave.bulkDensityFS = cell(nQuantity, 1);
@@ -242,8 +252,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             % Bulk modulus from VP and VS in Pa
             data.BulkK = obj.CalcBulkK(data.BulkDensity, data.VP, data.VS);
-            hydrateK = 6.414*10^9; % Pa
-            % Fluid modulus using isostress average (volume-weighted harmonic mean) 
             data.FluidK = obj.CalcFluidK(data.Sw, obj.waterK, data.Sg, data.GasK, data.Sh, data.HydrateK);
             data.GrainK = obj.CalcGrainK(data.GammaRay);
             data.FrameK = obj.CalcFrameK(data.Porosity, data.GrainK);
@@ -254,6 +262,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             data.BulkDensityFS = obj.CalcBulkDensityFluidSubstituted(data.GammaRay, data.Porosity, data.Sw, data.Sg, data.Sh);
             data.VSFS = obj.CalcVSFS(data.ShearG, data.BulkDensityFS);
             data.VPFS = obj.CalcVPFS(data.BulkKFS, data.BulkDensityFS, data.VSFS);
+            
+            %%% Fill in VP and bulk density values in the fluid substituted
+            %%% columns for full reflectance series, using best fit through
+            %%% 0-200 mbsf log points
+            data.VPFS = obj.FillInSeafloorToSaturationTop(data.VPFS);
+            data.BulkDensityFS = obj.FillInSeafloorToSaturationTop(data.BulkDensityFS);
+            
+            
             
             Wave = obj.FindIntervalOfOneSeismicWavelength(data.VPFS, Wave);
             
@@ -267,17 +283,25 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     % values within the 3P zone
                     originalResolutionFlag = true;
             end
-            
-            
-            
             [ data , Wave ] = obj.CalcAverageProperties(data, Wave, originalResolutionFlag);
-            data.Impedance = obj.CalcImpedance(data.BulkDensityFSAvg, data.VPFSAvg);
-            data.ReflectionCoefficient = obj.CalcReflectionCoefficient(data.Impedance);
-            data.ConvolutionDt = obj.CalcConvolutionDt(data.VPFS, data.VPFSAvg, originalResolutionFlag);
-            data.TimeSeries = obj.CalcTimeSeries(data.ConvolutionDt);
             
-            [ ~ , ~ , seismogram ] = obj.CalcSeismogram( Wave.rickerFrequency , data.TimeSeries , data.ReflectionCoefficient );
-            timeSeries = data.TimeSeries;
+            %%% New table to hold values from sea level
+            dataFull = table();
+            seaValues = obj.GenerateSeaValues();
+            
+            dataFull.Depth = obj.depthArrayFull;
+            dataFull.VPFS = [seaValues.VP; data.VPFS];
+            dataFull.VPFSAvg = [seaValues.VP; data.VPFSAvg];
+            dataFull.BulkDensityFSAvg = [seaValues.bulkDensity; data.BulkDensityFSAvg];
+            
+            
+            dataFull.Impedance = obj.CalcImpedance(dataFull.BulkDensityFSAvg, dataFull.VPFSAvg);
+            dataFull.ReflectionCoefficient = obj.CalcReflectionCoefficient(dataFull.Impedance);
+            dataFull.ConvolutionDt = obj.CalcConvolutionDt(dataFull.VPFS, dataFull.VPFSAvg, originalResolutionFlag);
+            dataFull.TimeSeries = obj.CalcTimeSeries(dataFull.ConvolutionDt);
+            
+            [ ~ , ~ , seismogram ] = obj.CalcSeismogram( Wave.rickerFrequency , dataFull.TimeSeries , dataFull.ReflectionCoefficient );
+            timeSeries = dataFull.TimeSeries;
             thickness = data.Depth(Wave.BGHSZ) - data.Depth(Wave.BSR);
             
             switch caseString
@@ -290,6 +314,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     parameterSensitivity.VPFS = data.VPFS;
             end
             
+            %%% Old setup convolution without sea
+            %{
+            data.Impedance = obj.CalcImpedance(data.BulkDensityFSAvg, data.VPFSAvg);
+            data.ReflectionCoefficient = obj.CalcReflectionCoefficient(data.Impedance);
+            data.ConvolutionDt = obj.CalcConvolutionDt(data.VPFS, data.VPFSAvg, originalResolutionFlag);
+            data.TimeSeries = obj.CalcTimeSeries(data.ConvolutionDt);
+            %}
             
         end
         
@@ -342,6 +373,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             bulkK = bulkDensity .* (VP .^ 2 - (4/3) .* (VS .^ 2));
         end
         function [ fluidK ] = CalcFluidK( ~ , Sw , waterK , Sg , gasK , Sh , hydrateK )
+            % Fluid modulus using isostress average (volume-weighted harmonic mean) 
             fluidK = 1 ./ ...
                     (Sw ./ waterK ...
                    + Sg ./ gasK ...
@@ -530,17 +562,24 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             else
                 dt = 1 ./ VPFSAvg;
             end
+            
+            if any(isnan(dt))
+                temp = dt;
+                temp(isnan(dt)) = [];
+                dt(isnan(dt)) = temp(end);
+            end
         end
         function [ timeSeries ] = CalcTimeSeries( ~ , convolutionDt )
-            convolutionDt(isnan(convolutionDt)) = 0;
             timeSeries = cumsum(convolutionDt);
+            timeSeries = timeSeries .* 2;
         end
         function [ F , T , C ] = CalcSeismogram( ~ , rickerFrequency , timeSeries , reflectionCoefficient )
             logical = isnan(reflectionCoefficient);
+            reflectionCoefficient(logical) = 0;
             
-            zerosToAddAfterDeletion = zeros(sum(logical), 1);
-            timeSeries(logical) = [];
-            reflectionCoefficient(logical) = [];
+%             zerosToAddAfterDeletion = zeros(sum(logical), 1);
+%             timeSeries(logical) = [];
+%             reflectionCoefficient(logical) = [];
             
             
             %%% Original code
@@ -554,8 +593,29 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             C = C(end / 2 + 1 : end);
             %%%
             
-            C = [zerosToAddAfterDeletion; C];
+%             C = [zerosToAddAfterDeletion; C];
         end
+        function [ adjustedDataSeries ] = FillInSeafloorToSaturationTop( obj , dataSeries )
+            topDepth = 1;
+            bottomDepth = 199;
+            
+            x = obj.depthArray(topDepth : bottomDepth);
+            y = dataSeries(topDepth : bottomDepth);
+            nanLogical = isnan(y);
+            polyfitDegree1 = polyfit(x(~nanLogical), y(~nanLogical), 1);
+            
+            adjustedDataSeries = dataSeries;
+            adjustedDataSeries(nanLogical) = polyval(polyfitDegree1, x(nanLogical));
+        end
+        function [ seaValues ] = GenerateSeaValues( obj )
+            seaValues = struct();
+            
+            n = obj.seafloorDepth;
+            
+            seaValues.VP = obj.seaVP .* ones(n, 1);
+            seaValues.bulkDensity = obj.waterDensity .* ones(n, 1);
+        end
+        
         
         
 %         function [  ] = ( obj )
@@ -573,17 +633,17 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             quantity = [12 26 40];
             n = numel(quantity);
             
-            
+            depth = obj.depthArray;
             
             for i = 1:n
                 iQuantity = quantity(i);
                 
                 subplot(1, 3, i)
                 hold on
-                plot(obj.SaturationLF.Hydrate(:, iQuantity), Wave.depth, ...
+                plot(obj.SaturationLF.Hydrate(:, iQuantity), depth, ...
                     'Color', [0 .5 0], ...
                     'LineWidth', 2.5);
-                plot(obj.SaturationLF.Gas(:, iQuantity), Wave.depth, ...
+                plot(obj.SaturationLF.Gas(:, iQuantity), depth, ...
                     'Color', [1 0 0], ...
                     'LineWidth', 2.5);
                 axis([0 0.31 420 520])
@@ -610,6 +670,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             quantity = obj.selectedQuantities;
             colorStream = jet(numel(Wave.seismogram));
             
+            depth = obj.depthArray;
+            
             %%%%% Figure 1
             figure1 = figure();
             
@@ -617,10 +679,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis1 = subplot(2, 2, 4);
             hold on
             % Base case
-            plot(Wave.depth, WaveBase.VPFS, 'k:', 'linewidth', 2.5)
+            plot(depth, WaveBase.VPFS, 'k:', 'linewidth', 2.5)
             % Quantity cases
             for iQuantity = quantity
-                plot(Wave.depth, Wave.VPFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
+                plot(depth, Wave.VPFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
             end
             xlabel('Depth (mbsf)')
             ylabel('Compressional wave velocity (m/s)')
@@ -631,10 +693,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis2 = subplot(2, 2, 3);
             hold on
             % Base case
-            plot(Wave.depth, WaveBase.VSFS, 'k:', 'linewidth', 2.5)
+            plot(depth, WaveBase.VSFS, 'k:', 'linewidth', 2.5)
             % Quantity cases
             for iQuantity = quantity
-                plot(Wave.depth, Wave.VSFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
+                plot(depth, Wave.VSFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
             end
             xlabel('Depth (mbsf)')
             ylabel('Shear wave velocity (m/s)')
@@ -647,10 +709,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis3 = subplot(2, 2, 2);
             hold on
             % Base case
-            plot(Wave.depth, WaveBase.bulkDensityFS ./ 1000, 'k:', 'linewidth', 2.5)
+            plot(depth, WaveBase.bulkDensityFS ./ 1000, 'k:', 'linewidth', 2.5)
             % Quantity cases
             for iQuantity = quantity
-                plot(Wave.depth, Wave.bulkDensityFS{iQuantity} ./ 1000, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
+                plot(depth, Wave.bulkDensityFS{iQuantity} ./ 1000, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
             end
             xlabel('Depth (mbsf)')
             ylabel('Bulk density (g/cm^3)')
@@ -661,10 +723,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis4 = subplot(2, 2, 1);
             hold on
             % Base case
-            plot(Wave.depth, WaveBase.bulkKFS, 'k:', 'linewidth', 2.5)
+            plot(depth, WaveBase.bulkKFS, 'k:', 'linewidth', 2.5)
             % Quantity cases
             for iQuantity = quantity
-                plot(Wave.depth, Wave.bulkKFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
+                plot(depth, Wave.bulkKFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
             end
             xlabel('Depth (mbsf)')
             ylabel('Bulk modulus (Pa)')
@@ -699,11 +761,11 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             for iQuantity = quantity
                 figureNumber = figureNumber + 1;
-                figureCellArray{figureNumber} = plot(Wave.depth, Wave.seismogram{iQuantity}, ...
+                figureCellArray{figureNumber} = plot(obj.depthArrayFull, Wave.seismogram{iQuantity}, ...
                                                     'Color', colorStream(iQuantity,:)', ...
                                                     'linewidth', 2.5);
             end
-            axis([380 580 -.35 .2])
+            axis([380 + obj.seafloorDepth, 580 + obj.seafloorDepth, obj.axisMinAmplitude obj.axisMaxAmplitude])
             xlabel('Depth (mbsf)')
             ylabel('Amplitude')
             title('a) Depth Series')
@@ -713,10 +775,12 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             %%% Time series seismogram
             axis6 = subplot(2, 1, 2);
             hold on
-            for iQuantity = quantity % FIX THIS @@@@@@@@@@@
-                plot(Wave.time{iQuantity} - Wave.time{iQuantity}(Wave.depth == 380) , Wave.seismogram{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5)
+            for iQuantity = quantity
+                plot(Wave.time{iQuantity}, Wave.seismogram{iQuantity}, ...
+                    'Color', colorStream(iQuantity,:)', ...
+                    'Linewidth', 2.5)
             end       
-            axis([0 Wave.time{iQuantity}(Wave.depth == 580) - Wave.time{iQuantity}(Wave.depth == 380) -.35 .2])
+            axis([0 inf obj.axisMinAmplitude obj.axisMaxAmplitude])
             xlabel('Time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
@@ -902,22 +966,25 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             startIndex = 6;
             nQuantity = numel(Wave.seismogram);
             
+            
+            depth = obj.depthArrayFull;
+            
+            
             %%% Depth series seismogram
             axis1 = subplot(2, 1, 1);
             hold on
             colorStream = colormap(jet(nQuantity));
             
-            BEQL3P = 481; % mbsf
+            BEQL3P = 481 + obj.seafloorDepth; % mbsl
             plot([BEQL3P, BEQL3P], [-1, 1], '--', ...
                     'Color', [.4 .4 .4], 'Linewidth', 1.5)
             
             for iQuantity = startIndex:nQuantity
-                
-                plot(Wave.depth, Wave.seismogram{iQuantity}, ...
-                                                    'Color', colorStream(iQuantity,:)', ...
-                                                    'linewidth', 1);
+                plot(depth, Wave.seismogram{iQuantity}, ...
+                        'Color', colorStream(iQuantity,:)', ...
+                        'Linewidth', 1);
             end
-            axis([380 580 -.35 .2])
+            axis([380 + obj.seafloorDepth 580 + obj.seafloorDepth obj.axisMinAmplitude obj.axisMaxAmplitude])
             xlabel('Depth (mbsf)')
             ylabel('Amplitude')
             title('a) Depth Series')
@@ -932,10 +999,12 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis2 = subplot(2, 1, 2);
             hold on
             colorStream = colormap(jet(nQuantity));
-            for iQuantity = startIndex:nQuantity % FIX THIS TOO @@@@@@@@@@@
-                plot(Wave.time{iQuantity} - Wave.time{iQuantity}(Wave.depth == 380) , Wave.seismogram{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 1)
+            for iQuantity = startIndex:nQuantity
+                plot(Wave.time{iQuantity}, Wave.seismogram{iQuantity}, ...
+                    'Color', colorStream(iQuantity,:)', ...
+                    'Linewidth', 1)
             end
-            axis([0 Wave.time{iQuantity}(Wave.depth == 580) - Wave.time{iQuantity}(Wave.depth == 380) -.35 .2])
+            axis([0 inf obj.axisMinAmplitude obj.axisMaxAmplitude])
             xlabel('Time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
@@ -956,15 +1025,21 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         function PlotVelocityStructureOriginalResolution( obj , WaveBase , Wave )
             quantity = obj.selectedQuantities;
             
+%             depth = obj.depthArrayFull;
+            depth = obj.depthArray;            
+            
+            
             figure
             colorStream = jet(numel(Wave.VPFS));
             %%% VP
             % Base case
-            plot(Wave.depth, WaveBase.VPFS, 'k:', 'linewidth', 2.5)
+            plot(depth, WaveBase.VPFS, 'k:', 'Linewidth', 2.5)
             % Methane quantity cases
             for iQuantity = quantity
                 hold on
-                plot(Wave.depth, Wave.VPFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'Linewidth', 2.5 );
+                plot(depth, Wave.VPFS{iQuantity}, ...
+                    'Color', colorStream(iQuantity,:)', ...
+                    'Linewidth', 2.5);
             end
             xlabel('Depth (mbsf)')
             ylabel('Compressional wave velocity (m/s)')
