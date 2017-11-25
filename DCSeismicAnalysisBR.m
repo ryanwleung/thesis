@@ -239,7 +239,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             
             % Gas bulk modulus in Pa
-            data.GasK = obj.CalcGasK(data.Pressure);
+            data.GasK = obj.CalcGasK(data.Pressure, data.Temperature);
             
             switch caseString
                 case 'ParameterSensitivity'
@@ -356,8 +356,58 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             Old_Porosity_Corrected = Old_Porosity./(1 - Saturation_Hydrate);
             %}
         end
-        function [ gasK ] = CalcGasK( ~ , hydrostaticPressure )
-            gasK = hydrostaticPressure;
+        function [ gasK ] = CalcGasK( obj , pressure , temperature )
+            
+            EOS = 'IdealGasLaw';
+%             EOS = 'Batzle';
+            
+            switch EOS
+                case 'IdealGasLaw'
+                    gasK = pressure;
+                case 'Batzle'
+                    pr1978Obj = BCPR1978Util();
+                    
+                    reducedPressure = pressure ./ pr1978Obj.pcCH4;
+                    reducedTemperature = (temperature + 273.15) ./ pr1978Obj.tcCH4;
+                    
+                    gasK = obj.CalcKsBatzle(reducedPressure, reducedTemperature, pressure);
+
+                    
+                    
+            end
+        end
+        function [ Ks ] = CalcKsBatzle( ~ , pr , tr , pressure )
+            
+            E = 0.109 .* (3.85 - tr) .^ 2 ...
+                .* exp( -(0.45 + 8 .* (0.56 - 1 ./ tr) .^ 2) ...
+                        .* pr .^ 1.2 ...
+                        ./ tr ...
+                      );
+            
+            Z = pr .* (0.03 + 0.00527 .* (3.5 - tr) .^ 3) ...
+                + (0.642 .* tr ...
+                    - 0.007 .* tr .^ 4 ...
+                    - 0.52) ...
+                + E;
+            
+            gamma0 = 0.85 ...
+                        + 5.6 ./ (pr + 2) ...
+                        + 27.1 ./ (pr + 3.5) .^ 2 ...
+                        - 8.7 .* exp(-0.65 .* (pr + 1));
+            
+            dZdPr = (0.03 + 0.00527 .* (3.5 - tr) .^ 3) ...
+                    + (0.109 .* (3.85 - tr) .^ 2) ...
+                        .* (1.2 .* pr .^ 0.2) ...
+                            .* (-(0.45 + 8 .* (0.56 - 1 ./ tr) .^ 2) ./ tr) ...
+                        .* exp( -(0.45 + 8 .* (0.56 - 1 ./ tr) .^ 2) ...
+                                .* pr .^ 1.2 ...
+                                ./ tr ...
+                              );
+            
+            Ks = pressure ...
+                    .* gamma0 ...
+                    ./ (1 - pr ./ Z .* dZdPr);
+            
         end
         function [ hydrateK ] = CalcHydrateK( obj , hydrostaticPressure , temperature )
             a = obj.aHelgerudK;
@@ -626,7 +676,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         
         
         %%% Plotting methods
-        function PlotPhaseSaturations( obj , Wave )
+        function PlotPhaseSaturations( obj )
             
             figure1 = figure();
             

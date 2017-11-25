@@ -1,5 +1,5 @@
 clc
-close all
+% close all
 clear variables
 
 % ch4Quantity = 40;
@@ -36,7 +36,7 @@ if test == 1
     [ WaveParameterSensitivity , ~ , WaveBaseParameterSensitivity , dataBase ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity', baseFlag);
     obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBaseParameterSensitivity)
 
-    obj.PlotPhaseSaturations(WaveParameterSensitivity)
+    obj.PlotPhaseSaturations()
 
     obj.PlotBackgroundProperties(dataBase)
 
