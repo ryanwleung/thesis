@@ -37,7 +37,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         phiM = 2.7;
         phiN = 1.9386;
         
-        
+%         gasEOS = 'IdealGasLaw';
+        gasEOS = 'Batzle';
         
         axisMaxAmplitude = 0.1;
         axisMinAmplitude = -0.2;
@@ -358,10 +359,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         function [ gasK ] = CalcGasK( obj , pressure , temperature )
             
-            EOS = 'IdealGasLaw';
-%             EOS = 'Batzle';
             
-            switch EOS
+            switch obj.gasEOS
                 case 'IdealGasLaw'
                     gasK = pressure;
                 case 'Batzle'
@@ -1093,7 +1092,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsf)')
             ylabel('Compressional wave velocity (m/s)')
-            axis([450 510 600 2200])
+            axis([450 510 800 2400])
             legend('0 g/dm^3', '6 g/dm^3', '15 g/dm^3', '23 g/dm^3', '32 g/dm^3', '40 g/dm^3')
             title('Preupscaled Compressional Wave Velocity')
         end
