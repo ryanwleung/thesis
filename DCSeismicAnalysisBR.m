@@ -624,13 +624,16 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         function [ F , T , C ] = CalcSeismogram( ~ , rickerFrequency , timeSeries , reflectionCoefficient )
             logical = isnan(reflectionCoefficient);
+            if sum(logical) ~= 0
+                sum(logical)
+            end
             reflectionCoefficient(logical) = 0;
             
 %             zerosToAddAfterDeletion = zeros(sum(logical), 1);
 %             timeSeries(logical) = [];
 %             reflectionCoefficient(logical) = [];
             
-            
+            rickerFrequency = 15;
             %%% Original code
             f = (1 - 2 * pi ^ 2 * rickerFrequency ^ 2 .* timeSeries .^ 2) ...
                 .* exp(-1 * pi ^ 2 * rickerFrequency ^ 2 .* timeSeries .^ 2);
