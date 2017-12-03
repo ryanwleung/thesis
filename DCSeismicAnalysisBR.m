@@ -40,6 +40,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
 %         gasEOS = 'IdealGasLaw';
         gasEOS = 'Batzle';
         
+        rickerFrequency = 30;
+        
         axisMaxAmplitude = 0.1;
         axisMinAmplitude = -0.2;
     end
@@ -72,7 +74,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             
             %%% Instantiate Wave struct
-            Wave.rickerFrequency = 30;
+            Wave = struct();
+%             Wave.rickerFrequency = obj.rickerFrequency;
 
             
             
@@ -301,7 +304,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             dataFull.ConvolutionDt = obj.CalcConvolutionDt(dataFull.VPFS, dataFull.VPFSAvg, originalResolutionFlag);
             dataFull.TimeSeries = obj.CalcTimeSeries(dataFull.ConvolutionDt);
             
-            [ ~ , ~ , seismogram ] = obj.CalcSeismogram( Wave.rickerFrequency , dataFull.TimeSeries , dataFull.ReflectionCoefficient );
+%             [ ~ , ~ , seismogram ] = obj.CalcSeismogram( Wave.rickerFrequency , dataFull.TimeSeries , dataFull.ReflectionCoefficient );
+            [ ~ , ~ , seismogram ] = obj.CalcSeismogram(dataFull.TimeSeries, dataFull.ReflectionCoefficient);
             timeSeries = dataFull.TimeSeries;
             thickness = data.Depth(Wave.BGHSZ) - data.Depth(Wave.BSR);
             
@@ -504,7 +508,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                         + (4/3) .* VSFS .^ 2 ...
                    ) .^ (1/2);
         end
-        function [ Wave ] = FindIntervalOfOneSeismicWavelength( ~ , VPFS , Wave )
+        function [ Wave ] = FindIntervalOfOneSeismicWavelength( obj , VPFS , Wave )
             % This finds the index above the BSR and the index below the
             % BGHSZ to have an interval over which we average the fluid
             % substituted parameters
@@ -515,6 +519,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % Iterates by increasing this search interval until the
             % calculated wavelength lambda = the thickness of the search
             % interval
+            
+            frequency = obj.rickerFrequency;
+            frequency = obj.rickerFrequency / 2;
             
             if isempty(Wave.BSR) || isempty(Wave.BGHSZ)
                 Wave.topWavelengthIndex = [];
@@ -531,10 +538,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 iterationThickness = iterationThickness + 1;
                 
                 topVelocity = mean(VPFS(Wave.BSR - iterationThickness : Wave.BSR - 1));
-                topWavelength = topVelocity / Wave.rickerFrequency;
+                topWavelength = topVelocity / frequency;
                 
                 bottomVelocity = mean(VPFS(Wave.BGHSZ + 1 : Wave.BGHSZ + iterationThickness));
-                bottomWavelength = bottomVelocity / Wave.rickerFrequency;
+                bottomWavelength = bottomVelocity / frequency;
                 
                 if iterateTop && (topWavelength - iterationThickness) < 0.5
                     Wave.topWavelengthIndex = Wave.BSR - iterationThickness;
@@ -622,30 +629,24 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             timeSeries = cumsum(convolutionDt);
             timeSeries = timeSeries .* 2;
         end
-        function [ F , T , C ] = CalcSeismogram( ~ , rickerFrequency , timeSeries , reflectionCoefficient )
+        function [ F , T , C ] = CalcSeismogram( obj , timeSeries , reflectionCoefficient )
             logical = isnan(reflectionCoefficient);
             if sum(logical) ~= 0
                 sum(logical)
             end
             reflectionCoefficient(logical) = 0;
             
-%             zerosToAddAfterDeletion = zeros(sum(logical), 1);
-%             timeSeries(logical) = [];
-%             reflectionCoefficient(logical) = [];
-            
-            rickerFrequency = 15;
+%             frequency = obj.rickerFrequency;
+            frequency = obj.rickerFrequency / 2;
             %%% Original code
-            f = (1 - 2 * pi ^ 2 * rickerFrequency ^ 2 .* timeSeries .^ 2) ...
-                .* exp(-1 * pi ^ 2 * rickerFrequency ^ 2 .* timeSeries .^ 2);
+            f = (1 - 2 * pi ^ 2 * frequency ^ 2 .* timeSeries .^ 2) ...
+                .* exp(-1 * pi ^ 2 * frequency ^ 2 .* timeSeries .^ 2);
             F = flipud(f);
             F(end + 1 : end + length(timeSeries)) = f;
             T = flipud(timeSeries .* -1);
             T(end + 1 : end + length(timeSeries)) = timeSeries;
             C = filter(reflectionCoefficient, 1, F);
             C = C(end / 2 + 1 : end);
-            %%%
-            
-%             C = [zerosToAddAfterDeletion; C];
         end
         function [ adjustedDataSeries ] = FillInSeafloorToSaturationTop( obj , dataSeries )
             topDepth = 1;
@@ -685,7 +686,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             quantity = [12 26 40];
             n = numel(quantity);
             
-            depth = obj.depthArray;
+%             depth = obj.depthArray;
+            depth = obj.depthArray + obj.seafloorDepth;
             
             for i = 1:n
                 iQuantity = quantity(i);
@@ -698,7 +700,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 plot(obj.SaturationLF.Gas(:, iQuantity), depth, ...
                     'Color', [1 0 0], ...
                     'LineWidth', 2.5);
-                axis([0 0.31 420 520])
+                axis([0 0.31 420 + obj.seafloorDepth 520 + obj.seafloorDepth])
                 xlabel('Fluid saturations')
                 ylabel('Depth (mbsf)')
                 if i == 1
@@ -722,7 +724,11 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             quantity = obj.selectedQuantities;
             colorStream = jet(numel(Wave.seismogram));
             
-            depth = obj.depthArray;
+%             depth = obj.depthArray;
+            depth = obj.depthArray + obj.seafloorDepth;
+            
+            axisMinDepth = 450 + obj.seafloorDepth;
+            axisMaxDepth = 510 + obj.seafloorDepth;
             
             %%%%% Figure 1
             figure1 = figure();
@@ -738,7 +744,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsf)')
             ylabel('Compressional wave velocity (m/s)')
-            axis([450 510 600 2400])
+            axis([axisMinDepth axisMaxDepth 600 2400])
             title('d')
 
             %%% VS
@@ -752,7 +758,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsf)')
             ylabel('Shear wave velocity (m/s)')
-            axis([450 510 400 600])
+            axis([axisMinDepth axisMaxDepth 400 600])
             legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
             title('c')
 
@@ -768,7 +774,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsf)')
             ylabel('Bulk density (g/cm^3)')
-            axis([450 510 1.5 1.8])
+            axis([axisMinDepth axisMaxDepth 1.5 1.8])
             title('b')
 
             %%% Bulk modulus
@@ -782,7 +788,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsf)')
             ylabel('Bulk modulus (Pa)')
-            axis([450 510 7e8 7e9])
+            axis([axisMinDepth axisMaxDepth 7e8 7e9])
             title('a')
             
             axis1.Position = [.61 .09 .35 .37];
@@ -1037,7 +1043,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                         'Linewidth', 1);
             end
             axis([380 + obj.seafloorDepth 580 + obj.seafloorDepth obj.axisMinAmplitude obj.axisMaxAmplitude])
-            xlabel('Depth (mbsf)')
+            xlabel('Depth (mbsl)')
             ylabel('Amplitude')
             title('a) Depth Series')
             c1 = colorbar('Limits', [6 40], ...
@@ -1057,7 +1063,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'Linewidth', 1)
             end
             axis([0 inf obj.axisMinAmplitude obj.axisMaxAmplitude])
-            xlabel('Time (seconds)')
+            xlabel('TWT time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
             c2 = colorbar('Limits', [6 40], ...
