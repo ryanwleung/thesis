@@ -34,19 +34,21 @@ test = 2;
 if test == 1
     baseFlag = true;
     [ WaveParameterSensitivity , ~ , WaveBaseParameterSensitivity , dataBase ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity', baseFlag);
+    
     obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBaseParameterSensitivity)
-
     obj.PlotPhaseSaturations()
-
     obj.PlotBackgroundProperties(dataBase)
-
     obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
+    obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity, 'ParameterSensitivity')
+    
 elseif test == 2
     baseFlag = true;
     [ WaveOriginalResolution , ~ , WaveBaseOriginalResolution , ~ ] = obj.RunSeismicAnalysisRoutine('OriginalResolution', baseFlag);
 
     obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
     obj.PlotVelocityStructureOriginalResolution(WaveBaseOriginalResolution, WaveOriginalResolution)
+    obj.PlotPeakAmplitudeRatio(WaveOriginalResolution, 'OriginalResolution')
+    
 end
 
 

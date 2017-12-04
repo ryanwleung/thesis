@@ -42,6 +42,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         
         rickerFrequency = 30;
         
+        searchPeakTopIndex = 3200;
+        searchPeakBottomIndex = 3300;
+        
+        
         axisMaxAmplitude = 0.1;
         axisMinAmplitude = -0.2;
     end
@@ -168,6 +172,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             for iQuantity = 1:nQuantity
                 quantity = obj.quantityArray(iQuantity);
                 
+                %%% Get seismogram and related outputs from routine
                 [ seismogram , timeSeries , thickness , parameterSensitivity ] ...
                     = obj.RunRockPhysicsRoutine(data, Wave, iQuantity, caseString, newPorosityFlag);
                 
@@ -176,19 +181,17 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 Wave.time{iQuantity} = timeSeries;
                 Wave.thickness3P{iQuantity} = thickness;
                 
-                %%% NEED TO FIX THIS ALGORITHM
-                [ peakValue , peakIndex ] = findpeaks(seismogram);
-                
-                switch numel(peakValue)
-                    case 1
-                        Wave.peak{iQuantity, 1} = peakValue(1);
-                    case 2
-                        Wave.peak{iQuantity, 1} = peakValue(1);
-                        Wave.peak{iQuantity, 2} = peakValue(2);
-                end
-                
-                
-                % probably do switch case for para and original (store VP)
+                %%% Find the leading and trailing peak amplitude
+%                 [ peakValue , peakIndex ] = findpeaks(seismogram);
+%                 
+%                 switch numel(peakValue)
+%                     case 1
+%                         Wave.peak{iQuantity, 1} = peakValue(1);
+%                     case 2
+%                         Wave.peak{iQuantity, 1} = peakValue(1);
+%                         Wave.peak{iQuantity, 2} = peakValue(2);
+%                 end
+                [Wave.peak{iQuantity, 1}, Wave.peak{iQuantity, 2}] = obj.GetPeakAmplitudes(seismogram);
                 
                 switch caseString
                     case 'ParameterSensitivity'
@@ -214,7 +217,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             seismogram = [];
             timeSeries = [];
-            thickness = [];
+            thickness = -100;
             parameterSensitivity = [];
             
             
@@ -304,11 +307,12 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             dataFull.ConvolutionDt = obj.CalcConvolutionDt(dataFull.VPFS, dataFull.VPFSAvg, originalResolutionFlag);
             dataFull.TimeSeries = obj.CalcTimeSeries(dataFull.ConvolutionDt);
             
-%             [ ~ , ~ , seismogram ] = obj.CalcSeismogram( Wave.rickerFrequency , dataFull.TimeSeries , dataFull.ReflectionCoefficient );
             [ ~ , ~ , seismogram ] = obj.CalcSeismogram(dataFull.TimeSeries, dataFull.ReflectionCoefficient);
             timeSeries = dataFull.TimeSeries;
             thickness = data.Depth(Wave.BGHSZ) - data.Depth(Wave.BSR);
-            
+            if isempty(thickness)
+                thickness = -100;
+            end
             switch caseString
                 case 'ParameterSensitivity'
                     parameterSensitivity.bulkKFS = data.BulkKFS;
@@ -520,8 +524,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % calculated wavelength lambda = the thickness of the search
             % interval
             
+            
+            
+            %%% FIX THIS
             frequency = obj.rickerFrequency;
-            frequency = obj.rickerFrequency / 2;
+%             frequency = obj.rickerFrequency / 2;
+            %%%
+            
+            
             
             if isempty(Wave.BSR) || isempty(Wave.BGHSZ)
                 Wave.topWavelengthIndex = [];
@@ -631,13 +641,15 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         function [ F , T , C ] = CalcSeismogram( obj , timeSeries , reflectionCoefficient )
             logical = isnan(reflectionCoefficient);
-            if sum(logical) ~= 0
-                sum(logical)
-            end
+%             if sum(logical) ~= 0
+%                 sum(logical)
+%             end
             reflectionCoefficient(logical) = 0;
             
-%             frequency = obj.rickerFrequency;
+            % Reduce frequency (double wavelength of wavelet) to account
+            % for TWT time convolution
             frequency = obj.rickerFrequency / 2;
+            
             %%% Original code
             f = (1 - 2 * pi ^ 2 * frequency ^ 2 .* timeSeries .^ 2) ...
                 .* exp(-1 * pi ^ 2 * frequency ^ 2 .* timeSeries .^ 2);
@@ -668,7 +680,20 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             seaValues.VP = obj.seaVP .* ones(n, 1);
             seaValues.bulkDensity = obj.waterDensity .* ones(n, 1);
         end
-        
+        function [ leadingAmp , trailingAmp ] = GetPeakAmplitudes( obj , seismogram )
+            leadingAmp = [];
+            trailingAmp = [];
+            
+            [peaks, indices, widths, prominences] = findpeaks(seismogram);
+%             findpeaks(seismogram)
+            
+            peaksNearBSR = peaks(indices >= obj.searchPeakTopIndex & indices <= obj.searchPeakBottomIndex);
+            
+            if numel(peaksNearBSR) == 2
+                leadingAmp = peaksNearBSR(1);
+                trailingAmp = peaksNearBSR(2);
+            end
+        end
         
         
 %         function [  ] = ( obj )
@@ -1104,6 +1129,69 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis([450 510 800 2400])
             legend('0 g/dm^3', '6 g/dm^3', '15 g/dm^3', '23 g/dm^3', '32 g/dm^3', '40 g/dm^3')
             title('Preupscaled Compressional Wave Velocity')
+        end
+        function PlotPeakAmplitudeRatio( obj , Wave , caseString )
+            %%% Smoothing calculation
+            % This averages the peak amplitudes based on unique thicknesses 
+            % to make it more smooth and understandable
+            
+            thickness = cell2mat(Wave.thickness3P);
+            leadingPeakAmp = Wave.peak(:, 1);
+            trailingPeakAmp = Wave.peak(:, 2);
+            
+            emptyLogical = cellfun(@isempty, leadingPeakAmp);
+            
+            thickness(emptyLogical) = [];
+            leadingPeakAmp(emptyLogical) = [];
+            trailingPeakAmp(emptyLogical) = [];
+            
+            leadingPeakAmp = cell2mat(leadingPeakAmp);
+            trailingPeakAmp = cell2mat(trailingPeakAmp);
+            
+            [uniqueThickness, uniqueIndices, ~] = unique(thickness);
+            n = numel(uniqueThickness);
+            
+            uniqueAvgLeadingPeakAmp = zeros(n, 1);
+            uniqueAvgTrailingPeakAmp = zeros(n, 1);
+            
+            for i = 1:n
+                iFrom = uniqueIndices(i);
+                if i == n
+                    % Average current unique index to end of full data
+                    iTo = numel(thickness);
+                else
+                    % Average current unique index to 1 before next unique
+                    % index
+                    iTo = uniqueIndices(i + 1) - 1;
+                end
+                uniqueAvgLeadingPeakAmp(i) = mean(leadingPeakAmp(iFrom : iTo));
+                uniqueAvgTrailingPeakAmp(i) = mean(trailingPeakAmp(iFrom : iTo));
+            end
+            
+            uniquePeakAmpRatio = uniqueAvgLeadingPeakAmp ./ uniqueAvgTrailingPeakAmp;
+            
+            
+            switch caseString
+                case 'ParameterSensitivity'
+                    exclude = uniqueThickness > 15;
+                    axisVector = [0 30 -inf inf];
+                case 'OriginalResolution'
+                    exclude = uniqueThickness > 15;
+                    axisVector = [0 30 -inf inf];
+            end
+            
+            [linearFit, linearGOF] = fit(uniqueThickness, uniquePeakAmpRatio, ...
+                                            'poly1', 'Exclude', exclude)
+            
+            figure
+            axis1 = plot(linearFit, 'r-', ...
+                        uniqueThickness, uniquePeakAmpRatio, 'ks', ...
+                        exclude , 'b*');
+            set(axis1, 'LineWidth', 1.5)
+            xlabel('Transition zone thickness (m)')
+            ylabel('Leading peak/trailing peak amplitude')
+            axis(axisVector)
+            legend('Data points', 'Excluded data', 'Linear fit')
         end
         
         %%% Loading methods
