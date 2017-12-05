@@ -524,14 +524,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % calculated wavelength lambda = the thickness of the search
             % interval
             
-            
-            
-            %%% FIX THIS
             frequency = obj.rickerFrequency;
-%             frequency = obj.rickerFrequency / 2;
-            %%%
-            
-            
             
             if isempty(Wave.BSR) || isempty(Wave.BGHSZ)
                 Wave.topWavelengthIndex = [];
@@ -650,7 +643,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % for TWT time convolution
             frequency = obj.rickerFrequency / 2;
             
-            %%% Original code
+            %%% Original code from Michael's rock physics project
             f = (1 - 2 * pi ^ 2 * frequency ^ 2 .* timeSeries .^ 2) ...
                 .* exp(-1 * pi ^ 2 * frequency ^ 2 .* timeSeries .^ 2);
             F = flipud(f);

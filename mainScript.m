@@ -29,7 +29,7 @@ clear variables
 
 obj = DCSeismicAnalysisBR();
 
-test = 2;
+test = 1;
 
 if test == 1
     baseFlag = true;
