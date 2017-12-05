@@ -1176,7 +1176,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     exclude = uniqueThickness > 15;
                     axisVector = [0 30 -inf inf];
                 case 'OriginalResolution'
-                    exclude = uniqueThickness > 15;
+                    exclude = uniqueThickness > 15 | uniqueThickness < 3;
                     axisVector = [0 30 -inf inf];
             end
             

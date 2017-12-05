@@ -43,7 +43,7 @@ if test == 1
     
 elseif test == 2
     baseFlag = true;
-    [ WaveOriginalResolution , ~ , WaveBaseOriginalResolution , ~ ] = obj.RunSeismicAnalysisRoutine('OriginalResolution', baseFlag);
+    [ WaveOriginalResolution , data , WaveBaseOriginalResolution , ~ ] = obj.RunSeismicAnalysisRoutine('OriginalResolution', baseFlag);
 
     obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
     obj.PlotVelocityStructureOriginalResolution(WaveBaseOriginalResolution, WaveOriginalResolution)
