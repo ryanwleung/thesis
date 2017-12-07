@@ -720,7 +720,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'LineWidth', 2.5);
                 axis([0 0.31 420 + obj.seafloorDepth 520 + obj.seafloorDepth])
                 xlabel('Fluid saturations')
-                ylabel('Depth (mbsf)')
+                ylabel('Depth (mbsl)')
                 if i == 1
                     legend('Hydrate saturation', 'Gas saturation')
                 end
@@ -742,7 +742,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             quantity = obj.selectedQuantities;
             colorStream = jet(numel(Wave.seismogram));
             
-%             depth = obj.depthArray;
             depth = obj.depthArray + obj.seafloorDepth;
             
             axisMinDepth = 450 + obj.seafloorDepth;
@@ -760,7 +759,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             for iQuantity = quantity
                 plot(depth, Wave.VPFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
             end
-            xlabel('Depth (mbsf)')
+            xlabel('Depth (mbsl)')
             ylabel('Compressional wave velocity (m/s)')
             axis([axisMinDepth axisMaxDepth 600 2400])
             title('d')
@@ -774,7 +773,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             for iQuantity = quantity
                 plot(depth, Wave.VSFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
             end
-            xlabel('Depth (mbsf)')
+            xlabel('Depth (mbsl)')
             ylabel('Shear wave velocity (m/s)')
             axis([axisMinDepth axisMaxDepth 400 600])
             legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
@@ -790,7 +789,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             for iQuantity = quantity
                 plot(depth, Wave.bulkDensityFS{iQuantity} ./ 1000, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
             end
-            xlabel('Depth (mbsf)')
+            xlabel('Depth (mbsl)')
             ylabel('Bulk density (g/cm^3)')
             axis([axisMinDepth axisMaxDepth 1.5 1.8])
             title('b')
@@ -804,7 +803,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             for iQuantity = quantity
                 plot(depth, Wave.bulkKFS{iQuantity}, 'Color', colorStream(iQuantity,:)', 'linewidth', 2.5);
             end
-            xlabel('Depth (mbsf)')
+            xlabel('Depth (mbsl)')
             ylabel('Bulk modulus (Pa)')
             axis([axisMinDepth axisMaxDepth 7e8 7e9])
             title('a')
@@ -842,7 +841,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                                                     'linewidth', 2.5);
             end
             axis([380 + obj.seafloorDepth, 580 + obj.seafloorDepth, obj.axisMinAmplitude obj.axisMaxAmplitude])
-            xlabel('Depth (mbsf)')
+            xlabel('Depth (mbsl)')
             ylabel('Amplitude')
             title('a) Depth Series')
             legend( [figureCellArray{:}], '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
@@ -857,7 +856,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'Linewidth', 2.5)
             end       
             axis([0 inf obj.axisMinAmplitude obj.axisMaxAmplitude])
-            xlabel('Time (seconds)')
+            xlabel('TWT time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
             legend( '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
@@ -1100,10 +1099,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         function PlotVelocityStructureOriginalResolution( obj , WaveBase , Wave )
             quantity = obj.selectedQuantities;
-            
-%             depth = obj.depthArrayFull;
-            depth = obj.depthArray;            
-            
+            depth = obj.depthArray + obj.seafloorDepth;          
             
             figure
             colorStream = jet(numel(Wave.VPFS));
@@ -1117,13 +1113,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'Color', colorStream(iQuantity,:)', ...
                     'Linewidth', 2.5);
             end
-            xlabel('Depth (mbsf)')
+            xlabel('Depth (mbsl)')
             ylabel('Compressional wave velocity (m/s)')
             axis([450 510 800 2400])
             legend('0 g/dm^3', '6 g/dm^3', '15 g/dm^3', '23 g/dm^3', '32 g/dm^3', '40 g/dm^3')
             title('Preupscaled Compressional Wave Velocity')
         end
-        function PlotPeakAmplitudeRatio( obj , Wave , caseString )
+        function PlotPeakAmplitudeRatio( ~ , Wave )
             %%% Smoothing calculation
             % This averages the peak amplitudes based on unique thicknesses 
             % to make it more smooth and understandable
@@ -1164,6 +1160,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             uniquePeakAmpRatio = uniqueAvgLeadingPeakAmp ./ uniqueAvgTrailingPeakAmp;
             
             
+            figure
+            plot(uniqueThickness, uniquePeakAmpRatio, 'ks', 'Linewidth', 1.5);
+            xlabel('Transition zone thickness (m)')
+            ylabel('Leading peak/trailing peak amplitude')
+            axis([0 30 -inf inf])
+            
+            
+            %{
             switch caseString
                 case 'ParameterSensitivity'
                     exclude = uniqueThickness > 15;
@@ -1185,6 +1189,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             ylabel('Leading peak/trailing peak amplitude')
             axis(axisVector)
             legend('Data points', 'Excluded data', 'Linear fit')
+            %}
         end
         
         %%% Loading methods

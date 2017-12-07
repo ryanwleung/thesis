@@ -39,7 +39,7 @@ if test == 1
     obj.PlotPhaseSaturations()
     obj.PlotBackgroundProperties(dataBase)
     obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
-    obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity, 'ParameterSensitivity')
+    obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
     
 elseif test == 2
     baseFlag = true;
@@ -47,7 +47,7 @@ elseif test == 2
 
     obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
     obj.PlotVelocityStructureOriginalResolution(WaveBaseOriginalResolution, WaveOriginalResolution)
-    obj.PlotPeakAmplitudeRatio(WaveOriginalResolution, 'OriginalResolution')
+    obj.PlotPeakAmplitudeRatio(WaveOriginalResolution)
     
 end
 
