@@ -29,26 +29,29 @@ clear variables
 
 obj = DCSeismicAnalysisBR();
 
-test = 1;
+test = 2;
 
-if test == 1
-    baseFlag = true;
-    [ WaveParameterSensitivity , ~ , WaveBaseParameterSensitivity , dataBase ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity', baseFlag);
-    
-    obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBaseParameterSensitivity)
-    obj.PlotPhaseSaturations()
-    obj.PlotBackgroundProperties(dataBase)
-    obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
-    obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
-    
-elseif test == 2
-    baseFlag = true;
-    [ WaveOriginalResolution , data , WaveBaseOriginalResolution , ~ ] = obj.RunSeismicAnalysisRoutine('OriginalResolution', baseFlag);
+switch test
+    case 1
+        [ WaveParameterSensitivity , ~ , WaveBaseParameterSensitivity , dataBase , ~ ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity');
 
-    obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
-    obj.PlotVelocityStructureOriginalResolution(WaveBaseOriginalResolution, WaveOriginalResolution)
-    obj.PlotPeakAmplitudeRatio(WaveOriginalResolution)
+        obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBaseParameterSensitivity)
+        obj.PlotPhaseSaturations()
+        obj.PlotBackgroundProperties(dataBase)
+        obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
+        obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
     
+    case 2
+        obj.Dickens = obj.LoadDickensBlakeRidge();
+        [ WaveOriginalResolution , data , WaveBaseOriginalResolution , ~ , WaveDickens ] = obj.RunSeismicAnalysisRoutine('OriginalResolution');
+        
+        obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
+        obj.PlotVelocityStructureOriginalResolution(WaveBaseOriginalResolution, WaveOriginalResolution)
+        obj.PlotPeakAmplitudeRatio(WaveOriginalResolution)
+        obj.PlotDickensSeismogram(WaveOriginalResolution, WaveDickens)
+        
+    case 3
+        
 end
 
 

@@ -46,8 +46,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         searchPeakBottomIndex = 3300;
         
         
-        axisMaxAmplitude = 0.1;
-        axisMinAmplitude = -0.2;
+        axisMaxAmplitude = 0.075;
+        axisMinAmplitude = -0.1;
     end
     methods
         %%% Constructor
@@ -64,31 +64,22 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             obj.quantityArray = (1 : 1 : 40)';
             
             obj.SaturationLF = obj.LoadPhaseBehaviorBlakeRidge();
-            
-%             obj.Dickens = obj.LoadDickensBlakeRidge();
-            
-            
         end
         
         %%% Main methods
-        function [ Wave , data , WaveBase , dataBase ] = RunSeismicAnalysisRoutine( obj , caseString , baseFlag )
+        function [ Wave , data , WaveBase , dataBase , WaveDickens ] = RunSeismicAnalysisRoutine( obj , caseString )
             %%% Instantiate optional base (Sw = 1) calculation variables
             WaveBase = struct();
             dataBase = table();
             
-            
-            %%% Instantiate Wave struct
+            %%% Instantiate Wave structs
             Wave = struct();
-%             Wave.rickerFrequency = obj.rickerFrequency;
-
-            
+            WaveDickens = struct();
             
             %%% Instantiate main table
             data = table();
             data.Depth = obj.depthArray;
             nDepth = numel(obj.depthArray);
-            
-            
             
             data.Pressure = obj.CalcPressure(data.Depth);
             data.Temperature = obj.CalcTemperature995();
@@ -111,23 +102,16 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % Density in kg/m^3 (converted from g/cm^3 in the log)
             data.BulkDensity = nan(nDepth, 1);
             data.BulkDensity(obj.LDT.Fixed_Depth_TOP : obj.LDT.Fixed_Depth_BOTTOM) = obj.LDT.Fixed_RHOB .* 1000;
-
             
             data.HydrateK = obj.CalcHydrateK(data.Pressure, data.Temperature);
             
+            data.Porosity = obj.CalcPorosity(data.Resistivity, 1, data.Temperature);
             
-            newPorosityFlag = true;
-%             newPorosityFlag = false;
-            
-            if newPorosityFlag
-                data.Porosity = obj.CalcPorosity(data.Resistivity, 1, data.Temperature);
-            end
-            
-            %%% temporary code to get porosity for Sw = 1 for background
-            %%% properties figure
+            %%% Create table for background property figure with porosity
+            %%% at Sw = 1
             dataBase = data;
             dataBase.Porosity = obj.CalcPorosity(data.Resistivity, 1, data.Temperature);
-            %%% end of temp code
+            %%% end
             
             
             %%% Adjust for parameter sensitivity
@@ -144,8 +128,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     data.HydrateK(:) = mean(data.HydrateK(upperBoundIndex : lowerBoundIndex));
             end
             
-            
-            
             %%% Methane quantity for loop
             nQuantity = numel(obj.quantityArray);
             
@@ -154,7 +136,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             Wave.thickness3P = cell(nQuantity, 1);
             Wave.peak = cell(nQuantity, 2);
             Wave.time = cell(nQuantity, 1);
-%             Wave.depth = data.Depth;
             
             Wave.bulkKFS = cell(nQuantity, 1);
             Wave.bulkDensityFS = cell(nQuantity, 1);
@@ -163,18 +144,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             
             %%% Run base case for parameter sensitivity
-            if baseFlag
-                [ ~ , ~ , ~ , WaveBase ] ...
-                        = obj.RunRockPhysicsRoutine(data, Wave, 0, caseString, newPorosityFlag);
-            end
+            [ ~ , ~ , ~ , WaveBase ] ...
+                    = obj.RunRockPhysicsRoutine(data, Wave, 0, caseString);
             
             %%% For loop through all methane quantities
-            for iQuantity = 1:nQuantity
-                quantity = obj.quantityArray(iQuantity);
-                
+            for iQuantity = 1:nQuantity                
                 %%% Get seismogram and related outputs from routine
                 [ seismogram , timeSeries , thickness , parameterSensitivity ] ...
-                    = obj.RunRockPhysicsRoutine(data, Wave, iQuantity, caseString, newPorosityFlag);
+                    = obj.RunRockPhysicsRoutine(data, Wave, iQuantity, caseString);
                 
                 
                 Wave.seismogram{iQuantity} = seismogram;
@@ -182,15 +159,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 Wave.thickness3P{iQuantity} = thickness;
                 
                 %%% Find the leading and trailing peak amplitude
-%                 [ peakValue , peakIndex ] = findpeaks(seismogram);
-%                 
-%                 switch numel(peakValue)
-%                     case 1
-%                         Wave.peak{iQuantity, 1} = peakValue(1);
-%                     case 2
-%                         Wave.peak{iQuantity, 1} = peakValue(1);
-%                         Wave.peak{iQuantity, 2} = peakValue(2);
-%                 end
                 [Wave.peak{iQuantity, 1}, Wave.peak{iQuantity, 2}] = obj.GetPeakAmplitudes(seismogram);
                 
                 switch caseString
@@ -202,18 +170,18 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     case 'OriginalResolution'
                         Wave.VPFS{iQuantity} = parameterSensitivity.VPFS;
                 end
-                
-%                 if ~isempty(parameterSensitivity)
-%                     Wave.bulkKFS{iQuantity} = parameterSensitivity.bulkKFS;
-%                     Wave.bulkDensityFS{iQuantity} = parameterSensitivity.bulkDensityFS;
-%                     Wave.VSFS{iQuantity} = parameterSensitivity.VSFS;
-%                     Wave.VPFS{iQuantity} = parameterSensitivity.VPFS;
-%                 end
-                
+            end
+            
+            %%% Run Dickens case
+            if ~strcmp('ParameterSensitivity', caseString)
+                [ seismogram , timeSeries , ~ , ~ ] ...
+                        = obj.RunRockPhysicsRoutine(data, Wave, -1, caseString);
+                WaveDickens.seismogram = seismogram;
+                WaveDickens.time = timeSeries;
             end
         end
         function [ seismogram , timeSeries , thickness , parameterSensitivity ] = ...
-                RunRockPhysicsRoutine( obj , data , Wave , iQuantity , caseString , newPorosityFlag )
+                RunRockPhysicsRoutine( obj , data , Wave , iQuantity , caseString )
             
             seismogram = [];
             timeSeries = [];
@@ -223,26 +191,29 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             Wave.BSR = [];
             Wave.BGHSZ = [];
-            
-            if iQuantity == 0
-                data.Sh = zeros(height(data), 1);
-                data.Sg = zeros(height(data), 1);
-                data.Sw = ones(height(data), 1);
-            else
-                data.Sh = obj.SaturationLF.Hydrate(:, iQuantity);
-                data.Sg = obj.SaturationLF.Gas(:, iQuantity);
-                data.Sw = 1 - data.Sh - data.Sg;
-                
-                % Gets indices of depths at BSR and BGHSZ
-                Wave.BSR = find(data.Depth == obj.graphTop + obj.SaturationLF.Top3P(iQuantity));
-                Wave.BGHSZ = find(data.Depth == obj.graphTop + obj.SaturationLF.Bottom3P(iQuantity));
-            end
-            
-            
-            
-            
-            if ~newPorosityFlag
-                data.Porosity = obj.CalcPorosity(data.Resistivity, data.Sw, data.Temperature);
+            switch iQuantity
+                case 0
+                    data.Sh = zeros(height(data), 1);
+                    data.Sg = zeros(height(data), 1);
+                    data.Sw = ones(height(data), 1);
+                case -1
+                    data.Sh = obj.Dickens.Hydrate;
+                    data.Sg = obj.Dickens.Gas;
+                    data.Sw = 1 - data.Sh - data.Sg;
+                    
+                    % Sets indices of depths at BSR and BGHSZ
+%                     Wave.BSR = 354;
+%                     Wave.BGHSZ = 376;
+                    Wave.BSR = 469;
+                    Wave.BGHSZ = 490;
+                otherwise
+                    data.Sh = obj.SaturationLF.Hydrate(:, iQuantity);
+                    data.Sg = obj.SaturationLF.Gas(:, iQuantity);
+                    data.Sw = 1 - data.Sh - data.Sg;
+
+                    % Gets indices of depths at BSR and BGHSZ
+                    Wave.BSR = find(data.Depth == obj.graphTop + obj.SaturationLF.Top3P(iQuantity));
+                    Wave.BGHSZ = find(data.Depth == obj.graphTop + obj.SaturationLF.Bottom3P(iQuantity));
             end
             
             % Gas bulk modulus in Pa
@@ -284,7 +255,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 case 'OriginalResolution'
                     originalResolutionFlag = true;
                 otherwise
-%                     originalResolutionFlag = false;
                     % it appears that I
                     % always use the original resolution (no averaging of
                     % values within the 3P zone
@@ -322,15 +292,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 case 'OriginalResolution'
                     parameterSensitivity.VPFS = data.VPFS;
             end
-            
-            %%% Old setup convolution without sea
-            %{
-            data.Impedance = obj.CalcImpedance(data.BulkDensityFSAvg, data.VPFSAvg);
-            data.ReflectionCoefficient = obj.CalcReflectionCoefficient(data.Impedance);
-            data.ConvolutionDt = obj.CalcConvolutionDt(data.VPFS, data.VPFSAvg, originalResolutionFlag);
-            data.TimeSeries = obj.CalcTimeSeries(data.ConvolutionDt);
-            %}
-            
         end
         
         %%% Rock physics calculation methods
@@ -689,9 +650,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         
         
-%         function [  ] = ( obj )
-%             
-%         end
         
         
         
@@ -704,7 +662,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             quantity = [12 26 40];
             n = numel(quantity);
             
-%             depth = obj.depthArray;
             depth = obj.depthArray + obj.seafloorDepth;
             
             for i = 1:n
@@ -721,8 +678,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 axis([0 0.31 420 + obj.seafloorDepth 520 + obj.seafloorDepth])
                 xlabel('Fluid saturations')
                 ylabel('Depth (mbsl)')
-                if i == 1
-                    legend('Hydrate saturation', 'Gas saturation')
+                if i == 3
+                    legend('Hydrate', 'Gas')
                 end
                 set(gca,'YDir','Reverse')
                 
@@ -761,8 +718,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsl)')
             ylabel('Compressional wave velocity (m/s)')
-            axis([axisMinDepth axisMaxDepth 600 2400])
-            title('d')
+            axis([axisMinDepth axisMaxDepth 1400 2400])
+            title('d)')
 
             %%% VS
             axis2 = subplot(2, 2, 3);
@@ -775,9 +732,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsl)')
             ylabel('Shear wave velocity (m/s)')
-            axis([axisMinDepth axisMaxDepth 400 600])
+            axis([axisMinDepth axisMaxDepth 530 600])
             legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
-            title('c')
+            title('c)')
 
 
             %%% Density
@@ -791,8 +748,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsl)')
             ylabel('Bulk density (g/cm^3)')
-            axis([axisMinDepth axisMaxDepth 1.5 1.8])
-            title('b')
+            axis([axisMinDepth axisMaxDepth 1.65 1.8])
+            title('b)')
 
             %%% Bulk modulus
             axis4 = subplot(2, 2, 1);
@@ -805,8 +762,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsl)')
             ylabel('Bulk modulus (Pa)')
-            axis([axisMinDepth axisMaxDepth 7e8 7e9])
-            title('a')
+            axis([axisMinDepth axisMaxDepth 3e9 8e9])
+            title('a)')
             
             axis1.Position = [.61 .09 .35 .37];
             axis2.Position = [.11 .09 .35 .37];
@@ -827,9 +784,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             %%% Depth series seismogram
             axis5 = subplot(2, 1, 1);
             hold on
-            % 3 phase bulk equilibrium depth line
-            BEQL3P = 481; % mbsf
-            plot([BEQL3P, BEQL3P], [-1, 1], '--' , 'Color' , [.4 .4 .4] , 'linewidth' , 1.5 );
+%             % 3 phase bulk equilibrium depth line
+%             BEQL3P = 481; % mbsf
+%             plot([BEQL3P, BEQL3P], [-1, 1], '--' , 'Color' , [.4 .4 .4] , 'linewidth' , 1.5 );
             
             figureCellArray = cell(numel(quantity), 1);
             figureNumber = 0;
@@ -855,11 +812,11 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'Color', colorStream(iQuantity,:)', ...
                     'Linewidth', 2.5)
             end       
-            axis([0 inf obj.axisMinAmplitude obj.axisMaxAmplitude])
+            axis([4.1 4.3 obj.axisMinAmplitude obj.axisMaxAmplitude])
             xlabel('TWT time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
-            legend( '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+%             legend( '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
             
             axis5.Position = [.13 .56 .79 .39];
             axis6.Position = [.13 .07 .79 .39];
@@ -870,12 +827,12 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         function PlotBackgroundProperties( obj , dataBase )
             
-            BSRTop = 456; % mbsf
-            BSRBottom = 472; % mbsf
-            bulkEQLDepth = 481; % mbsf
+            BSRTop = 456 + obj.seafloorDepth; % mbsl
+            BSRBottom = 472 + obj.seafloorDepth; % mbsl
+            bulkEQLDepth = 481 + obj.seafloorDepth; % mbsl
             bulkEQLLine = [bulkEQLDepth bulkEQLDepth];
             
-            depthAxis = [160 500];
+            depthAxis = [160 500] + obj.seafloorDepth;
             
             plotLineWidth = 1.5;
             markerLineWidth = 1.25;
@@ -902,13 +859,23 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xLabelCell = cell(n, 1);
             xTickCell = cell(n, 1);
             
+            % Where the tick labels are
             xTickCell{1} = [30 65 100];
             xTickCell{2} = [-10 -5 0 5 10];
-            xTickCell{3} = [0.6 1 1.4];
+            xTickCell{3} = [0.6 1 1.8]; % log scale
             xTickCell{4} = [0.45 0.6 0.75];
-            xTickCell{5} = [1.4 1.6 1.8];
+            xTickCell{5} = [1.2 1.5 1.8];
             xTickCell{6} = [1500 1700 1900];
             xTickCell{7} = [250 500 750];
+            
+            % Where the axis limits are
+            limitCell{1} = [12 110];
+            limitCell{2} = [-13 13];
+            limitCell{3} = [0.5 2.1]; % log scale
+            limitCell{4} = [0.4 0.8];
+            limitCell{5} = [1 2];
+            limitCell{6} = [1400 2000];
+            limitCell{7} = [100 900];            
             
             xCell{1} = dataBase.GammaRay;
             xCell{2} = obj.CALI.Diameter;
@@ -918,22 +885,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xCell{6} = dataBase.VP;
             xCell{7} = dataBase.VS;
             
-            yCell{1} = dataBase.Depth;
-            yCell{2} = obj.CALI.Depth;
-            yCell{3} = dataBase.Depth;
-            yCell{4} = dataBase.Depth;
-            yCell{5} = dataBase.Depth;
-            yCell{6} = dataBase.Depth;
-            yCell{7} = dataBase.Depth;
-            
-            
-            limitCell{1} = [12 110];
-            limitCell{2} = [-11 11];
-            limitCell{3} = [0.5 1.5];
-            limitCell{4} = [0.4 0.8];
-            limitCell{5} = [1.3 1.9];
-            limitCell{6} = [1400 2000];
-            limitCell{7} = [100 900];
+            yCell{1} = dataBase.Depth + obj.seafloorDepth;
+            yCell{2} = obj.CALI.Depth + obj.seafloorDepth;
+            yCell{3} = dataBase.Depth + obj.seafloorDepth;
+            yCell{4} = dataBase.Depth + obj.seafloorDepth;
+            yCell{5} = dataBase.Depth + obj.seafloorDepth;
+            yCell{6} = dataBase.Depth + obj.seafloorDepth;
+            yCell{7} = dataBase.Depth + obj.seafloorDepth;
             
             titleCell{1} = 'a';
             titleCell{2} = 'b';
@@ -967,6 +925,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 axisCell{i} = subplot(1, 7, i);
                 axisCell{i}.FontSize = 8;
                 axisCell{i}.XTick = xTickCell{i};
+
                 
                 if i == 7
                     axisCell{6}.Position = temp;
@@ -975,10 +934,15 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 if i ~= 1
                     axisCell{i}.YTickLabel = [];
                 end
-                hold on
-
-                DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
                 
+                if i ~= 3
+                    hold on
+                end
+                
+                if i ~= 3
+                    DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+                end
+
                 if i == 2
                     caliperRadius = xCell{i} ./ 2;
                     plot(caliperRadius, yCell{i}, 'k', 'Linewidth', 0.5)
@@ -986,9 +950,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     plot([bitRadius bitRadius], depthAxis, 'k-.', 'Linewidth', 1)
                     plot([-bitRadius -bitRadius], depthAxis, 'k-.', 'Linewidth', 1)
                 elseif i == 3
+                    semilogx(xLine, bulkEQLLine, 'k--', 'Linewidth', markerLineWidth)
+                    hold on
+                    DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
                     semilogx(xCell{i}, yCell{i}, 'k', 'Linewidth', plotLineWidth)
-%                     plot(xCell{i}, yCell{i}, 'k', 'Linewidth', plotLineWidth)
                     grid on
+                    axisCell{i}.XTick = xTickCell{i};
+                    axisCell{i}.YTickLabel = [];
+                    axisCell{i}.FontSize = 8;
                 else
                     plot(xCell{i}, yCell{i}, 'k', 'Linewidth', plotLineWidth)
                 end
@@ -1000,15 +969,17 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 
                 if i == 1
                     ylabel('Depth (mbsf)')
-                    text(-13, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
+%                     text(-13, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
+                    text(15, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
                     text(-28, bulkEQLLine(1), '3P EQL', 'Fontsize', labelLineFont)                    
                 end
                 
-                plot(xLine, bulkEQLLine, 'k--', 'Linewidth', markerLineWidth)                
-                
+                if i ~= 3
+                    plot(xLine, bulkEQLLine, 'k--', 'Linewidth', markerLineWidth)                
+                end
                 axisCell{i}.Position(1) = xStart;
                 axisCell{i}.Position(3) = interval - gap;
-                xStart = xStart + interval;                
+                xStart = xStart + interval;
             end
         end
         function PlotThicknessVsQuantity( obj , Wave )
@@ -1050,16 +1021,17 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             hold on
             colorStream = colormap(jet(nQuantity));
             
-            BEQL3P = 481 + obj.seafloorDepth; % mbsl
-            plot([BEQL3P, BEQL3P], [-1, 1], '--', ...
-                    'Color', [.4 .4 .4], 'Linewidth', 1.5)
+            %%% ADD TRANSITION ZONE SHADED REGION TO ALL PLOTS
+%             BEQL3P = 481 + obj.seafloorDepth; % mbsl
+%             plot([BEQL3P, BEQL3P], [-1, 1], '--', ...
+%                     'Color', [.4 .4 .4], 'Linewidth', 1.5)
             
             for iQuantity = startIndex:nQuantity
                 plot(depth, Wave.seismogram{iQuantity}, ...
                         'Color', colorStream(iQuantity,:)', ...
                         'Linewidth', 1);
             end
-            axis([380 + obj.seafloorDepth 580 + obj.seafloorDepth obj.axisMinAmplitude obj.axisMaxAmplitude])
+            axis([380 + obj.seafloorDepth 580 + obj.seafloorDepth -0.15 0.1])
             xlabel('Depth (mbsl)')
             ylabel('Amplitude')
             title('a) Depth Series')
@@ -1079,7 +1051,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'Color', colorStream(iQuantity,:)', ...
                     'Linewidth', 1)
             end
-            axis([0 inf obj.axisMinAmplitude obj.axisMaxAmplitude])
+            axis([4.15 4.35 -0.15 0.1])
             xlabel('TWT time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
@@ -1115,7 +1087,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsl)')
             ylabel('Compressional wave velocity (m/s)')
-            axis([450 510 800 2400])
+            axis([450 + obj.seafloorDepth 510 + obj.seafloorDepth 1200 2400])
             legend('0 g/dm^3', '6 g/dm^3', '15 g/dm^3', '23 g/dm^3', '32 g/dm^3', '40 g/dm^3')
             title('Preupscaled Compressional Wave Velocity')
         end
@@ -1190,6 +1162,67 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis(axisVector)
             legend('Data points', 'Excluded data', 'Linear fit')
             %}
+        end
+        function PlotDickensSeismogram( obj , WaveOriginalResolution , WaveDickens )
+            quantity = obj.selectedQuantities;
+            colorStream = jet(numel(WaveOriginalResolution.seismogram));
+            
+            figure1 = figure();
+            
+            %%% Depth series seismogram
+            axis1 = subplot(2, 1, 1);
+            hold on
+%             % 3 phase bulk equilibrium depth line
+%             BEQL3P = 481; % mbsf
+%             plot([BEQL3P, BEQL3P], [-1, 1], '--' , 'Color' , [.4 .4 .4] , 'linewidth' , 1.5 );
+            
+            figureCellArray = cell(numel(quantity) + 1, 1);
+            figureNumber = 0;
+            
+            for iQuantity = quantity
+                figureNumber = figureNumber + 1;
+                figureCellArray{figureNumber} = plot(obj.depthArrayFull, WaveOriginalResolution.seismogram{iQuantity}, ...
+                                                    'Color', colorStream(iQuantity,:)', ...
+                                                    'linewidth', 2.5);
+            end
+            
+            figureCellArray{figureNumber + 1} = plot(obj.depthArrayFull, WaveDickens.seismogram, ...
+                                                    'k:', ...
+                                                    'linewidth', 2.5);
+            
+            axis([380 + obj.seafloorDepth, 580 + obj.seafloorDepth, -0.15 0.15])
+            xlabel('Depth (mbsl)')
+            ylabel('Amplitude')
+            title('a) Depth Series')
+            legend( [figureCellArray{:}], '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' , 'Variable' )
+            
+            
+            %%% Time series seismogram
+            axis2 = subplot(2, 1, 2);
+            hold on
+            for iQuantity = quantity
+                plot(WaveOriginalResolution.time{iQuantity}, WaveOriginalResolution.seismogram{iQuantity}, ...
+                    'Color', colorStream(iQuantity,:)', ...
+                    'Linewidth', 2.5)
+            end
+            
+            plot(WaveDickens.time, WaveDickens.seismogram, ...
+                    'k:', ...
+                    'Linewidth', 2.5)
+            
+            axis([4.15 4.35 -0.15 0.15])
+            xlabel('TWT time (seconds)')
+            ylabel('Amplitude')
+            title('b) Time Series')
+            
+            axis1.Position = [.15 .56 .78 .39];
+            axis2.Position = [.15 .07 .78 .39];
+            
+            figure1.Position(3) = 416;
+            figure1.Position(4) = 674; %
+            figure1.Position(2) = 10; %
+            set(findall(figure1,'-property','FontSize'),'FontSize',8)
+            set(findall(figure1,'-property','FontName'),'FontName','Arial')
         end
         
         %%% Loading methods
