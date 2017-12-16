@@ -5,16 +5,219 @@
 
 
 
+%% code from plotting log data for background properties figure
+
+%{
+
+                        
+            %%% Gamma ray
+            leftLimit = 12;
+            rightLimit = 110;    
+            xLine = [leftLimit rightLimit];
+            
+            axis1 = subplot(1,7,1);
+            axis1.FontSize = 8;
+            axis1.XTick = [30 65 100];            
+            hold on
+            
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+            
+            text(-13, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
+            text(-28, bulkEQLLine(1), '3P EQL', 'Fontsize', labelLineFont)
+            
+            plot(dataBase.GammaRay, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
+            ylabel('Depth (mbsf)')
+            set(gca,'YDir','Reverse')
+            xlabel('Gamma ray (gAPI)','FontSize', 8)
+            axis([leftLimit rightLimit 160 500])
+            title('a')
+            
+            plot( xLine , bulkEQLLine , 'k--' , 'linewidth' , markerLineWidth )
+            
+            
+            
+            
+            %%% Caliper
+            leftLimit = -11;
+            rightLimit = 11;
+            xLine = [leftLimit rightLimit];
+            
+            caliperRadius = obj.CALI.Diameter ./ 2; % inches
+            
+            axis2 = subplot(1,7,2);
+            axis2.FontSize = 8;
+            axis2.YTickLabel = [];
+            axis2.XTick = [-10 -5 0 5 10];
+            hold on
+            
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+            
+            plot(caliperRadius, obj.CALI.Depth , 'k' , 'linewidth' , .5 )
+            plot(-caliperRadius, obj.CALI.Depth , 'k' , 'linewidth' , .5 )
+            plot( [bitRadius bitRadius] , [160 500] , 'k-.' , 'linewidth' , 1 )
+            plot( [-bitRadius -bitRadius] , [160 500] , 'k-.' , 'linewidth' , 1 )
+            
+            set(gca,'YDir','Reverse')
+            xlabel('Hole radius (in)')
+            axis([leftLimit rightLimit 160 500])
+            title('b')    
+            
+            plot( xLine , bulkEQLLine , 'k--' , 'linewidth' , markerLineWidth )    
 
 
 
 
 
 
+            %%% Resisitivity
+            leftLimit = 0.5;
+            rightLimit = 1.5;
+            xLine = [leftLimit rightLimit];
+
+            axis3 = subplot(1,7,3);
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+            hold on
+
+            plot(dataBase.Resistivity, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
+            set(gca,'YDir','Reverse')
+            xlabel('Resistivity (ohm-m)')
+            axis([leftLimit rightLimit 160 500])
+            title('c')
+            hold on
+            plot( xLine , bulkEQLLine , 'k--' , 'linewidth' , markerLineWidth )
+
+            axis3.FontSize = 8;
+            axis3.YTickLabel = [];
+            axis3.XTick = [0.6 1 1.4];
 
 
 
-% bulk solubility code from Formation class
+
+
+
+            %%% Calculated porosity
+            leftLimit = 0.4;
+            rightLimit = 0.8;
+            xLine = [leftLimit rightLimit];
+
+            axis4 = subplot(1,7,4);
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+            hold on    
+            plot(dataBase.Porosity, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
+            plot( Data.log(:,3) , Data.log(:,1) , 'k' , 'linewidth' , plotLineWidth )
+            set(gca,'YDir','Reverse')
+            xlabel('Porosity')
+            axis([leftLimit rightLimit 160 500])
+            title('d')  
+            hold on
+            plot( xLine , bulkEQLLine , 'k--' , 'linewidth' , markerLineWidth )
+            
+            axis4.FontSize = 8;
+            axis4.YTickLabel = [];
+            axis4.XTick = [0.45 0.6 0.75];
+            
+            
+            
+            
+            % Bulk density
+            leftLimit = 1.3;
+            rightLimit = 1.9;    
+            xLine = [leftLimit rightLimit];
+
+            axis5 = subplot(1,7,5);
+
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+            hold on
+
+            xText = leftLimit + 0.02*(rightLimit - leftLimit);
+            text(xText, (BSRTop + BSRBottom)/2, 'BSR')
+            text(xText, bulkEQLLine(1) + 0.6*(BSRBottom - BSRTop), '3P EQL')    
+
+
+            plot(dataBase.BulkDensity ./ 1000, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
+            ylabel('Depth (mbsf)')
+            set(gca,'YDir','Reverse')
+            xlabel('Bulk density (g/cm^3)')
+            axis([leftLimit rightLimit 160 500])
+            title('e')
+            hold on
+            plot( xLine , bulkEQLLine , 'k--' , 'linewidth' , markerLineWidth )    
+
+            axis5.FontSize = 8;
+
+
+            % VP
+            leftLimit = 1400;
+            rightLimit = 2000;    
+            xLine = [leftLimit rightLimit];
+
+            axis6 = subplot(1,7,6);
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+            rectangle('Position', [leftLimit, BSRTop, rightLimit - leftLimit, BSRBottom - BSRTop], ...
+                        'FaceColor', [0.8, 0.8, 0.8], ...
+                        'EdgeColor', 'k');
+            hold on    
+            plot(dataBase.VP, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
+            set(gca,'YDir','Reverse')
+            xlabel('P-velocity (m/s)')
+            axis([leftLimit rightLimit 160 500])
+            title('f')
+            hold on
+            plot( xLine , bulkEQLLine , 'k--' , 'linewidth' , markerLineWidth )    
+
+            axis6.FontSize = 8;
+            axis6.YTickLabel = [];
+            axis6.XTick = [1500 1700 1900];
+
+
+
+            % VS
+            leftLimit = 100;
+            rightLimit = 900;    
+            xLine = [leftLimit rightLimit];
+
+            axis7 = subplot(1,7,7);
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+            hold on
+            plot(dataBase.VS, dataBase.Depth, 'k', 'linewidth', plotLineWidth)
+            set(gca,'YDir','Reverse')
+            xlabel('S-velocity (m/s)')
+            axis([leftLimit rightLimit 160 500])
+            title('g')
+            hold on
+            plot( xLine , bulkEQLLine , 'k--' , 'linewidth' , markerLineWidth )
+
+            axis7.FontSize = 8;
+            axis7.YTickLabel = [];
+            axis7.XTick = [250 500 750];
+
+
+            interval = 0.13;
+            gap = 0.01;
+            xx = 0.06;
+            axis1.Position(1) = xx;
+            axis1.Position(3) = interval - gap;
+            xx = xx + interval;
+            axis2.Position(1) = xx;
+            axis2.Position(3) = interval - gap;
+            xx = xx + interval;
+            axis3.Position(1) = xx;
+            axis3.Position(3) = interval - gap;
+            xx = xx + interval;
+            axis4.Position(1) = xx;
+            axis4.Position(3) = interval - gap;            
+            xx = xx + interval;
+            axis5.Position(1) = xx;
+            axis5.Position(3) = interval - gap;
+            xx = xx + interval;
+            axis6.Position(1) = xx;
+            axis6.Position(3) = interval - gap;
+            xx = xx + interval;
+            axis7.Position(1) = xx;
+            axis7.Position(3) = interval - gap;
+%}
+
+%% bulk solubility code from Formation class
 
 %{
         function [ gasBulkSolubility , hydrateBulkSolubility ] = calcBulkSolubilities( obj , pressure , temperature )

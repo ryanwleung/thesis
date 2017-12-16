@@ -27,19 +27,31 @@ clear variables
 % formationInstance.PlotPSD( 'log' );
 
 
-
 obj = DCSeismicAnalysisBR();
-obj.RunSeismicAnalysisRoutine();
 
+test = 2;
 
+switch test
+    case 1
+        [ WaveParameterSensitivity , ~ , WaveBaseParameterSensitivity , dataBase , ~ ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity');
 
-
-
-
-
-
-
-
-
+        obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBaseParameterSensitivity)
+        obj.PlotPhaseSaturations()
+        obj.PlotBackgroundProperties(dataBase)
+        obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
+        obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
+    
+    case 2
+        obj.Dickens = obj.LoadDickensBlakeRidge();
+        [ WaveOriginalResolution , data , WaveBaseOriginalResolution , ~ , WaveDickens ] = obj.RunSeismicAnalysisRoutine('OriginalResolution');
+        
+        obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
+        obj.PlotVelocityStructureOriginalResolution(WaveBaseOriginalResolution, WaveOriginalResolution)
+        obj.PlotPeakAmplitudeRatio(WaveOriginalResolution)
+        obj.PlotDickensSeismogram(WaveOriginalResolution, WaveDickens)
+        
+    case 3
+        
+end
 
 
