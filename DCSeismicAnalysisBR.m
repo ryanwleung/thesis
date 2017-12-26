@@ -667,7 +667,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             for i = 1:n
                 iQuantity = quantity(i);
                 
-                subplot(1, 3, i)
+                axisCell = subplot(1, 3, i)
                 hold on
                 plot(obj.SaturationLF.Hydrate(:, iQuantity), depth, ...
                     'Color', [0 .5 0], ...
@@ -677,7 +677,11 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'LineWidth', 2.5);
                 axis([0 0.31 420 + obj.seafloorDepth 520 + obj.seafloorDepth])
                 xlabel('Fluid saturations')
-                ylabel('Depth (mbsl)')
+                if i == 1
+                    ylabel('Depth (mbsl)')
+                else
+                    axisCell.YTickLabel = [];
+                end
                 if i == 3
                     legend('Hydrate', 'Gas')
                 end
@@ -719,7 +723,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xlabel('Depth (mbsl)')
             ylabel('Compressional wave velocity (m/s)')
             axis([axisMinDepth axisMaxDepth 1400 2400])
-            title('d)')
+            title('d')
 
             %%% VS
             axis2 = subplot(2, 2, 3);
@@ -734,7 +738,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             ylabel('Shear wave velocity (m/s)')
             axis([axisMinDepth axisMaxDepth 530 600])
             legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
-            title('c)')
+            title('c')
 
 
             %%% Density
@@ -749,7 +753,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xlabel('Depth (mbsl)')
             ylabel('Bulk density (g/cm^3)')
             axis([axisMinDepth axisMaxDepth 1.65 1.8])
-            title('b)')
+            title('b')
 
             %%% Bulk modulus
             axis4 = subplot(2, 2, 1);
@@ -763,7 +767,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xlabel('Depth (mbsl)')
             ylabel('Bulk modulus (Pa)')
             axis([axisMinDepth axisMaxDepth 3e9 8e9])
-            title('a)')
+            title('a')
             
             axis1.Position = [.61 .09 .35 .37];
             axis2.Position = [.11 .09 .35 .37];
@@ -968,7 +972,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 title(titleCell{i})
                 
                 if i == 1
-                    ylabel('Depth (mbsf)')
+                    ylabel('Depth (mbsl)')
 %                     text(-13, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
                     text(15, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
                     text(-28, bulkEQLLine(1), '3P EQL', 'Fontsize', labelLineFont)                    
@@ -1136,7 +1140,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             plot(uniqueThickness, uniquePeakAmpRatio, 'ks', 'Linewidth', 1.5);
             xlabel('Transition zone thickness (m)')
             ylabel('Leading peak/trailing peak amplitude')
-            axis([0 30 -inf inf])
+%             axis([0 30 -inf inf])
+            axis([0 30 0.8 1.3])
             
             
             %{
@@ -1341,7 +1346,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis([0 40 100 600])
             % grid on
             xlabel('Methane quantity (g/dm^3 of pore volume)')
-            ylabel('Depth (mbsf)')
+            ylabel('Depth (mbsl)')
             title('a) Experimentally Measured Methane Quantity')
             set(h,'LineWidth',2.5);
 
@@ -1362,7 +1367,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis([0 0.2 100 600])
             % axis([0 0.2 420 520])
             xlabel('Fluid saturations')
-            ylabel('Depth (mbsf)')
+            ylabel('Depth (mbsl)')
             title('b) Variable Methane Quantity Scenario')
             % grid on
             legend('Hydrate saturation' , 'Gas saturation' )
