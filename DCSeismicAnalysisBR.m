@@ -667,7 +667,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             for i = 1:n
                 iQuantity = quantity(i);
                 
-                axisCell = subplot(1, 3, i)
+                axisCell = subplot(1, 3, i);
                 hold on
                 plot(obj.SaturationLF.Hydrate(:, iQuantity), depth, ...
                     'Color', [0 .5 0], ...
@@ -708,12 +708,19 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axisMinDepth = 450 + obj.seafloorDepth;
             axisMaxDepth = 510 + obj.seafloorDepth;
             
+            leftLimit = 3248;
+            rightLimit = 3276;
+            
+            
             %%%%% Figure 1
             figure1 = figure();
             
             %%% VP
             axis1 = subplot(2, 2, 4);
             hold on
+            
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 1400, 2400)
+            
             % Base case
             plot(depth, WaveBase.VPFS, 'k:', 'linewidth', 2.5)
             % Quantity cases
@@ -728,6 +735,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             %%% VS
             axis2 = subplot(2, 2, 3);
             hold on
+            
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 530, 600)
+            
             % Base case
             plot(depth, WaveBase.VSFS, 'k:', 'linewidth', 2.5)
             % Quantity cases
@@ -744,6 +754,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             %%% Density
             axis3 = subplot(2, 2, 2);
             hold on
+            
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 1.65, 1.8)
+            
             % Base case
             plot(depth, WaveBase.bulkDensityFS ./ 1000, 'k:', 'linewidth', 2.5)
             % Quantity cases
@@ -758,6 +771,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             %%% Bulk modulus
             axis4 = subplot(2, 2, 1);
             hold on
+            
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 3e9, 8e9)
+            
             % Base case
             plot(depth, WaveBase.bulkKFS, 'k:', 'linewidth', 2.5)
             % Quantity cases

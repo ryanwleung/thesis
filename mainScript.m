@@ -50,8 +50,6 @@ switch test
         obj.PlotPeakAmplitudeRatio(WaveOriginalResolution)
         obj.PlotDickensSeismogram(WaveOriginalResolution, WaveDickens)
         
-    case 3
-        
 end
 
 
