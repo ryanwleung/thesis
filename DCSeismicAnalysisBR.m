@@ -804,9 +804,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             %%% Depth series seismogram
             axis5 = subplot(2, 1, 1);
             hold on
-%             % 3 phase bulk equilibrium depth line
-%             BEQL3P = 481; % mbsf
-%             plot([BEQL3P, BEQL3P], [-1, 1], '--' , 'Color' , [.4 .4 .4] , 'linewidth' , 1.5 );
+            % 3 phase bulk equilibrium depth line
+            BEQL3P = 481 + obj.seafloorDepth; % mbsf
+            plot([BEQL3P, BEQL3P], [-1, 1], '--' , 'Color' , [.4 .4 .4] , 'linewidth' , 1.5 );
             
             figureCellArray = cell(numel(quantity), 1);
             figureNumber = 0;
@@ -1153,6 +1153,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             
             figure
+            hold on
+            
+            plot([0 30], [1 1], '--', 'Color', [.4 .4 .4], 'linewidth', 1.5)
+            
             plot(uniqueThickness, uniquePeakAmpRatio, 'ks', 'Linewidth', 1.5);
             xlabel('Transition zone thickness (m)')
             ylabel('Leading peak/trailing peak amplitude')

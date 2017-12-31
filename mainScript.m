@@ -40,7 +40,7 @@ switch test
         obj.PlotBackgroundProperties(dataBase)
         obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
         obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
-    
+        
     case 2
         obj.Dickens = obj.LoadDickensBlakeRidge();
         [ WaveOriginalResolution , data , WaveBaseOriginalResolution , ~ , WaveDickens ] = obj.RunSeismicAnalysisRoutine('OriginalResolution');
