@@ -806,7 +806,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             hold on
             % 3 phase bulk equilibrium depth line
             BEQL3P = 481 + obj.seafloorDepth; % mbsf
-            plot([BEQL3P, BEQL3P], [-1, 1], '--' , 'Color' , [.4 .4 .4] , 'linewidth' , 1.5 );
+            plot([BEQL3P, BEQL3P], [-1, 1], '--', 'Color', [.4 .4 .4], 'linewidth', 1.5);
             
             figureCellArray = cell(numel(quantity), 1);
             figureNumber = 0;
@@ -817,7 +817,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                                                     'Color', colorStream(iQuantity,:)', ...
                                                     'linewidth', 2.5);
             end
-            axis([380 + obj.seafloorDepth, 580 + obj.seafloorDepth, obj.axisMinAmplitude obj.axisMaxAmplitude])
+%             axis([380 + obj.seafloorDepth, 580 + obj.seafloorDepth, obj.axisMinAmplitude obj.axisMaxAmplitude])
+            axis([415 + obj.seafloorDepth, 545 + obj.seafloorDepth, obj.axisMinAmplitude obj.axisMaxAmplitude])
             xlabel('Depth (mbsl)')
             ylabel('Amplitude')
             title('a) Depth Series')
@@ -832,7 +833,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'Color', colorStream(iQuantity,:)', ...
                     'Linewidth', 2.5)
             end       
-            axis([4.1 4.3 obj.axisMinAmplitude obj.axisMaxAmplitude])
+%             axis([4.1 4.3 obj.axisMinAmplitude obj.axisMaxAmplitude])
+            axis([4.135 4.28 obj.axisMinAmplitude obj.axisMaxAmplitude])
             xlabel('TWT time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
@@ -1041,17 +1043,17 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             hold on
             colorStream = colormap(jet(nQuantity));
             
-            %%% ADD TRANSITION ZONE SHADED REGION TO ALL PLOTS
-%             BEQL3P = 481 + obj.seafloorDepth; % mbsl
-%             plot([BEQL3P, BEQL3P], [-1, 1], '--', ...
-%                     'Color', [.4 .4 .4], 'Linewidth', 1.5)
+            
+            BEQL3P = 481 + obj.seafloorDepth; % mbsl
+            plot([BEQL3P, BEQL3P], [-1, 1], '--', 'Color', [.4 .4 .4], 'Linewidth', 1.5)
             
             for iQuantity = startIndex:nQuantity
                 plot(depth, Wave.seismogram{iQuantity}, ...
                         'Color', colorStream(iQuantity,:)', ...
                         'Linewidth', 1);
             end
-            axis([380 + obj.seafloorDepth 580 + obj.seafloorDepth -0.15 0.1])
+%             axis([380 + obj.seafloorDepth 580 + obj.seafloorDepth -0.15 0.1])
+            axis([415 + obj.seafloorDepth, 545 + obj.seafloorDepth, -0.15, 0.1])
             xlabel('Depth (mbsl)')
             ylabel('Amplitude')
             title('a) Depth Series')
@@ -1071,7 +1073,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'Color', colorStream(iQuantity,:)', ...
                     'Linewidth', 1)
             end
-            axis([4.15 4.35 -0.15 0.1])
+%             axis([4.15 4.35 -0.15 0.1])
+            axis([4.19 4.33 -0.15 0.1])
             xlabel('TWT time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
@@ -1095,12 +1098,19 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             figure
             colorStream = jet(numel(Wave.VPFS));
+            hold on
+            
+            leftLimit = 3248;
+            rightLimit = 3276;            
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 1200, 2400)
+
+            
             %%% VP
             % Base case
             plot(depth, WaveBase.VPFS, 'k:', 'Linewidth', 2.5)
             % Methane quantity cases
             for iQuantity = quantity
-                hold on
+                
                 plot(depth, Wave.VPFS{iQuantity}, ...
                     'Color', colorStream(iQuantity,:)', ...
                     'Linewidth', 2.5);
@@ -1197,9 +1207,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             %%% Depth series seismogram
             axis1 = subplot(2, 1, 1);
             hold on
-%             % 3 phase bulk equilibrium depth line
-%             BEQL3P = 481; % mbsf
-%             plot([BEQL3P, BEQL3P], [-1, 1], '--' , 'Color' , [.4 .4 .4] , 'linewidth' , 1.5 );
+            % 3 phase bulk equilibrium depth line
+            BEQL3P = 481 + obj.seafloorDepth; % mbsl
+            plot([BEQL3P, BEQL3P], [-1, 1], '--' , 'Color' , [.4 .4 .4] , 'linewidth' , 1.5 );
             
             figureCellArray = cell(numel(quantity) + 1, 1);
             figureNumber = 0;
@@ -1215,7 +1225,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                                                     'k:', ...
                                                     'linewidth', 2.5);
             
-            axis([380 + obj.seafloorDepth, 580 + obj.seafloorDepth, -0.15 0.15])
+            axis([415 + obj.seafloorDepth, 545 + obj.seafloorDepth, -0.15 0.15])
             xlabel('Depth (mbsl)')
             ylabel('Amplitude')
             title('a) Depth Series')
@@ -1235,7 +1245,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'k:', ...
                     'Linewidth', 2.5)
             
-            axis([4.15 4.35 -0.15 0.15])
+            axis([4.19 4.33 -0.15 0.15])
             xlabel('TWT time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
@@ -1361,9 +1371,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             figure
 
             axis_1 = subplot(2,1,1);
-            h = plot( Dickens.MethaneQuantity(:,1) , Dickens.MethaneQuantity(:,2) , 'k' );
+            h = plot( Dickens.MethaneQuantity(:,1) , Dickens.MethaneQuantity(:,2) + obj.seafloorDepth , 'k' );
             set(gca,'YDir','Reverse')
-            axis([0 40 100 600])
+            axis([0 40 100 + obj.seafloorDepth 600 + obj.seafloorDepth])
             % grid on
             xlabel('Methane quantity (g/dm^3 of pore volume)')
             ylabel('Depth (mbsl)')
@@ -1377,26 +1387,26 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % scatter( Sg_interpolated , Dickens.MethaneQuantity(:,2) )
             % hold on
             axis_2 = subplot(2,1,2);
-            h = plot( Dickens.Hydrate , obj.depthArray );
+            h = plot( Dickens.Hydrate , obj.depthArray + obj.seafloorDepth );
             set(h,'LineWidth',2.5);
             set(h,'Color',[0 .5 0]);
             hold on
-            h = plot( Dickens.Gas , obj.depthArray , 'r--' );
+            h = plot( Dickens.Gas , obj.depthArray + obj.seafloorDepth, 'r--' );
             set(h,'LineWidth',2.5);
             set(gca,'YDir','Reverse')
-            axis([0 0.2 100 600])
+            axis([0 0.2 100 + obj.seafloorDepth 600 + obj.seafloorDepth])
             % axis([0 0.2 420 520])
             xlabel('Fluid saturations')
             ylabel('Depth (mbsl)')
             title('b) Variable Methane Quantity Scenario')
             % grid on
             legend('Hydrate saturation' , 'Gas saturation' )
-
-
+            
+            
             axis_1.Position = [.15 .59 .78 .37];
             axis_2.Position = [.15 .08 .78 .37];
-
-
+            
+            
             figure_1 = gcf;
             figure_1.Position(3) = 320;
             set(findall(figure_1,'-property','FontSize'),'FontSize',8)
