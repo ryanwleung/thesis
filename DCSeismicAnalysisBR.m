@@ -1369,9 +1369,12 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             % Methane quantity vs depth
             figure
-
+            
+            methaneQuantity = Dickens.MethaneQuantity(:, 1);
+            depth = Dickens.MethaneQuantity(:,2) + obj.seafloorDepth;
+            
             axis_1 = subplot(2,1,1);
-            h = plot( Dickens.MethaneQuantity(:,1) , Dickens.MethaneQuantity(:,2) + obj.seafloorDepth , 'k' );
+            h = plot(methaneQuantity, depth, 'k');
             set(gca,'YDir','Reverse')
             axis([0 40 100 + obj.seafloorDepth 600 + obj.seafloorDepth])
             % grid on
@@ -1379,6 +1382,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             ylabel('Depth (mbsl)')
             title('a) Experimentally Measured Methane Quantity')
             set(h,'LineWidth',2.5);
+            
+            
+%             mean(methaneQuantity(depth >= 3248 & depth <= 3272))
+            
 
             % Fluid saturations vs depth
             % figure

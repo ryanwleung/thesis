@@ -29,7 +29,7 @@ clear variables
 
 obj = DCSeismicAnalysisBR();
 
-test = 1;
+test = 2;
 
 switch test
     case 1
