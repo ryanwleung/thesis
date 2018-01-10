@@ -166,6 +166,8 @@ classdef BCFormation < handle
                 
                 doWhileFlag = true;
                 iteration = 0;
+                iterationFactor = 0.75;
+                deltaCellArray = cell(1, 1);
                 while doWhileFlag || abs(deltaSg) > 1e-7 
                     doWhileFlag = false;
                     iteration = iteration + 1;
@@ -174,15 +176,14 @@ classdef BCFormation < handle
                     [solLGIterated, sgIterated] = obj.CalcMaxSolLGIteration(sg, gasBulkSolubility(i), ch4Quantity, pressure(i), gasDensity(i));
                     deltaSg = sg - sgIterated;
                     
-                    iterationFactor = 0.75;
+                    
                     sg = sg - iterationFactor * (sg - sgIterated);
                     
-%                     iteration
-%                     deltaSg
-                    
-                    
+                    deltaCellArray{1} = deltaSg;
                 end
-%                 iteration
+                
+                BCFormation.PrintIterationData( 'CalcMaxSolLG' , i , n , iteration , iterationFactor , deltaCellArray )
+                
                 tempSg2P(i) = sg;
                 tempSolLG2P(i) = solLGIterated;
             end
@@ -210,8 +211,10 @@ classdef BCFormation < handle
             for i = 1:n
                 sh = hydrateSaturationBulk2P(i);
                 
-                iteration = 0;
                 doWhileFlag = true;
+                iteration = 0;
+                iterationFactor = 0.75;
+                deltaCellArray = cell(1, 1);
                 while doWhileFlag || abs( deltaSh ) > 1e-7
                     doWhileFlag = false;
                     iteration = iteration + 1;
@@ -219,14 +222,19 @@ classdef BCFormation < handle
                     [solLHIterated, shIterated] = obj.CalcMaxSolLHIteration(sh, hydrateBulkSolubility(i), ch4Quantity, temperature(i));
                     deltaSh = sh - shIterated;
                     
-                    iterationFactor = 0.75;
                     sh = sh - iterationFactor * (sh - shIterated);
                     
+                    deltaCellArray{1} = deltaSh;
                 end
-%                 iteration
+                
+                BCFormation.PrintIterationData( 'CalcMaxSolLH' , i , n , iteration , iterationFactor , deltaCellArray )
+                
                 tempSh2P(i) = sh;
                 tempSolLH2P(i) = solLHIterated;
             end
+            
+            
+            
             sh2P = tempSh2P;
             maxSolLH = tempSolLH2P;
         end        
@@ -258,12 +266,8 @@ classdef BCFormation < handle
             solubility = hydrateMaxSolubilityAtTop;
             
             for i = 1:n
-                
-%                 percentDone = 100 * i/n
-%                 pause(1)
-                
                 i3P = indexArrayOf3PZone(i);
-
+                
                 % Get previous Sg for inital guess of Sg
                 if i == 1
                     sg = 0;
@@ -273,9 +277,10 @@ classdef BCFormation < handle
                 
                 % Do while loop for Newton's method
                 % Condition is when the LG and LH solubilities become equal
+                doWhileFlag = true;
                 iteration = 0;
                 iterationFactor = 1;
-                doWhileFlag = true;
+                deltaCellArray = cell(1, 1);
                 while doWhileFlag || abs(solubilityLG - solubilityLH) > 1e-6
                     doWhileFlag = false;
                     iteration = iteration + 1;
@@ -310,8 +315,11 @@ classdef BCFormation < handle
                     if isnan(sg) || isnan(sh) || isnan(solubilityLG) || isnan(solubilityLH)
                         error('NaN found when calculating 3P saturations')
                     end
-                    
+                    deltaCellArray{1} = yOld;
                 end
+                
+                BCFormation.PrintIterationData( 'Calc3P' , i , n , iteration , iterationFactor , deltaCellArray )
+                
                 sg3P(i) = sg;
                 sh3P(i) = sh;
                 adjustedSol(i) = solubility;
@@ -374,6 +382,10 @@ classdef BCFormation < handle
             [ solubilityLG ] = BCFormation.CalcSolubilityLG( gasBulkSolubility , pcgwPa , pressure );
             [ solubilityLH ] = BCFormation.CalcSolubilityLH( hydrateBulkSolubility , pchwPa , temperature );
         end
+        
+        
+        
+        
         
         %%% Plotting methods
         function GenerateResultPlots( obj , exportTable , transitionZoneProperties )
@@ -556,6 +568,23 @@ classdef BCFormation < handle
             depth = [ depth(1 : iInsert - 1) ; depth(iInsert) ; depth(iInsert : end) ];
             variable = [ variable(1 : iInsert - 1) ; variable(iInsert - 1) ; variable(iInsert : end) ];
             
+        end
+        
+        function PrintIterationData( functionString , i , n , iteration , iterationFactor , deltaCellArray )
+            
+            if mod(i, 25) ~= 0 && i ~= 1 && i ~= n
+                return
+            end
+            
+            disp('--------------------------------------------------------')
+            disp(['Solving: ', functionString])
+            disp(['Step ', num2str(i), ' of ', num2str(n), ': (', num2str(round(i / n * 100)), '%)']) 
+            disp(['Iteration: ', num2str(iteration)])
+            disp(['Iteration factor: ', num2str(iterationFactor)])
+            nDelta = numel(deltaCellArray);
+            for iDelta = 1:nDelta
+                disp(['Delta ', num2str(iDelta), ': ', num2str(deltaCellArray{iDelta})])
+            end
         end
         
         %%% Get 3P zone properties
