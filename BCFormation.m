@@ -155,12 +155,10 @@ classdef BCFormation < handle
         % LG solubility
         function [ maxSolLG , sg2P ] = CalcMaxSolLG( obj , ch4Quantity , pressure , gasDensity , gasBulkSolubility )
             n = numel(pressure);
-            tempSg2P = zeros(n,1);
-            tempSolLG2P = zeros(n,1);
-                        
+            tempSg2P = zeros(n, 1);
+            tempSolLG2P = zeros(n, 1);
             
             gasSaturationBulk2P = obj.CalcSg2P( ch4Quantity , gasBulkSolubility , gasDensity );
-            
             
             for i = 1:n
                 
@@ -168,16 +166,20 @@ classdef BCFormation < handle
                 
                 doWhileFlag = true;
                 iteration = 0;
-                while( doWhileFlag || abs( deltaSg ) > 1e-7 )
+                while doWhileFlag || abs(deltaSg) > 1e-7 
                     doWhileFlag = false;
                     iteration = iteration + 1;
                     
                     
-                    [ solLGIterated , sgIterated ] = obj.CalcMaxSolLGIteration( sg , gasBulkSolubility(i) , ch4Quantity , pressure(i) , gasDensity(i) );
+                    [solLGIterated, sgIterated] = obj.CalcMaxSolLGIteration(sg, gasBulkSolubility(i), ch4Quantity, pressure(i), gasDensity(i));
                     deltaSg = sg - sgIterated;
                     
                     iterationFactor = 0.75;
                     sg = sg - iterationFactor * (sg - sgIterated);
+                    
+%                     iteration
+%                     deltaSg
+                    
                     
                 end
 %                 iteration
@@ -200,21 +202,21 @@ classdef BCFormation < handle
         % LH solubility
         function [ maxSolLH , sh2P ] = CalcMaxSolLH( obj , ch4Quantity , temperature , hydrateBulkSolubility )
             n = numel(temperature);
-            tempSh2P = zeros(n,1);
-            tempSolLH2P = zeros(n,1);
+            tempSh2P = zeros(n, 1);
+            tempSolLH2P = zeros(n, 1);
             
-            hydrateSaturationBulk2P = obj.CalcSh2P( ch4Quantity , hydrateBulkSolubility );
+            hydrateSaturationBulk2P = obj.CalcSh2P(ch4Quantity ,hydrateBulkSolubility);
 
             for i = 1:n
                 sh = hydrateSaturationBulk2P(i);
                 
                 iteration = 0;
                 doWhileFlag = true;
-                while( doWhileFlag || abs( deltaSh ) > 1e-7 )
+                while doWhileFlag || abs( deltaSh ) > 1e-7
                     doWhileFlag = false;
                     iteration = iteration + 1;
                     
-                    [ solLHIterated , shIterated ] = obj.CalcMaxSolLHIteration( sh , hydrateBulkSolubility(i) , ch4Quantity , temperature(i) );
+                    [solLHIterated, shIterated] = obj.CalcMaxSolLHIteration(sh, hydrateBulkSolubility(i), ch4Quantity, temperature(i));
                     deltaSh = sh - shIterated;
                     
                     iterationFactor = 0.75;
@@ -234,8 +236,8 @@ classdef BCFormation < handle
             pchwMPa = obj.CalcPchw( sh );
             pchwPa = pchwMPa .* 1e6; % convert from MPa to Pa
 
-            solLH = BCFormation.CalcSolubilityLH( bulkSolLH , pchwPa , temperature );
-            sh = obj.CalcSh2P( ch4Quantity , solLH );            
+            solLH = BCFormation.CalcSolubilityLH(bulkSolLH, pchwPa, temperature);
+            sh = obj.CalcSh2P(ch4Quantity, solLH);            
         end
         
         %%% 3P calculations

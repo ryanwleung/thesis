@@ -6,9 +6,8 @@ classdef DCKumanoBasin < BCFormation
         MICPInterp % Cell array of tables of MICP that will actually be used
     end
     properties (Constant)
-        satAxis = [0 1 100 160];
-%         solAxis = [0.08 0.125 60 160];
-        solAxis = [0.1 0.125 100 160];
+        satAxis = [0 1 400 430];
+        solAxis = [0.155 0.17 400 430];
         
         phi0 = 0.6;
         phiInf = 0.25;
@@ -118,7 +117,7 @@ classdef DCKumanoBasin < BCFormation
             
             % slope is a cell array containing the double array of each
             % slope from each MICP data set
-            slope = obj.CalcSlopeOfCumPSD( stringType );
+            slope = obj.CalcSlopeOfCumPSD(stringType);
             
             n = numel(obj.MICP);
             for i = 1:n
@@ -193,7 +192,6 @@ classdef DCKumanoBasin < BCFormation
             end
         end
         
-        % THESE NEED TO BE REDONE -----------------
         function [ solFigure ] = PlotSol( obj , solFigure , exportTable )
             solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
             
@@ -217,7 +215,7 @@ classdef DCKumanoBasin < BCFormation
         end        
         
 
-        
+        % THESE NEED TO BE REDONE -----------------
         % work on these next
         function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D )
             [ pcgwFigure ] = PlotPcgw@Formation( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D );

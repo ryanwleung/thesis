@@ -5,19 +5,19 @@ clear variables
 ch4Quantity = 40;
 
 % obj = DCHydrateRidge();
-% obj = DCBlakeRidge();
-obj = DCKumanoBasin();
+obj = DCBlakeRidge();
+% obj = DCKumanoBasin();
 
-[ exportTable , transitionZoneProperties ] = obj.RunSolubilitySaturationRoutine( ch4Quantity );
+[exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
 
 
 %%% Plot results
-% obj.PlotMICP();
-% obj.PlotCumPSD();
-% % obj.PlotPSD( 'linear' );
-% obj.PlotPSD( 'log' );
+obj.PlotMICP();
+obj.PlotCumPSD();
+obj.PlotPSD('linear');
+obj.PlotPSD('log');
 
-% obj.GenerateResultPlots( exportTable , transitionZoneProperties );
+obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
 %%% Utility calls
 % % Only run this static method when you need to update the way
