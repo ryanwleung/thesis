@@ -245,9 +245,9 @@ classdef BCFormation < handle
                                                         pressure , temperature , gasDensity , ...
                                                         gasBulkSolubility , hydrateBulkSolubility , hydrateMaxSolubilityAtTop )
             n = numel(indexArrayOf3PZone);
-            sg3P = zeros(n,1);
-            sh3P = zeros(n,1);
-            adjustedSol = zeros(n,1);
+            sg3P = zeros(n, 1);
+            sh3P = zeros(n, 1);
+            adjustedSol = zeros(n, 1);
             
             %%% Start of Newton's method
             
@@ -265,7 +265,7 @@ classdef BCFormation < handle
                 i3P = indexArrayOf3PZone(i);
 
                 % Get previous Sg for inital guess of Sg
-                if( i == 1)
+                if i == 1
                     sg = 0;
                 else
                     sg = sg3P(i - 1);
@@ -274,8 +274,9 @@ classdef BCFormation < handle
                 % Do while loop for Newton's method
                 % Condition is when the LG and LH solubilities become equal
                 iteration = 0;
+                iterationFactor = 1;
                 doWhileFlag = true;
-                while( doWhileFlag || abs(solubilityLG - solubilityLH) > 1e-6)
+                while doWhileFlag || abs(solubilityLG - solubilityLH) > 1e-6
                     doWhileFlag = false;
                     iteration = iteration + 1;
                     
@@ -285,8 +286,6 @@ classdef BCFormation < handle
                                                                                 pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
                                                                                 gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
                     yOld = solubilityLG - solubilityLH;
-%                     sg
-%                     sh
                     
                     
                     % Calculating f'(x)
@@ -298,23 +297,18 @@ classdef BCFormation < handle
                     slope = (yNew - yOld)/eps;
                     
                     
-                    if( iteration < 20 )
-                        slowingFactor = 1;
-                    else
-                        slowingFactor = slowingFactor * 0.9
-                        if( slowingFactor < 0.01 )
-                            slowingFactor = 0.01
-                        end
+                    if mod(iteration, 20) == 0 && iterationFactor > 0.01
+                        iterationFactor = iterationFactor * 0.9;
                     end
                     
                     
                     % Calculating next iteration sg
-                    sg = sg - slowingFactor * yOld/slope;
+                    sg = sg - iterationFactor * yOld/slope;
                     % Update solubility by taking the average of the 2
                     solubility = (solubilityLG + solubilityLH)/2;
                     
-                    if( isnan(sg) || isnan(sh) || isnan(solubilityLG) || isnan(solubilityLH) )
-                        disp('NaN found')
+                    if isnan(sg) || isnan(sh) || isnan(solubilityLG) || isnan(solubilityLH)
+                        error('NaN found when calculating 3P saturations')
                     end
                     
                 end
