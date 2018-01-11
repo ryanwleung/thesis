@@ -39,21 +39,23 @@ classdef DCKumanoBasin < BCFormation
         
         %%% Petrophysical calculations
         function [ slope ] = CalcSlopeOfCumPSD( obj, stringType )
-            % pcgw in MPa
-            % diameter in meters
+            % slope is in volume fraction per radius meter
+            
             n = numel(obj.MICP);
             slope = cell(n, 1);
             
             for i = 1:n
-                diameter = obj.MICP{i}.PoreThroatDiameter;
+                diameterInMeters = obj.MICP{i}.PoreThroatDiameter;
+                radiusInMeters = diameterInMeters ./ 2;
                 sNw = obj.MICP{i}.SNW;
+                
                 switch stringType
                     case 'linear'
                         slope{i} =  -( sNw(2:end) - sNw(1:end - 1) ) ...
-                                  ./ ( diameter(2:end) - diameter(1:end - 1) );
+                                  ./ ( radiusInMeters(2:end) - radiusInMeters(1:end - 1) );
                     case 'log'
                         slope{i} =  -( sNw(2:end) - sNw(1:end - 1) ) ...
-                                  ./ ( log10(diameter(2:end)) - log10(diameter(1:end - 1)) );
+                                  ./ ( log10(radiusInMeters(2:end)) - log10(radiusInMeters(1:end - 1)) );
                 end
             end
         end
@@ -91,21 +93,24 @@ classdef DCKumanoBasin < BCFormation
             
         end
         function PlotCumPSD( obj )
-            figure
             n = numel(obj.MICP);
+            
+            figure
+            hold on
             for i = 1:n
-                PoreThroatDiameter = obj.MICP{i}.PoreThroatDiameter;
+                diameterInMeters = obj.MICP{i}.PoreThroatDiameter;
+                radiusInMeters = diameterInMeters ./ 2;
                 SNW = obj.MICP{i}.SNW;
                 
-                hold on
-                plot(PoreThroatDiameter, SNW, 'Linewidth', 1)
+                plot(radiusInMeters, SNW, 'Linewidth', 1)
                 
                 textTable = obj.MICP{i};
+                textTable.PoreThroatDiameter = radiusInMeters; % hard fix for swapping to radius from diameter
                 textTable(textTable.SNW == 0, :) = [];
                 textIndex = round(i / n * height(textTable));
                 text(textTable.PoreThroatDiameter(textIndex), textTable.SNW(textIndex), num2str(obj.MICP{i}.Properties.UserData))
             end
-            xlabel('Pore diameter in meters')
+            xlabel('Pore radius in meters')
             ylabel('S_n_w')
             title('Cumulative Pore Size Distribution')
             axis([1e-9, 1e-4, 0, 1])
@@ -113,21 +118,22 @@ classdef DCKumanoBasin < BCFormation
             set(gca, 'Xscale', 'log')
         end
         function PlotPSD( obj , stringType )
-            figure
-            
             % slope is a cell array containing the double array of each
             % slope from each MICP data set
             slope = obj.CalcSlopeOfCumPSD(stringType);
-            
             n = numel(obj.MICP);
+            
+            figure
+            hold on
             for i = 1:n
-                hold on
-                plot(obj.MICP{i}.PoreThroatDiameter(1:end - 1), slope{i}, 'Linewidth', 2)
+                diameterInMeters = obj.MICP{i}.PoreThroatDiameter(1:end - 1);
+                radiusInMeters = diameterInMeters ./ 2;
+                plot(radiusInMeters, slope{i}, 'Linewidth', 2)
                 
                 [textSlope, textIndex] = max(slope{i});
-                text(obj.MICP{i}.PoreThroatDiameter(textIndex), textSlope, num2str(obj.MICP{i}.Properties.UserData))                
+                text(radiusInMeters(textIndex), textSlope, num2str(obj.MICP{i}.Properties.UserData))                
             end
-            xlabel('Pore diameter in meters')
+            xlabel('Pore radius in meters')
             switch stringType
                 case 'linear'
                     ylabel('dV/dr')

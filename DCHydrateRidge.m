@@ -50,40 +50,51 @@ classdef DCHydrateRidge < BCFormation
             pchwInterp = interp1( obj.MICP1.S_nw , obj.MICP1.Pc_hw , nonwettingSaturation );
         end
         
-        function [ diameter ] = CalcPoreDiameterFromPcgw( obj )
+        function [ radiusInMeters ] = CalcPoreRadiusFromPcgw( obj )
             % pcgw in MPa
-            % diameter in microns (1e-6 m)
+            % radius in meters
             
             pcgw = obj.MICP1.Pc_gw;
-            diameter = 4 * 0.072 ./ pcgw;
+            radiusInMicrons = 2 * 0.072 ./ pcgw;
+            radiusInMeters = radiusInMicrons ./ 1e6;
         end
         function [ slope ] = CalcSlopeOfCumPSD( obj, stringType )
-            % pcgw in MPa
-            % diameter in microns (1e-6 m)
+            % slope is in volume fraction per radius meter
             
-            pcgw = obj.MICP1.Pc_gw;
-            diameter = 4 * 0.072 ./ pcgw;
+            radiusInMeters = obj.CalcPoreRadiusFromPcgw();
             sNw = obj.MICP1.S_nw;
             
             switch stringType
                 case 'linear'
                     slope =     -( sNw(2:end) - sNw(1:end - 1) ) ...
-                              ./ ( diameter(2:end) - diameter(1:end - 1) );
-                    
-                          
-%                     slope = zeros(numel(sNw) - 1, 1);
-%                     for i = 1:numel(sNw) - 1
-%                         slope(i) = -( sNw(i + 1) - sNw(i) ) ...
-%                                   / (diameter(i + 1) - diameter(i) );
-%                         
-%                         
-%                     end
+                              ./ ( radiusInMeters(2:end) - radiusInMeters(1:end - 1) );
                 case 'log'
                     slope =     -( sNw(2:end) - sNw(1:end - 1) ) ...
-                              ./ ( log10(diameter(2:end)) - log10(diameter(1:end - 1)) );
+                              ./ ( log10(radiusInMeters(2:end)) - log10(radiusInMeters(1:end - 1)) );
             end
         end
-        
+        function CalcPoreVolumeDistribution( obj )
+            
+            radiusInMeters = obj.CalcPoreRadiusFromPcgw();            
+            
+            slope = obj.CalcSlopeOfCumPSD('linear');
+            
+            
+%             % diameter is in microns, plot converts to meters
+%             figure
+%             semilogx(diameter(1:end - 1) ./ 1e6, slope, 'Linewidth', 2)
+%             xlabel('Pore diameter in meters')
+% %             ylabel('Frequency f(r)')
+%             switch stringType
+%                 case 'linear'
+%                     ylabel('dV/dr')
+%                 case 'log'
+%                     ylabel('dV/dlog(r)')
+%             end
+%             title('Pore Size Distribution')
+%             axis([1e-9, 1e-4, -inf, inf])
+%             set(gca, 'XDir', 'reverse')
+        end
         
         
         %%% Plotting subclass functions
@@ -118,12 +129,12 @@ classdef DCHydrateRidge < BCFormation
         end
         function PlotCumPSD( obj )
             
-            [ diameter ] = obj.CalcPoreDiameterFromPcgw();
-            % diameter is in microns, plot converts to meters
+            radiusInMeters = obj.CalcPoreRadiusFromPcgw();
+            
+            
             figure
-            semilogx(diameter ./ 1e6, obj.MICP1.S_nw, 'Linewidth', 2)
-%             xlabel('Pore diameter in microns (1e-6 m)')
-            xlabel('Pore diameter in meters')
+            semilogx(radiusInMeters, obj.MICP1.S_nw, 'Linewidth', 2)
+            xlabel('Pore radius in meters')
             ylabel('S_n_w')
             title('Cumulative Pore Size Distribution')
             axis([1e-9, 1e-4, 0, 1])
@@ -131,15 +142,13 @@ classdef DCHydrateRidge < BCFormation
         end
         function PlotPSD( obj , stringType )
             
-            diameter = obj.CalcPoreDiameterFromPcgw();
-            slope = obj.CalcSlopeOfCumPSD( stringType );
+            radiusInMeters = obj.CalcPoreRadiusFromPcgw();
+            slope = obj.CalcSlopeOfCumPSD(stringType);
             
             
-            % diameter is in microns, plot converts to meters
             figure
-            semilogx(diameter(1:end - 1) ./ 1e6, slope, 'Linewidth', 2)
-            xlabel('Pore diameter in meters')
-%             ylabel('Frequency f(r)')
+            semilogx(radiusInMeters(1:end - 1), slope, 'Linewidth', 2)
+            xlabel('Pore radius in meters')
             switch stringType
                 case 'linear'
                     ylabel('dV/dr')
