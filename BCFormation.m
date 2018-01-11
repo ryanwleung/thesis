@@ -281,7 +281,7 @@ classdef BCFormation < handle
                 iteration = 0;
                 iterationFactor = 1;
                 deltaCellArray = cell(1, 1);
-                while doWhileFlag || abs(solubilityLG - solubilityLH) > 1e-6
+                while doWhileFlag || abs(deltaSol) > 1e-6
                     doWhileFlag = false;
                     iteration = iteration + 1;
                     
@@ -290,7 +290,7 @@ classdef BCFormation < handle
                                                                                 sg , solubility , ...
                                                                                 pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
                                                                                 gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
-                    yOld = solubilityLG - solubilityLH;
+                    deltaSol = solubilityLG - solubilityLH;
                     
                     
                     % Calculating f'(x)
@@ -298,27 +298,33 @@ classdef BCFormation < handle
                                                                                 sg + eps , solubility , ...
                                                                                 pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
                                                                                 gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
-                    yNew = solubilityLGPerturbed - solubilityLHPerturbed;
-                    slope = (yNew - yOld)/eps;
+                    deltaSolPerturbed = solubilityLGPerturbed - solubilityLHPerturbed;
+                    slope = (deltaSolPerturbed - deltaSol)/eps;
                     
                     
-                    if mod(iteration, 20) == 0 && iterationFactor > 0.01
-                        iterationFactor = iterationFactor * 0.9;
-                    end
+                    
                     
                     
                     % Calculating next iteration sg
-                    sg = sg - iterationFactor * yOld/slope;
+                    sg = sg - iterationFactor * deltaSol/slope;
                     % Update solubility by taking the average of the 2
                     solubility = (solubilityLG + solubilityLH)/2;
                     
                     if isnan(sg) || isnan(sh) || isnan(solubilityLG) || isnan(solubilityLH)
                         error('NaN found when calculating 3P saturations')
                     end
-                    deltaCellArray{1} = yOld;
+                    
+                    
+                    
+                    deltaCellArray{1} = deltaSol;
+                    if mod(iteration, 20) == 0 && iterationFactor > 0.01
+                        iterationFactor = iterationFactor * 0.9;
+                        BCFormation.PrintIterationData( 'Calc3P' , i , n , iteration , iterationFactor , deltaCellArray )
+                    end
+                    
                 end
                 
-                BCFormation.PrintIterationData( 'Calc3P' , i , n , iteration , iterationFactor , deltaCellArray )
+                
                 
                 sg3P(i) = sg;
                 sh3P(i) = sh;
@@ -379,8 +385,8 @@ classdef BCFormation < handle
             pchwPa = pchwMPa .* 1e6; % convert from MPa to Pa
 
             
-            [ solubilityLG ] = BCFormation.CalcSolubilityLG( gasBulkSolubility , pcgwPa , pressure );
-            [ solubilityLH ] = BCFormation.CalcSolubilityLH( hydrateBulkSolubility , pchwPa , temperature );
+            solubilityLG = BCFormation.CalcSolubilityLG( gasBulkSolubility , pcgwPa , pressure );
+            solubilityLH = BCFormation.CalcSolubilityLH( hydrateBulkSolubility , pchwPa , temperature );
         end
         
         
