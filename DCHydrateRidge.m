@@ -75,25 +75,56 @@ classdef DCHydrateRidge < BCFormation
         end
         function CalcPoreVolumeDistribution( obj )
             
-            radiusInMeters = obj.CalcPoreRadiusFromPcgw();            
+            slopeScalingFactor = (1e-7)^2;
+            numberOfPoints = 1000;
+%             numberOfPoints = 10000;
+            lengthFactor = 3;
             
-            slope = obj.CalcSlopeOfCumPSD('linear');
+            radiusInMeters = obj.CalcPoreRadiusFromPcgw();
+%             radiusInMeters(end) = []; % delete last entry to match array length with slope variable      
+            
+            %%% Units are in meters
+            radiusMin = min(log10(radiusInMeters));
+            radiusMax = max(log10(radiusInMeters));
+            radiusArray = logspace(radiusMax, radiusMin, numberOfPoints);
+            
+            sNwArray = interp1(radiusInMeters, obj.MICP1.S_nw, radiusArray);
+            if isnan(sNwArray(end))
+                sNwArray(end) = 1;
+            end
+            dVdrArray =   -( sNwArray(2:end) - sNwArray(1:end - 1) ) ...
+                        ./ ( radiusArray(2:end) - radiusArray(1:end - 1) );
+%             sNwArray(end) = [];
             
             
-%             % diameter is in microns, plot converts to meters
-%             figure
-%             semilogx(diameter(1:end - 1) ./ 1e6, slope, 'Linewidth', 2)
-%             xlabel('Pore diameter in meters')
-% %             ylabel('Frequency f(r)')
-%             switch stringType
-%                 case 'linear'
-%                     ylabel('dV/dr')
-%                 case 'log'
-%                     ylabel('dV/dlog(r)')
-%             end
-%             title('Pore Size Distribution')
-%             axis([1e-9, 1e-4, -inf, inf])
-%             set(gca, 'XDir', 'reverse')
+            
+            
+            
+            
+            
+            
+            
+            
+            lengthArray = radiusArray .* lengthFactor;
+            
+                        
+            % derived expression assuming lengthFactor = 3
+            nArray = dVdrArray ./ (9 .* pi .* radiusArray(1:end - 1) .^ 2);
+            
+            
+            figure
+            semilogx(radiusArray(1:end - 1), dVdrArray, 'Linewidth', 2)
+            xlabel('Pore radius in meters')
+            ylabel('dV/dr')
+            axis([1e-9, 1e-4, -inf, inf])
+            set(gca, 'XDir', 'reverse')
+
+            figure
+            loglog(radiusArray(1:end - 1), nArray, 'Linewidth', 2)
+            xlabel('Pore radius in meters')
+            ylabel('n')
+            axis([1e-9, 1e-4, -inf, inf])
+            set(gca, 'XDir', 'reverse')
         end
         
         
