@@ -14,7 +14,7 @@ obj = DCHydrateRidge();
 %%% Plot results
 % obj.PlotMICP();
 % obj.PlotCumPSD();
-obj.PlotPSD('linear');
+% obj.PlotPSD('linear');
 % obj.PlotPSD('log');
 obj.CalcPoreVolumeDistribution();
 

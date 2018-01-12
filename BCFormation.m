@@ -12,6 +12,15 @@ classdef BCFormation < handle
         seafloorTemperature
         salinityWtPercent
         methaneMassFractionInHydrate
+        
+        
+        sNwArray
+        radiusArray
+        lengthArray
+        nArray
+        
+        
+        
     end
     properties (Constant)
         waterDensity = 1024;        % kg H2O/m^3 H2O
@@ -257,6 +266,7 @@ classdef BCFormation < handle
             sh3P = zeros(n, 1);
             adjustedSol = zeros(n, 1);
             
+            
             %%% Start of Newton's method
             
             % Perturbation for slope calculation
@@ -355,35 +365,25 @@ classdef BCFormation < handle
             competitionFractionOfGas = 0.5;
             competitionFractionOfHydrate = 1 - competitionFractionOfGas;
             
-            % Above equal pore size invasion point
-            if( sh/(sh + sg) > competitionFractionOfHydrate)
-                adjustedSg = sg / competitionFractionOfGas;
-                adjustedSh = sh + sg;
-            % Below equal pore size invasion point
-            else
-                adjustedSg = sg + sh;
-                adjustedSh = sh / competitionFractionOfHydrate;
-            end
-            
-            
-            
-%             if( sh > sg )
-%                 adjustedSg = sg / competitionFraction;
+%             % Above equal pore size invasion point
+%             if( sh/(sh + sg) > competitionFractionOfHydrate)
+%                 adjustedSg = sg / competitionFractionOfGas;
 %                 adjustedSh = sh + sg;
+%             % Below equal pore size invasion point
 %             else
 %                 adjustedSg = sg + sh;
-%                 adjustedSh = sh / (1 - competitionFraction);
+%                 adjustedSh = sh / competitionFractionOfHydrate;
 %             end
             
-%             adjustedSg = sg;
-%             adjustedSh = sh;
+            adjustedSg = sg;
+            adjustedSh = sh + sg;
             
             pcgwMPa = obj.CalcPcgw( adjustedSg );
             pchwMPa = obj.CalcPchw( adjustedSh );
             
             pcgwPa = pcgwMPa .* 1e6; % convert from MPa to Pa
             pchwPa = pchwMPa .* 1e6; % convert from MPa to Pa
-
+            
             
             solubilityLG = BCFormation.CalcSolubilityLG( gasBulkSolubility , pcgwPa , pressure );
             solubilityLH = BCFormation.CalcSolubilityLH( hydrateBulkSolubility , pchwPa , temperature );

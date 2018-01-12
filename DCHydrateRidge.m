@@ -22,7 +22,8 @@ classdef DCHydrateRidge < BCFormation
             obj.seafloorTemperature = 4;    % C deg
             obj.salinityWtPercent = 3.5;    % weight percent (wt%) of NaCl in seawater
             
-            obj.MICP1 = DCHydrateRidge.LoadMICP1();       
+            obj.MICP1 = DCHydrateRidge.LoadMICP1();
+            [obj.sNwArray, obj.radiusArray, obj.lengthArray, obj.nArray] = obj.CalcPoreVolumeDistribution();
         end
         
         %%% Petrophysical calculations
@@ -73,20 +74,21 @@ classdef DCHydrateRidge < BCFormation
                               ./ ( log10(radiusInMeters(2:end)) - log10(radiusInMeters(1:end - 1)) );
             end
         end
-        function CalcPoreVolumeDistribution( obj )
+        function [ sNwArray , radiusArray , lengthArray , nArray ] = CalcPoreVolumeDistribution( obj )
             
-            slopeScalingFactor = (1e-7)^2;
+
             numberOfPoints = 1000;
 %             numberOfPoints = 10000;
+            
+            slopeScalingFactor = (1e-7) ^ 2;
             lengthFactor = 3;
             
             radiusInMeters = obj.CalcPoreRadiusFromPcgw();
-%             radiusInMeters(end) = []; % delete last entry to match array length with slope variable      
             
             %%% Units are in meters
             radiusMin = min(log10(radiusInMeters));
             radiusMax = max(log10(radiusInMeters));
-            radiusArray = logspace(radiusMax, radiusMin, numberOfPoints);
+            radiusArray = logspace(radiusMax, radiusMin, numberOfPoints)';
             
             sNwArray = interp1(radiusInMeters, obj.MICP1.S_nw, radiusArray);
             if isnan(sNwArray(end))
@@ -94,33 +96,32 @@ classdef DCHydrateRidge < BCFormation
             end
             dVdrArray =   -( sNwArray(2:end) - sNwArray(1:end - 1) ) ...
                         ./ ( radiusArray(2:end) - radiusArray(1:end - 1) );
-%             sNwArray(end) = [];
-            
-            
-            
-            
-            
-            
-            
-            
+            % makes slope array same length as the rest of the arrays
+            % also scales the slope to something reasonable instead of
+            % assuming the actual volume change is on the order of 1 m^3
+            dVdrArray = [dVdrArray; dVdrArray(end)] .* slopeScalingFactor;
             
             
             lengthArray = radiusArray .* lengthFactor;
             
-                        
             % derived expression assuming lengthFactor = 3
-            nArray = dVdrArray ./ (9 .* pi .* radiusArray(1:end - 1) .^ 2);
+            nArray = dVdrArray ./ (9 .* pi .* radiusArray .^ 2);
             
+            
+            
+            
+            
+%             return
             
             figure
-            semilogx(radiusArray(1:end - 1), dVdrArray, 'Linewidth', 2)
+            semilogx(radiusArray, dVdrArray, 'Linewidth', 2)
             xlabel('Pore radius in meters')
             ylabel('dV/dr')
             axis([1e-9, 1e-4, -inf, inf])
             set(gca, 'XDir', 'reverse')
 
             figure
-            loglog(radiusArray(1:end - 1), nArray, 'Linewidth', 2)
+            loglog(radiusArray, nArray, 'Linewidth', 2)
             xlabel('Pore radius in meters')
             ylabel('n')
             axis([1e-9, 1e-4, -inf, inf])
