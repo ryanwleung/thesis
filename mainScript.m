@@ -1,5 +1,5 @@
 clc
-close all
+% close all
 clear variables
 
 ch4Quantity = 40;
@@ -16,9 +16,9 @@ obj = DCHydrateRidge();
 % obj.PlotCumPSD();
 % obj.PlotPSD('linear');
 % obj.PlotPSD('log');
-obj.CalcPoreVolumeDistribution();
+% obj.CalcPoreVolumeDistribution();
 
-% obj.GenerateResultPlots(exportTable, transitionZoneProperties);
+obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
 %%% Utility calls
 % % Only run this static method when you need to update the way
