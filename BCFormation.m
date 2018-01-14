@@ -67,29 +67,36 @@ classdef BCFormation < handle
 
             %%% Get transition zone characteristics (top, bottom, 3P zone
             %%% thickness, and 3P indices)
-            top3PIndex = BCFormation.GetTop3PIndex( solMinLG , solMaxLH );
-            bottom3PIndex = BCFormation.GetBottom3PIndex( solMaxLG , solMinLH );
+            top3PIndex = BCFormation.GetTop3PIndex( solMinLG , solMaxLH )
+            [ bottom3PIndex , gasMaxSolubilityAtBottom , actualBottom3PDepth ] = BCFormation.GetBottom3PIndex( solMaxLG , solMinLH , obj.depthArray )
             thickness = BCFormation.GetThickness3PZone( depth , top3PIndex , bottom3PIndex );
-            indexArrayOf3PZone = top3PIndex + 1:bottom3PIndex - 1;
+%             indexArrayOf3PZone = top3PIndex + 1:bottom3PIndex - 1;
+            indexArrayOf3PZone = top3PIndex : bottom3PIndex;
             
             %%% Setting sg above 3P zone BOTTOM -> 0
             %%%            below 3P zone BOTTOM -> sg 2P
             sg = sg2P;
-            sg(1:bottom3PIndex - 1) = 0;
+%             sg(1:bottom3PIndex - 1) = 0;
+            sg(1:bottom3PIndex) = 0;
             
             %%% Setting sh above 3P zone TOP -> sh 2P
             %%%            below 3P zone TOP -> 0
             sh = sh2P;
-            sh(top3PIndex + 1:end) = 0;
-
+%             sh(top3PIndex + 1:end) = 0;
+            sh(top3PIndex :end) = 0;
+            
             %%% Setting overall solubility to 2P max sol LG and LH cases
             sol = solMaxLH;
-            sol(bottom3PIndex:end) = solMaxLG(bottom3PIndex:end);
+%             sol(bottom3PIndex:end) = solMaxLG(bottom3PIndex:end);
+            sol(bottom3PIndex + 1:end) = solMaxLG(bottom3PIndex + 1:end);
+            
+%             % test
+%             gasMaxSolubilityAtBottom = solMaxLG(bottom3PIndex);
             
             %%% Getting saturations in 3P zone and inserting into arrays
             [ sg3P , sh3P , sol3P ] = obj.Calc3P( ch4Quantity , indexArrayOf3PZone , ...
                                                 pressure , temperature , gasDensity , ...
-                                                solBulkLG , solBulkLH , solMaxLH(top3PIndex) , solMaxLG );
+                                                solBulkLG , solBulkLH , solMaxLH(top3PIndex) , gasMaxSolubilityAtBottom , solMaxLG );
             sg(indexArrayOf3PZone) = sg3P;
             sh(indexArrayOf3PZone) = sh3P;
             sol(indexArrayOf3PZone) = sol3P;
@@ -261,7 +268,7 @@ classdef BCFormation < handle
         function [ sg3P , sh3P , adjustedSol ] = Calc3P( obj , ch4Quantity , indexArrayOf3PZone , ...
                                                             pressure , temperature , gasDensity , ...
                                                             gasBulkSolubility , hydrateBulkSolubility , ...
-                                                            hydrateMaxSolubilityAtTop , gasMaxSolubility )
+                                                            hydrateMaxSolubilityAtTop , gasMaxSolubilityAtBottom , gasMaxSolubility)
             n = numel(indexArrayOf3PZone);
             sg3P = zeros(n, 1);
             sh3P = zeros(n, 1);
@@ -285,13 +292,13 @@ classdef BCFormation < handle
             
             
             
-            
             i = 1;
             while i <= n
                 i3P = indexArrayOf3PZone(i);
                 
                 if reached2ndPhase
-                    solubility = gasMaxSolubility(i3P);
+                    solubility = gasMaxSolubilityAtBottom;
+%                     solubility = gasMaxSolubility(i3P);
                     
                     sh = sh3P(i - 1);
                     
@@ -350,33 +357,31 @@ classdef BCFormation < handle
                     
                     
                     
-                    pcgw = BCFormation.CalcPcgwFromSolLG( gasBulkSolubility(i3P) , solubility , pressure(i3P) );
-                    pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
-                    radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
-                    radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
+%                     pcgw = BCFormation.CalcPcgwFromSolLG( gasBulkSolubility(i3P) , solubility , pressure(i3P) );
+%                     pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
+%                     radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
+%                     radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
                     
-                    if radiusH > radiusG
-                        if reached2ndPhase
-                            error('2nd phase of 3P calc activated twice')
-                        end
-                        reached2ndPhase = true
-                        continue
-                    end
+%                     if solubility > gasMaxSolubilityAtBottom
+%                         if reached2ndPhase
+%                             error('2nd phase of 3P calc activated twice')
+%                         end
+%                         reached2ndPhase = true
+%                         continue
+%                     end
                     
                     
-%                     scatter(obj.depthArray(i3P), radiusG, 'r', 'filled')
-%                     scatter(obj.depthArray(i3P), radiusH, 'g', 'filled')                        
                 end
                 
                 
                 
-%                 pcgw = BCFormation.CalcPcgwFromSolLG( gasBulkSolubility(i3P) , solubility , pressure(i3P) );
-%                 pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
-%                 radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
-%                 radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
-%                 scatter(obj.depthArray(i3P), radiusG, 'r', 'filled')
-%                 scatter(obj.depthArray(i3P), radiusH, 'g', 'filled')                
-%                 
+                pcgw = BCFormation.CalcPcgwFromSolLG( gasBulkSolubility(i3P) , solubility , pressure(i3P) );
+                pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
+                radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
+                radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
+                scatter(obj.depthArray(i3P), radiusG, 'r', 'filled')
+                scatter(obj.depthArray(i3P), radiusH, 'g', 'filled')                
+                
                 
                 
                 
@@ -459,8 +464,8 @@ classdef BCFormation < handle
             
             
             
-            obj.PlotCumPSD();
-            hold on
+%             obj.PlotCumPSD();
+%             hold on
             
             
             
@@ -728,11 +733,37 @@ classdef BCFormation < handle
         
         %%% Get 3P zone properties
         function [ top3PIndex ] = GetTop3PIndex( gasMinSolubility , hydrateMaxSolubility )
-            [ ~ , top3PIndex ] = min(abs( gasMinSolubility - hydrateMaxSolubility ));
+            difference = hydrateMaxSolubility - gasMinSolubility;
+            difference(difference < 0) = inf;
+            [ ~ , top3PIndex ] = min(difference);
         end
-        function [ bottom3PIndex ] = GetBottom3PIndex( gasMaxSolubility , hydrateMinSolubility )
-            [ ~ , bottom3PIndex ] = min(abs( gasMaxSolubility - hydrateMinSolubility ));
-        end            
+        function [ bottom3PIndex , gasMaxSolubilityAtBottom , actualBottom3PDepth ] = GetBottom3PIndex( gasMaxSolubility , hydrateMinSolubility , depthArray )
+            difference = gasMaxSolubility - hydrateMinSolubility;
+            difference(difference < 0) = inf;
+            [ ~ , bottom3PIndex ] = min(difference);
+            
+            % gasMaxSolubility line
+            sol1 = [gasMaxSolubility(bottom3PIndex) gasMaxSolubility(bottom3PIndex + 1)];
+            depth1 = [depthArray(bottom3PIndex) depthArray(bottom3PIndex + 1)];
+            
+            % hydrateMinSolubility line
+            sol2 = [hydrateMinSolubility(bottom3PIndex) hydrateMinSolubility(bottom3PIndex + 1)];
+            depth2 = [depthArray(bottom3PIndex) depthArray(bottom3PIndex + 1)];
+            
+            % polynomial order 1 for intersection
+            p1 = polyfit(sol1, depth1, 1);
+            p2 = polyfit(sol2, depth2, 1);
+            
+            % find intersection
+            gasMaxSolubilityAtBottom = fzero(@(x) polyval(p1 - p2, x), 3);
+            actualBottom3PDepth = polyval(p1, gasMaxSolubilityAtBottom);
+            
+%             line(sol1,depth1);
+%             hold on;
+%             line(sol2,depth2);
+%             plot(x_intersect,y_intersect,'r*')
+            
+        end
         function [ thickness ] = GetThickness3PZone( depth , top3PIndex , bottom3PIndex )
             thickness = abs( depth(top3PIndex) - depth(bottom3PIndex) );
         end

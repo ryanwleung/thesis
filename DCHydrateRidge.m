@@ -16,6 +16,7 @@ classdef DCHydrateRidge < BCFormation
             obj.minDepth = 1;               % mbsf
             obj.maxDepth = 200;             % mbsf
             obj.depthIncrement = 0.5;       % m
+%             obj.depthIncrement = 0.25;       % m
             obj.depthArray = (obj.minDepth : obj.depthIncrement : obj.maxDepth)';
             
             obj.temperatureGradient = 59;   % C deg/km (ODP 997 - Liu and Flemings)            

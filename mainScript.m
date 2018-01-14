@@ -8,6 +8,7 @@ obj = DCHydrateRidge();
 % obj = DCBlakeRidge();
 % obj = DCKumanoBasin();
 
+
 [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
 
 
@@ -52,4 +53,11 @@ obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 %         
 % end
 
-
+% a = linspace(0.0022, 0, 10)';
+% b = zeros(numel(a), 1);
+% c = zeros(numel(a), 1);
+% radiusG = 9.307991980734942e-08;
+% radiusH = 9.558501814783801e-08;
+% for i = 1:numel(a)
+%     [ b(i) , c(i) ] = obj.InterpCumPSD( a(i) , radiusG , radiusH );
+% end
