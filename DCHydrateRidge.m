@@ -74,6 +74,29 @@ classdef DCHydrateRidge < BCFormation
                               ./ ( log10(radiusInMeters(2:end)) - log10(radiusInMeters(1:end - 1)) );
             end
         end
+        function [ sg , radiusGPrime ] = InterpCumPSD( obj , shGuess , radiusG , radiusH )
+            radiusInMetersArray = obj.CalcPoreRadiusFromPcgw();
+            snwArray = obj.MICP1.S_nw;
+            
+            snw = interp1(radiusInMetersArray, snwArray, radiusG);
+            sw = 1 - snw;
+            
+            sg1 = snw - interp1(radiusInMetersArray, snwArray, radiusH);
+            
+            sg2 = 1 - sw - shGuess - sg1;
+            
+            sg = sg1 + sg2;
+            radiusGPrime = interp1(snwArray, radiusInMetersArray, sg2);
+            
+%             scatter(radiusG, snw, 'r', 'filled')
+%             scatter(radiusH, shGuess + sg2, 'g', 'filled')
+%             scatter(radiusGPrime, sg2, 'r', 'filled')
+            
+            
+            
+            
+        end
+        
         function [ sNwArray , radiusArray , lengthArray , nArray ] = CalcPoreVolumeDistribution( obj )
             
 
@@ -111,7 +134,7 @@ classdef DCHydrateRidge < BCFormation
             
             
             
-%             return
+            return
             
             figure
             semilogx(radiusArray, dVdrArray, 'Linewidth', 2)

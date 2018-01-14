@@ -89,11 +89,7 @@ classdef BCFormation < handle
             %%% Getting saturations in 3P zone and inserting into arrays
             [ sg3P , sh3P , sol3P ] = obj.Calc3P( ch4Quantity , indexArrayOf3PZone , ...
                                                 pressure , temperature , gasDensity , ...
-                                                solBulkLG , solBulkLH , solMaxLH(top3PIndex) );
-%             [ sg3P , sh3P , sol3P ] = obj.Calc3PReverse( ch4Quantity , indexArrayOf3PZone , ...
-%                                                 pressure , temperature , gasDensity , ...
-%                                                 solBulkLG , solBulkLH , solMaxLH(top3PIndex) );                                            
-                                            
+                                                solBulkLG , solBulkLH , solMaxLH(top3PIndex) , solMaxLG );
             sg(indexArrayOf3PZone) = sg3P;
             sh(indexArrayOf3PZone) = sh3P;
             sol(indexArrayOf3PZone) = sol3P;
@@ -263,13 +259,15 @@ classdef BCFormation < handle
         
         %%% 3P calculations
         function [ sg3P , sh3P , adjustedSol ] = Calc3P( obj , ch4Quantity , indexArrayOf3PZone , ...
-                                                        pressure , temperature , gasDensity , ...
-                                                        gasBulkSolubility , hydrateBulkSolubility , hydrateMaxSolubilityAtTop )
+                                                            pressure , temperature , gasDensity , ...
+                                                            gasBulkSolubility , hydrateBulkSolubility , ...
+                                                            hydrateMaxSolubilityAtTop , gasMaxSolubility )
             n = numel(indexArrayOf3PZone);
             sg3P = zeros(n, 1);
             sh3P = zeros(n, 1);
             adjustedSol = zeros(n, 1);
             
+            reached2ndPhase = false;
             
             %%% Start of Newton's method
             
@@ -279,70 +277,114 @@ classdef BCFormation < handle
             % Initial guess of solubility
             solubility = hydrateMaxSolubilityAtTop;
             
-            for i = 1:n
+            
+            
+            figure
+            hold on
+            
+            
+            
+            
+            
+            i = 1;
+            while i <= n
                 i3P = indexArrayOf3PZone(i);
                 
-                % Get previous Sg for inital guess of Sg
-                if i == 1
-                    sg = 0;
+                if reached2ndPhase
+                    solubility = gasMaxSolubility(i3P);
+                    
+                    sh = sh3P(i - 1);
+                    
+                    [ sg , sh ] = obj.Calc3P2ndPhase( solubility , sh , ...
+                                                    pressure(i3P) , temperature(i3P) , gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) , ...
+                                                    ch4Quantity , gasDensity(i3P) );
+                    
                 else
-                    sg = sg3P(i - 1);
+                    % Get previous Sg for inital guess of Sg
+                    if i == 1
+                        sg = 0;
+                    else
+                        sg = sg3P(i - 1);
+                    end
+                    % Do while loop for Newton's method
+                    % Condition is when the LG and LH solubilities become equal
+                    doWhileFlag = true;
+                    iteration = 0;
+                    iterationFactor = 1;
+                    deltaCellArray = cell(1, 1);
+                    while doWhileFlag || abs(deltaSol) > 1e-6
+                        doWhileFlag = false;
+                        iteration = iteration + 1;
+                        
+                        % Calculating f(x)
+                        [ sh , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
+                                                                                    sg , solubility , ...
+                                                                                    pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
+                                                                                    gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
+                        deltaSol = solubilityLG - solubilityLH;
+                        
+                        % Calculating f'(x)
+                        [ ~ , solubilityLGPerturbed , solubilityLHPerturbed ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
+                                                                                    sg + eps , solubility , ...
+                                                                                    pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
+                                                                                    gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
+                        deltaSolPerturbed = solubilityLGPerturbed - solubilityLHPerturbed;
+                        slope = (deltaSolPerturbed - deltaSol)/eps;
+                        
+                        % Calculating next iteration sg
+                        sg = sg - iterationFactor * deltaSol/slope;
+                        % Update solubility by taking the average of the 2
+                        solubility = (solubilityLG + solubilityLH)/2;
+                        
+                        
+                        if isnan(sg) || isnan(sh) || isnan(solubilityLG) || isnan(solubilityLH)
+                            error('NaN found when calculating 3P saturations')
+                        end
+                        
+                        deltaCellArray{1} = deltaSol;
+                        if mod(iteration, 20) == 0 && iterationFactor > 0.01
+                            iterationFactor = iterationFactor * 0.9;
+                            BCFormation.PrintIterationData( 'Calc3P' , i , n , iteration , iterationFactor , deltaCellArray )
+                        end
+                    end
+                    
+                    
+                    
+                    pcgw = BCFormation.CalcPcgwFromSolLG( gasBulkSolubility(i3P) , solubility , pressure(i3P) );
+                    pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
+                    radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
+                    radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
+                    
+                    if radiusH > radiusG
+                        if reached2ndPhase
+                            error('2nd phase of 3P calc activated twice')
+                        end
+                        reached2ndPhase = true
+                        continue
+                    end
+                    
+                    
+%                     scatter(obj.depthArray(i3P), radiusG, 'r', 'filled')
+%                     scatter(obj.depthArray(i3P), radiusH, 'g', 'filled')                        
                 end
                 
-                % Do while loop for Newton's method
-                % Condition is when the LG and LH solubilities become equal
-                doWhileFlag = true;
-                iteration = 0;
-                iterationFactor = 1;
-                deltaCellArray = cell(1, 1);
-                while doWhileFlag || abs(deltaSol) > 1e-6
-                    doWhileFlag = false;
-                    iteration = iteration + 1;
-                    
-                    % Calculating f(x)
-                    [ sh , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
-                                                                                sg , solubility , ...
-                                                                                pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
-                                                                                gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
-                    deltaSol = solubilityLG - solubilityLH;
-                    
-                    
-                    % Calculating f'(x)
-                    [ ~ , solubilityLGPerturbed , solubilityLHPerturbed ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
-                                                                                sg + eps , solubility , ...
-                                                                                pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
-                                                                                gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
-                    deltaSolPerturbed = solubilityLGPerturbed - solubilityLHPerturbed;
-                    slope = (deltaSolPerturbed - deltaSol)/eps;
-                    
-                    
-                    
-                    
-                    
-                    % Calculating next iteration sg
-                    sg = sg - iterationFactor * deltaSol/slope;
-                    % Update solubility by taking the average of the 2
-                    solubility = (solubilityLG + solubilityLH)/2;
-                    
-                    if isnan(sg) || isnan(sh) || isnan(solubilityLG) || isnan(solubilityLH)
-                        error('NaN found when calculating 3P saturations')
-                    end
-                    
-                    
-                    
-                    deltaCellArray{1} = deltaSol;
-                    if mod(iteration, 20) == 0 && iterationFactor > 0.01
-                        iterationFactor = iterationFactor * 0.9;
-                        BCFormation.PrintIterationData( 'Calc3P' , i , n , iteration , iterationFactor , deltaCellArray )
-                    end
-                    
-                end
+                
+                
+%                 pcgw = BCFormation.CalcPcgwFromSolLG( gasBulkSolubility(i3P) , solubility , pressure(i3P) );
+%                 pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
+%                 radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
+%                 radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
+%                 scatter(obj.depthArray(i3P), radiusG, 'r', 'filled')
+%                 scatter(obj.depthArray(i3P), radiusH, 'g', 'filled')                
+%                 
                 
                 
                 
                 sg3P(i) = sg;
                 sh3P(i) = sh;
                 adjustedSol(i) = solubility;
+                
+                i = i + 1;
             end
         end
         function [ sh , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
@@ -358,28 +400,31 @@ classdef BCFormation < handle
             sh = ( ch4Quantity - gramsCH4InCubicMeterWater + sg * (gramsCH4InCubicMeterWater - gasDensity) ) / ...
                     (obj.hydrateDensity * obj.methaneMassFractionInHydrate - gramsCH4InCubicMeterWater );
             
-            % Fraction of phase in a pore vs hydrate
-%             competitionFractionOfGas = 0.5;
-%             competitionFractionOfHydrate = 1 - competitionFractionOfGas;
-            
-%             % Above equal pore size invasion point
-%             if( sh/(sh + sg) > competitionFractionOfHydrate)
-%                 adjustedSg = sg / competitionFractionOfGas;
-%                 adjustedSh = sh + sg;
-%             % Below equal pore size invasion point
-%             else
-%                 adjustedSg = sg + sh;
-%                 adjustedSh = sh / competitionFractionOfHydrate;
-%             end
-            
-            adjustedSg = sg;
-            adjustedSh = sh + sg;
-            
-            
-%             adjustedSg = sg + sh;
-%             adjustedSh = sh;
-            
-            
+            test = 2;
+            switch test
+                case 1
+                    % Fraction of phase in a pore vs hydrate
+                    competitionFractionOfGas = 0.5;
+                    competitionFractionOfHydrate = 1 - competitionFractionOfGas;
+
+                    % Above equal pore size invasion point
+                    if( sh/(sh + sg) > competitionFractionOfHydrate)
+                        adjustedSg = sg / competitionFractionOfGas;
+                        adjustedSh = sh + sg;
+                    % Below equal pore size invasion point
+                    else
+                        adjustedSg = sg + sh;
+                        adjustedSh = sh / competitionFractionOfHydrate;
+                    end
+                case 2
+                    % Hydrate in the smallest pores
+                    adjustedSg = sg;
+                    adjustedSh = sh + sg;
+                case 3
+                    % Gas in the smallest pores
+                    adjustedSg = sg + sh;
+                    adjustedSh = sh;
+            end
             
             
             pcgwMPa = obj.CalcPcgw( adjustedSg );
@@ -393,91 +438,93 @@ classdef BCFormation < handle
             solubilityLH = BCFormation.CalcSolubilityLH( hydrateBulkSolubility , pchwPa , temperature );
         end
         
-        function [ sg3P , sh3P , adjustedSol ] = Calc3PReverse( obj , ch4Quantity , indexArrayOf3PZone , ...
-                                                        pressure , temperature , gasDensity , ...
-                                                        gasBulkSolubility , hydrateBulkSolubility , hydrateMaxSolubilityAtTop )
-            n = numel(indexArrayOf3PZone);
-            sg3P = zeros(n, 1);
-            sh3P = zeros(n, 1);
-            adjustedSol = zeros(n, 1);
+        function [ sg , sh ] = Calc3P2ndPhase( obj , targetSolubility , shInitialGuess , pressure , temperature , bulkSolubilityLG , bulkSolubilityLH  , ...
+                                                    ch4Quantity , gasDensity )
+            eps = -1e-6;
+            shGuess = shInitialGuess;
+            gramsCH4InCubicMeterWater = targetSolubility * obj.mwCH4 * obj.waterDensity;
             
             
-            %%% Start of Newton's method
             
-            % Perturbation for slope calculation
-            eps = -1e-5;
+            pcgw = BCFormation.CalcPcgwFromSolLG( bulkSolubilityLG , targetSolubility , pressure );
+            pchw = BCFormation.CalcPchwFromSolLH( bulkSolubilityLH , targetSolubility , temperature );
             
-            % Initial guess of solubility
-            solubility = hydrateMaxSolubilityAtTop;
-            
-            for i = n:-1:1
-                i3P = indexArrayOf3PZone(i);
-                
-                % Get previous Sg for inital guess of Sg
-                if i == n
-                    sg = 0.6;
-%                     sg = 0.12;
-                else
-                    sg = sg3P(i + 1);
-                end
-                
-                % Do while loop for Newton's method
-                % Condition is when the LG and LH solubilities become equal
-                doWhileFlag = true;
-                iteration = 0;
-                iterationFactor = 1;
-                deltaCellArray = cell(1, 1);
-                while doWhileFlag || abs(deltaSol) > 1e-6
-                    doWhileFlag = false;
-                    iteration = iteration + 1;
-                    
-                    % Calculating f(x)
-                    [ sh , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
-                                                                                sg , solubility , ...
-                                                                                pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
-                                                                                gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
-                    deltaSol = solubilityLG - solubilityLH;
-                    
-                    
-                    % Calculating f'(x)
-                    [ ~ , solubilityLGPerturbed , solubilityLHPerturbed ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
-                                                                                sg + eps , solubility , ...
-                                                                                pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
-                                                                                gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
-                    deltaSolPerturbed = solubilityLGPerturbed - solubilityLHPerturbed;
-                    slope = (deltaSolPerturbed - deltaSol)/eps;
-                    
-                    
-                    
-                    
-                    
-                    % Calculating next iteration sg
-                    sg = sg - iterationFactor * deltaSol/slope;
-                    % Update solubility by taking the average of the 2
-                    solubility = (solubilityLG + solubilityLH)/2;
-                    
-                    if isnan(sg) || isnan(sh) || isnan(solubilityLG) || isnan(solubilityLH)
-                        error('NaN found when calculating 3P saturations')
-                    end
-                    
-                    
-                    
-                    deltaCellArray{1} = deltaSol;
-                    if mod(iteration, 20) == 0 && iterationFactor > 0.01
-                        iterationFactor = iterationFactor * 0.9;
-                        BCFormation.PrintIterationData( 'Calc3P' , i , n , iteration , iterationFactor , deltaCellArray )
-                    end
-                    
-                end
-                
-                
-                
-                sg3P(i) = sg;
-                sh3P(i) = sh;
-                adjustedSol(i) = solubility;
+            radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
+            radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
+            if radiusH < radiusG
+                error('radiusH is less than radiusG when it should be larger')
             end
-        end        
-        
+            
+            
+            
+            
+            
+            obj.PlotCumPSD();
+            hold on
+            
+            
+            
+            
+            
+            % Do while loop for Newton's method
+            % Condition is when the LG and LH solubilities become equal
+            doWhileFlag = true;
+            iteration = 0;
+            iterationFactor = 1;
+            while doWhileFlag || abs(deltaSh) > 1e-6
+                doWhileFlag = false;
+                iteration = iteration + 1;
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                % Calculating f(x)
+                [ sgFromCumPSD , radiusGPrime ] = obj.InterpCumPSD( shGuess , radiusG , radiusH );
+                
+                shMassBal = ( ch4Quantity - gramsCH4InCubicMeterWater + sgFromCumPSD * (gramsCH4InCubicMeterWater - gasDensity) ) / ...
+                        (obj.hydrateDensity * obj.methaneMassFractionInHydrate - gramsCH4InCubicMeterWater );                
+                
+                
+                deltaSh = shMassBal - shGuess
+                
+                
+                
+                % Calculating f'(x)
+%                 shGuessPerturbed = shGuess + shGuess * eps;
+                [ sgFromCumPSDPerturbed , ~ ] = obj.InterpCumPSD( shGuess + eps , radiusG , radiusH );
+                
+                shMassBalPerturbed = ( ch4Quantity - gramsCH4InCubicMeterWater + sgFromCumPSDPerturbed * (gramsCH4InCubicMeterWater - gasDensity) ) / ...
+                        (obj.hydrateDensity * obj.methaneMassFractionInHydrate - gramsCH4InCubicMeterWater );                
+                
+                
+                deltaShPerturbed = shMassBalPerturbed - (shGuess + eps);
+                
+                slope =   (deltaShPerturbed - deltaSh) ...
+                        / (eps);
+                
+                
+                
+                
+                % Calculating next iteration shGuess
+                shGuess = shGuess - iterationFactor * deltaSh/slope;
+                
+                
+                
+                
+                if isnan(sgFromCumPSD) || isnan(shGuess)
+                    error('NaN found when calculating phase 2 stuff')
+                end
+            end
+            
+            sh = shGuess;
+            sg = sgFromCumPSD;
+            
+        end
         
         %%% Plotting methods
         function GenerateResultPlots( obj , exportTable , transitionZoneProperties )
@@ -722,9 +769,131 @@ classdef BCFormation < handle
             solubilityLH = bulkSolubilityLH + bulkSolubilityLH .* ( pchw .* hydrateStoichiometryFactor .* hydrateLatticeWaterMolarVolume ...
                                                                     ./ (RGasConstant .* temperature) );
         end
+        
+        
+        
+        function [ pcgw ] = CalcPcgwFromSolLG( bulkSolubilityLG , solubilityLG , waterPressure )
+            pcgw = waterPressure .* (solubilityLG - bulkSolubilityLG) ./ bulkSolubilityLG;
+        end
+        function [ pchw ] = CalcPchwFromSolLH( bulkSolubilityLH , solubilityLH , temperature )
+            % bulkSolLH units don't matter (this is a ratio calculation)
+            % standard solubility units are mol CH4 / kg H2O
+            % pchw in Pa
+            % temperature in K
+            
+            hydrateStoichiometryFactor = 5.75;
+            hydrateLatticeWaterMolarVolume = 22.6; % cm^3 / mol            
+            hydrateLatticeWaterMolarVolume = hydrateLatticeWaterMolarVolume ./ 100^3; % cm^3/mol -> m^3/mol
+            RGasConstant = 8.3144598; % J / mol K = Pa m^3 / mol K
+
+            pchw = (solubilityLH - bulkSolubilityLH) ./ bulkSolubilityLH ...
+                    ./ ( hydrateStoichiometryFactor .* hydrateLatticeWaterMolarVolume ...
+                        ./ (RGasConstant .* temperature) );
+        end
+        
+        function [ radiusG ] = CalcRadiusGasFromPcgw( pcgw )
+            % pcgw in Pa
+            % radiusG in m^2
+            
+            radiusG = 2 * 0.072 ./ pcgw;
+        end
+        function [ radiusH ] = CalcRadiusHydrateFromPchw( pchw )
+            % pchw in Pa
+            % radiusH in m^2
+            
+            radiusH = 2 * 0.027 ./ pchw;
+        end
     end
     % UNUSED CODE
     %{
+function [ sg3P , sh3P , adjustedSol ] = Calc3PReverse( obj , ch4Quantity , indexArrayOf3PZone , ...
+                                                        pressure , temperature , gasDensity , ...
+                                                        gasBulkSolubility , hydrateBulkSolubility , hydrateMaxSolubilityAtTop )
+            n = numel(indexArrayOf3PZone);
+            sg3P = zeros(n, 1);
+            sh3P = zeros(n, 1);
+            adjustedSol = zeros(n, 1);
+            
+            
+            %%% Start of Newton's method
+            
+            % Perturbation for slope calculation
+            eps = -1e-5;
+            
+            % Initial guess of solubility
+            solubility = hydrateMaxSolubilityAtTop;
+            
+            for i = n:-1:1
+                i3P = indexArrayOf3PZone(i);
+                
+                % Get previous Sg for inital guess of Sg
+                if i == n
+                    sg = 0.6;
+%                     sg = 0.12;
+                else
+                    sg = sg3P(i + 1);
+                end
+                
+                % Do while loop for Newton's method
+                % Condition is when the LG and LH solubilities become equal
+                doWhileFlag = true;
+                iteration = 0;
+                iterationFactor = 1;
+                deltaCellArray = cell(1, 1);
+                while doWhileFlag || abs(deltaSol) > 1e-6
+                    doWhileFlag = false;
+                    iteration = iteration + 1;
+                    
+                    % Calculating f(x)
+                    [ sh , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
+                                                                                sg , solubility , ...
+                                                                                pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
+                                                                                gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
+                    deltaSol = solubilityLG - solubilityLH;
+                    
+                    
+                    % Calculating f'(x)
+                    [ ~ , solubilityLGPerturbed , solubilityLHPerturbed ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
+                                                                                sg + eps , solubility , ...
+                                                                                pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
+                                                                                gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
+                    deltaSolPerturbed = solubilityLGPerturbed - solubilityLHPerturbed;
+                    slope = (deltaSolPerturbed - deltaSol)/eps;
+                    
+                    
+                    
+                    
+                    
+                    % Calculating next iteration sg
+                    sg = sg - iterationFactor * deltaSol/slope;
+                    % Update solubility by taking the average of the 2
+                    solubility = (solubilityLG + solubilityLH)/2;
+                    
+                    if isnan(sg) || isnan(sh) || isnan(solubilityLG) || isnan(solubilityLH)
+                        error('NaN found when calculating 3P saturations')
+                    end
+                    
+                    
+                    
+                    deltaCellArray{1} = deltaSol;
+                    if mod(iteration, 20) == 0 && iterationFactor > 0.01
+                        iterationFactor = iterationFactor * 0.9;
+                        BCFormation.PrintIterationData( 'Calc3P' , i , n , iteration , iterationFactor , deltaCellArray )
+                    end
+                    
+                end
+                
+                
+                
+                sg3P(i) = sg;
+                sh3P(i) = sh;
+                adjustedSol(i) = solubility;
+            end
+        end        
+    
+    
+    
+    
             OLD CODE THAT INTERPOLATES FROM LIU AND FLEMINGS TO COMPARE
         
             obj.DataTable.gasBulkSolubilityInterpolated = interp1( obj.Bulk.Depth , obj.Bulk.Solubility , depth );
