@@ -297,8 +297,8 @@ classdef BCFormation < handle
                 i3P = indexArrayOf3PZone(i);
                 
                 if reached2ndPhase
-                    solubility = gasMaxSolubilityAtBottom;
-%                     solubility = gasMaxSolubility(i3P);
+%                     solubility = gasMaxSolubilityAtBottom;
+                    solubility = gasMaxSolubility(i3P);
                     
                     sh = sh3P(i - 1);
                     
@@ -363,6 +363,7 @@ classdef BCFormation < handle
 %                     radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
                     
 %                     if solubility > gasMaxSolubilityAtBottom
+%                     if solubility > gasMaxSolubility(i3P)
 %                         if reached2ndPhase
 %                             error('2nd phase of 3P calc activated twice')
 %                         end
@@ -379,9 +380,10 @@ classdef BCFormation < handle
                 pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
                 radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
                 radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
-                scatter(obj.depthArray(i3P), radiusG, 'r', 'filled')
-                scatter(obj.depthArray(i3P), radiusH, 'g', 'filled')                
-                
+%                 scatter(obj.depthArray(i3P), radiusG, 'r', 'filled')
+%                 scatter(obj.depthArray(i3P), radiusH, 'g', 'filled')
+                scatter(radiusG, obj.depthArray(i3P), 'r', 'filled')
+                scatter(radiusH, obj.depthArray(i3P), 'g', 'filled')
                 
                 
                 
@@ -391,6 +393,11 @@ classdef BCFormation < handle
                 
                 i = i + 1;
             end
+            
+            
+            xlabel('Pore size in m^3')
+            ylabel('Depth in mbsf')
+            set(gca, 'YDir', 'Reverse')
         end
         function [ sh , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
                                                                                 sg , solubility , ...
@@ -595,7 +602,7 @@ classdef BCFormation < handle
             
             xlabel('CH4 Solubility (mol CH4/kg H2O')
             ylabel('Depth (mbsf)')
-            set(gca,'YDir','Reverse')
+            set(gca, 'YDir', 'Reverse')
             legend('Bulk LG', 'Bulk LH', 'Min LG', 'Min LH', 'Max LG', 'Max LH', 'Actual solubility')
         end       
         function [ sat2PFigure ] = PlotSat2P( ~ , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
@@ -618,7 +625,7 @@ classdef BCFormation < handle
             xlabel('Saturation')
             ylabel('Depth (mbsf)')
             legend('Gas', 'Hydrate')
-            set(gca,'YDir','Reverse')
+            set(gca, 'YDir', 'Reverse')
         end
         function [ sg3PFigure ] = PlotSat3P( ~ , sg3PFigure , exportTable , lineStyle )
             depth = exportTable.Depth;
@@ -632,7 +639,7 @@ classdef BCFormation < handle
             xlabel('Saturation')
             ylabel('Depth (mbsf)')
             legend('Gas', 'Hydrate')
-            set( gca , 'YDir' , 'Reverse' )
+            set(gca, 'YDir', 'Reverse')
         end
         
         % not done yet below
