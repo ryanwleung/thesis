@@ -93,10 +93,25 @@ classdef BCFormation < handle
 %             % test
 %             gasMaxSolubilityAtBottom = solMaxLG(bottom3PIndex);
             
+            
+            
+            testTopIndex = find(obj.depthArray == 140)
+            testBottomIndex = bottom3PIndex
+            
+%             topSolubility = 0.119015298557362;
+            topSolubility = gasMaxSolubilityAtBottom;
+            bottomSolubility = gasMaxSolubilityAtBottom;
+            
+            
+            solubilityPhase2 = solMaxLG;
+%             solubilityPhase2(testTopIndex : testBottomIndex) = gasMaxSolubilityAtBottom;
+            solubilityPhase2(testTopIndex : testBottomIndex) = linspace(topSolubility, bottomSolubility, testBottomIndex - testTopIndex + 1)';
+            
+            
             %%% Getting saturations in 3P zone and inserting into arrays
             [ sg3P , sh3P , sol3P ] = obj.Calc3P( ch4Quantity , indexArrayOf3PZone , ...
                                                 pressure , temperature , gasDensity , ...
-                                                solBulkLG , solBulkLH , solMaxLH(top3PIndex) , gasMaxSolubilityAtBottom , solMaxLG );
+                                                solBulkLG , solBulkLH , solMaxLH(top3PIndex) , solubilityPhase2 );
             sg(indexArrayOf3PZone) = sg3P;
             sh(indexArrayOf3PZone) = sh3P;
             sol(indexArrayOf3PZone) = sol3P;
@@ -268,7 +283,7 @@ classdef BCFormation < handle
         function [ sg3P , sh3P , adjustedSol ] = Calc3P( obj , ch4Quantity , indexArrayOf3PZone , ...
                                                             pressure , temperature , gasDensity , ...
                                                             gasBulkSolubility , hydrateBulkSolubility , ...
-                                                            hydrateMaxSolubilityAtTop , gasMaxSolubilityAtBottom , gasMaxSolubility)
+                                                            hydrateMaxSolubilityAtTop , solubilityPhase2 )
             n = numel(indexArrayOf3PZone);
             sg3P = zeros(n, 1);
             sh3P = zeros(n, 1);
@@ -297,8 +312,10 @@ classdef BCFormation < handle
                 i3P = indexArrayOf3PZone(i);
                 
                 if reached2ndPhase
+                    i3P
+                    
 %                     solubility = gasMaxSolubilityAtBottom;
-                    solubility = gasMaxSolubility(i3P);
+                    solubility = solubilityPhase2(i3P);
                     
                     sh = sh3P(i - 1);
                     
@@ -361,15 +378,16 @@ classdef BCFormation < handle
 %                     pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
 %                     radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
 %                     radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
-                    
-%                     if solubility > gasMaxSolubilityAtBottom
-%                     if solubility > gasMaxSolubility(i3P)
-%                         if reached2ndPhase
-%                             error('2nd phase of 3P calc activated twice')
-%                         end
-%                         reached2ndPhase = true
-%                         continue
-%                     end
+%                     if solubility > 
+                        
+                    if solubility > solubilityPhase2(i3P)
+                        
+                        if reached2ndPhase
+                            error('2nd phase of 3P calc activated twice')
+                        end
+                        reached2ndPhase = true
+                        continue
+                    end
                     
                     
                 end
