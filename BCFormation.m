@@ -95,15 +95,14 @@ classdef BCFormation < handle
             
             
             
-            testTopIndex = find(obj.depthArray == 140);
-            testBottomIndex = bottom3PIndex;
-            
-%             topSolubility = 0.119015298557362;
-            topSolubility = gasMaxSolubilityAtBottom;
-            bottomSolubility = gasMaxSolubilityAtBottom;
+%             testTopIndex = find(obj.depthArray == 140);
+%             testBottomIndex = bottom3PIndex;
+%             topSolubility = gasMaxSolubilityAtBottom;
+%             bottomSolubility = gasMaxSolubilityAtBottom;
             
             
             solubilityPhase2 = solMaxLG;
+            
 %             solubilityPhase2(testTopIndex : testBottomIndex) = gasMaxSolubilityAtBottom;
 %             solubilityPhase2(testTopIndex : testBottomIndex) = linspace(topSolubility, bottomSolubility, testBottomIndex - testTopIndex + 1)';
             
@@ -314,15 +313,14 @@ classdef BCFormation < handle
                 if reached2ndPhase
                     i3P
                     
-%                     solubility = gasMaxSolubilityAtBottom;
                     solubility = solubilityPhase2(i3P);
                     
-                    sh = sh3P(i - 1);
-                    [ sg , sh ] = obj.Calc3P2ndPhase( solubility , sh , ...
-                                                    pressure(i3P) , temperature(i3P) , gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) , ...
-                                                    ch4Quantity , gasDensity(i3P) );
-%                     sh = 0;
-%                     sg = gasSaturation2P(i3P);
+%                     sh = sh3P(i - 1);
+%                     [ sg , sh ] = obj.Calc3P2ndPhase( solubility , sh , ...
+%                                                     pressure(i3P) , temperature(i3P) , gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) , ...
+%                                                     ch4Quantity , gasDensity(i3P) );
+                    sh = 0;
+                    sg = gasSaturation2P(i3P);
                 else
                     % Get previous Sg for inital guess of Sg
                     if i == 1

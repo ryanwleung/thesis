@@ -347,7 +347,8 @@ classdef DCKumanoBasin < BCFormation
             result = MICPCellArray;
         end
         function [ MICPInterp ] = SelectMICPForInterp( MICP , depthOrder )
-            logicalToKeep = depthOrder > 340 & depthOrder < 500;
+%             logicalToKeep = depthOrder > 340 & depthOrder < 500;
+            logicalToKeep = depthOrder > 400 & depthOrder < 420;
             MICPInterp = MICP;
             
             MICPInterp(~logicalToKeep) = [];
