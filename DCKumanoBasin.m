@@ -2,49 +2,60 @@ classdef DCKumanoBasin < BCFormation
     properties
         MICP % Cell array of tables
         colorOrder % array containing order index of loaded MICP tables
+        depthOrder % array containing depths in the order of loaded MICP tables
+        MICPInterp % Cell array of tables of MICP that will actually be used
     end
     properties (Constant)
-        satAxis = [0 1 100 160];
-%         solAxis = [0.08 0.125 60 160];
-        solAxis = [0.1 0.125 100 160];
+        satAxis = [0 1 400 430];
+        solAxis = [0.155 0.17 400 430];
+        
+        phi0 = 0.6;
+        phiInf = 0.25;
+        depthB = 1000; % m
     end
     methods
         %%% Constructor
         function [ obj ] = DCKumanoBasin()
             obj@BCFormation()
             
-            obj.seafloorDepth = 790;        % m
+            obj.seafloorDepth = 1936;        % m
             obj.minDepth = 1;               % mbsf
-            obj.maxDepth = 200;             % mbsf
+            obj.maxDepth = 500;             % mbsf
             obj.depthIncrement = 0.5;       % m
             obj.depthArray = (obj.minDepth : obj.depthIncrement : obj.maxDepth)';
             
-            obj.temperatureGradient = 59;   % C deg/km (ODP 997 - Liu and Flemings)            
-            obj.seafloorTemperature = 4;    % C deg
+            obj.temperatureGradient = 40;   % C deg/km (C0002 - Daigle and Dugan 2014)            
+            obj.seafloorTemperature = 2.2;    % C deg
             obj.salinityWtPercent = 3.5;    % weight percent (wt%) of NaCl in seawater
             
             
             % Loads MICP from a .mat file into the object property MICP
-            [obj.MICP, obj.colorOrder] = DCKumanoBasin.LoadMICP();
+            [obj.MICP, obj.colorOrder, obj.depthOrder] = DCKumanoBasin.LoadMICP();
+            obj.MICPInterp = DCKumanoBasin.SelectMICPForInterp(obj.MICP, obj.depthOrder);
+            
+            % Testing plots only on selected MICP data for interpolation
+            obj.MICP = obj.MICPInterp;
         end
         
         %%% Petrophysical calculations
         function [ slope ] = CalcSlopeOfCumPSD( obj, stringType )
-            % pcgw in MPa
-            % diameter in meters
+            % slope is in volume fraction per radius meter
+            
             n = numel(obj.MICP);
             slope = cell(n, 1);
             
             for i = 1:n
-                diameter = obj.MICP{i}.PoreThroatDiameter;
+                diameterInMeters = obj.MICP{i}.PoreThroatDiameter;
+                radiusInMeters = diameterInMeters ./ 2;
                 sNw = obj.MICP{i}.SNW;
+                
                 switch stringType
                     case 'linear'
                         slope{i} =  -( sNw(2:end) - sNw(1:end - 1) ) ...
-                                  ./ ( diameter(2:end) - diameter(1:end - 1) );
+                                  ./ ( radiusInMeters(2:end) - radiusInMeters(1:end - 1) );
                     case 'log'
                         slope{i} =  -( sNw(2:end) - sNw(1:end - 1) ) ...
-                                  ./ ( log10(diameter(2:end)) - log10(diameter(1:end - 1)) );
+                                  ./ ( log10(radiusInMeters(2:end)) - log10(radiusInMeters(1:end - 1)) );
                 end
             end
         end
@@ -75,23 +86,31 @@ classdef DCKumanoBasin < BCFormation
             title('Primary Drainage Capillary Pressure Curve')
             set(gca, 'XDir', 'reverse')
             set(gca, 'Yscale', 'log')
+            
+            
+            [averagePcgwPlot, snwPlot] = obj.GetInterpMICPForPlotting();
+            scatter(snwPlot, averagePcgwPlot, 75)
+            
         end
         function PlotCumPSD( obj )
-            figure
             n = numel(obj.MICP);
+            
+            figure
+            hold on
             for i = 1:n
-                PoreThroatDiameter = obj.MICP{i}.PoreThroatDiameter;
+                diameterInMeters = obj.MICP{i}.PoreThroatDiameter;
+                radiusInMeters = diameterInMeters ./ 2;
                 SNW = obj.MICP{i}.SNW;
                 
-                hold on
-                plot(PoreThroatDiameter, SNW, 'Linewidth', 1)
+                plot(radiusInMeters, SNW, 'Linewidth', 1)
                 
                 textTable = obj.MICP{i};
+                textTable.PoreThroatDiameter = radiusInMeters; % hard fix for swapping to radius from diameter
                 textTable(textTable.SNW == 0, :) = [];
                 textIndex = round(i / n * height(textTable));
                 text(textTable.PoreThroatDiameter(textIndex), textTable.SNW(textIndex), num2str(obj.MICP{i}.Properties.UserData))
             end
-            xlabel('Pore diameter in meters')
+            xlabel('Pore radius in meters')
             ylabel('S_n_w')
             title('Cumulative Pore Size Distribution')
             axis([1e-9, 1e-4, 0, 1])
@@ -99,21 +118,22 @@ classdef DCKumanoBasin < BCFormation
             set(gca, 'Xscale', 'log')
         end
         function PlotPSD( obj , stringType )
-            figure
-            
             % slope is a cell array containing the double array of each
             % slope from each MICP data set
-            slope = obj.CalcSlopeOfCumPSD( stringType );
-            
+            slope = obj.CalcSlopeOfCumPSD(stringType);
             n = numel(obj.MICP);
+            
+            figure
+            hold on
             for i = 1:n
-                hold on
-                plot(obj.MICP{i}.PoreThroatDiameter(1:end - 1), slope{i}, 'Linewidth', 2)
+                diameterInMeters = obj.MICP{i}.PoreThroatDiameter(1:end - 1);
+                radiusInMeters = diameterInMeters ./ 2;
+                plot(radiusInMeters, slope{i}, 'Linewidth', 2)
                 
                 [textSlope, textIndex] = max(slope{i});
-                text(obj.MICP{i}.PoreThroatDiameter(textIndex), textSlope, num2str(obj.MICP{i}.Properties.UserData))                
+                text(radiusInMeters(textIndex), textSlope, num2str(obj.MICP{i}.Properties.UserData))                
             end
-            xlabel('Pore diameter in meters')
+            xlabel('Pore radius in meters')
             switch stringType
                 case 'linear'
                     ylabel('dV/dr')
@@ -131,7 +151,6 @@ classdef DCKumanoBasin < BCFormation
         
         
         
-        % THESE NEED TO BE REDONE -----------------
         
         function [ bulkDensity , porosity ] = EstimateBulkDensity( obj )
             % Including the non-logged depths (in mbsf) in the effective vertical stress
@@ -140,9 +159,9 @@ classdef DCKumanoBasin < BCFormation
             depth = obj.DataTable.depth;
             
             
-            Phi_0 = 0.63;
-            Phi_inf = 0.1;
-            B = 1400; % meters
+            Phi_0 = obj.phi0;
+            Phi_inf = obj.phiInf;
+            B = obj.depthB; % meters
             
             Rho_fluid = 1.024; % g/cc, seawater
             Rho_grain = 2.7;   % g/cc, smectite
@@ -151,42 +170,59 @@ classdef DCKumanoBasin < BCFormation
             bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;            
         end
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
-            
-            pcgwInterp = interp1( obj.MICP1.S_nw , obj.MICP1.Pc_gw , nonwettingSaturation );
+            n = numel(obj.MICPInterp);
+            pcgwArray = zeros(n, 1);
+            for i = 1:n
+                tempTable = obj.MICPInterp{i};
+                pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
+            end
+            pcgwInterp = mean(pcgwArray);
         end
         function [ pchwInterp ] = CalcPchw( obj , nonwettingSaturation )
-            pchwInterp = interp1( obj.MICP1.S_nw , obj.MICP1.Pc_hw , nonwettingSaturation );
+            n = numel(obj.MICPInterp);
+            pcgwArray = zeros(n, 1);
+            for i = 1:n
+                tempTable = obj.MICPInterp{i};
+                pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcHW, nonwettingSaturation);
+            end
+            pchwInterp = mean(pcgwArray);
         end
         
-        
-        
+        function [ averagePcgwPlot , snwPlot ] = GetInterpMICPForPlotting( obj )
+            snwPlot = (0:0.01:1)';
+            n = numel(snwPlot);
+            averagePcgwPlot = zeros(n, 1);
+            
+            for i = 1:n
+                averagePcgwPlot(i) = obj.CalcPcgw(snwPlot(i));
+            end
+        end
         
         function [ solFigure ] = PlotSol( obj , solFigure , exportTable )
             solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
             
             figure(solFigure)
             axis(obj.solAxis)
-            title('Hydrate Ridge - Solubility Path')
+            title('Kumano Basin - Solubility Path')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
             sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
             figure(sat2PFigure)
             axis(obj.satAxis)
-            title('Hydrate Ridge - 2 Phase Case')
+            title('Kumano Basin - 2 Phase Case')
         end
         function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
             sat3PFigure = obj.PlotSat3P@BCFormation( sat3PFigure , exportTable , lineStyle );
             
             figure(sat3PFigure)
             axis(obj.satAxis)
-            title('Hydrate Ridge - 3 Phase Case')
+            title('Kumano Basin - 3 Phase Case')
         end        
         
 
-        
+        % THESE NEED TO BE REDONE -----------------
         % work on these next
-
         function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D )
             [ pcgwFigure ] = PlotPcgw@Formation( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D );
             
@@ -297,7 +333,7 @@ classdef DCKumanoBasin < BCFormation
             cd(oldDir)
             save('MICP_KB.mat', 'MICPCellArray')
         end
-        function [ result , colorOrder ] = LoadMICP()
+        function [ result , colorOrder , depthOrder ] = LoadMICP()
             MICPCellArray = [];
             % Loads MICPCellArray
             load('MICP_KB.mat');
@@ -310,6 +346,24 @@ classdef DCKumanoBasin < BCFormation
             [~, colorOrder] = sort(depthOrder);
             result = MICPCellArray;
         end
+        function [ MICPInterp ] = SelectMICPForInterp( MICP , depthOrder )
+%             logicalToKeep = depthOrder > 340 & depthOrder < 500;
+            logicalToKeep = depthOrder > 400 & depthOrder < 420;
+            MICPInterp = MICP;
+            
+            MICPInterp(~logicalToKeep) = [];
+            n = numel(MICPInterp);
+            
+            for i = 1:n
+                temp = MICPInterp{i};
+                firstNonZeroIndex = find(temp.SNW > 0, 1);
+                temp(1:firstNonZeroIndex - 2, :) = [];
+                
+                MICPInterp{i} = temp;
+            end
+            
+        end
+
     end
     % UNUSED CLASS METHODS
     %{
@@ -364,6 +418,38 @@ classdef DCKumanoBasin < BCFormation
             Saturation.GasGrid(Saturation.GasGrid < .0001 & Saturation.GasGrid ~= 0) = 0;
             
             result = Saturation;
+        end
+    
+        function FitBulkDensityData()
+            %%% NOT FINISHED, NOT USED
+            %%% use the excel in \Kumano Basin Data\
+            
+            KumanoBasinData = [];
+            % Loads KumanoBasinData
+            load('RHOB_KB.mat');
+            depth = KumanoBasinData.Depth;
+            bulkDensity = KumanoBasinData.RHOB;
+            
+            
+            
+            
+            
+            expFitType = fittype('a + b*log(x)', ...
+                'dependent', {'y'}, ...
+                'independent', {'x'}, ...
+                'coefficients', {'a', 'b'});
+            [logFit logGOF] = fit(xData, yData, expFitType)
+            
+            
+            
+            figure
+            hold on
+            
+            xlabel('Bulk density')
+            ylabel('Depth (mbsf)')
+            set(gca, 'YDir', 'Reverse')
+            
+            
         end
 
     %}

@@ -16,13 +16,15 @@ classdef DCHydrateRidge < BCFormation
             obj.minDepth = 1;               % mbsf
             obj.maxDepth = 200;             % mbsf
             obj.depthIncrement = 0.5;       % m
+%             obj.depthIncrement = 0.25;       % m
             obj.depthArray = (obj.minDepth : obj.depthIncrement : obj.maxDepth)';
             
             obj.temperatureGradient = 59;   % C deg/km (ODP 997 - Liu and Flemings)            
             obj.seafloorTemperature = 4;    % C deg
             obj.salinityWtPercent = 3.5;    % weight percent (wt%) of NaCl in seawater
             
-            obj.MICP1 = DCHydrateRidge.LoadMICP1();       
+            obj.MICP1 = DCHydrateRidge.LoadMICP1();
+            [obj.sNwArray, obj.radiusArray, obj.lengthArray, obj.nArray] = obj.CalcPoreVolumeDistribution();
         end
         
         %%% Petrophysical calculations
@@ -50,40 +52,105 @@ classdef DCHydrateRidge < BCFormation
             pchwInterp = interp1( obj.MICP1.S_nw , obj.MICP1.Pc_hw , nonwettingSaturation );
         end
         
-        function [ diameter ] = CalcPoreDiameterFromPcgw( obj )
+        function [ radiusInMeters ] = CalcPoreRadiusFromPcgw( obj )
             % pcgw in MPa
-            % diameter in microns (1e-6 m)
+            % radius in meters
             
             pcgw = obj.MICP1.Pc_gw;
-            diameter = 4 * 0.072 ./ pcgw;
+            radiusInMicrons = 2 * 0.072 ./ pcgw;
+            radiusInMeters = radiusInMicrons ./ 1e6;
         end
         function [ slope ] = CalcSlopeOfCumPSD( obj, stringType )
-            % pcgw in MPa
-            % diameter in microns (1e-6 m)
+            % slope is in volume fraction per radius meter
             
-            pcgw = obj.MICP1.Pc_gw;
-            diameter = 4 * 0.072 ./ pcgw;
+            radiusInMeters = obj.CalcPoreRadiusFromPcgw();
             sNw = obj.MICP1.S_nw;
             
             switch stringType
                 case 'linear'
                     slope =     -( sNw(2:end) - sNw(1:end - 1) ) ...
-                              ./ ( diameter(2:end) - diameter(1:end - 1) );
-                    
-                          
-%                     slope = zeros(numel(sNw) - 1, 1);
-%                     for i = 1:numel(sNw) - 1
-%                         slope(i) = -( sNw(i + 1) - sNw(i) ) ...
-%                                   / (diameter(i + 1) - diameter(i) );
-%                         
-%                         
-%                     end
+                              ./ ( radiusInMeters(2:end) - radiusInMeters(1:end - 1) );
                 case 'log'
                     slope =     -( sNw(2:end) - sNw(1:end - 1) ) ...
-                              ./ ( log10(diameter(2:end)) - log10(diameter(1:end - 1)) );
+                              ./ ( log10(radiusInMeters(2:end)) - log10(radiusInMeters(1:end - 1)) );
             end
         end
+        function [ sg , radiusGPrime ] = InterpCumPSD( obj , shGuess , radiusG , radiusH )
+            radiusInMetersArray = obj.CalcPoreRadiusFromPcgw();
+            snwArray = obj.MICP1.S_nw;
+            
+            snw = interp1(radiusInMetersArray, snwArray, radiusG);
+            sw = 1 - snw;
+            
+            sg1 = snw - interp1(radiusInMetersArray, snwArray, radiusH);
+            
+            sg2 = 1 - sw - shGuess - sg1;
+            
+            sg = sg1 + sg2;
+            radiusGPrime = interp1(snwArray, radiusInMetersArray, sg2);
+            
+%             scatter(radiusG, snw, 'r', 'filled')
+%             scatter(radiusH, shGuess + sg2, 'g', 'filled')
+%             scatter(radiusGPrime, sg2, 'r', 'filled')
+            
+            
+            
+            
+        end
         
+        function [ sNwArray , radiusArray , lengthArray , nArray ] = CalcPoreVolumeDistribution( obj )
+            
+
+            numberOfPoints = 1000;
+%             numberOfPoints = 10000;
+            
+            slopeScalingFactor = (1e-7) ^ 2;
+            lengthFactor = 3;
+            
+            radiusInMeters = obj.CalcPoreRadiusFromPcgw();
+            
+            %%% Units are in meters
+            radiusMin = min(log10(radiusInMeters));
+            radiusMax = max(log10(radiusInMeters));
+            radiusArray = logspace(radiusMax, radiusMin, numberOfPoints)';
+            
+            sNwArray = interp1(radiusInMeters, obj.MICP1.S_nw, radiusArray);
+            if isnan(sNwArray(end))
+                sNwArray(end) = 1;
+            end
+            dVdrArray =   -( sNwArray(2:end) - sNwArray(1:end - 1) ) ...
+                        ./ ( radiusArray(2:end) - radiusArray(1:end - 1) );
+            % makes slope array same length as the rest of the arrays
+            % also scales the slope to something reasonable instead of
+            % assuming the actual volume change is on the order of 1 m^3
+            dVdrArray = [dVdrArray; dVdrArray(end)] .* slopeScalingFactor;
+            
+            
+            lengthArray = radiusArray .* lengthFactor;
+            
+            % derived expression assuming lengthFactor = 3
+            nArray = dVdrArray ./ (9 .* pi .* radiusArray .^ 2);
+            
+            
+            
+            
+            
+            return
+            
+            figure
+            semilogx(radiusArray, dVdrArray, 'Linewidth', 2)
+            xlabel('Pore radius in meters')
+            ylabel('dV/dr')
+            axis([1e-9, 1e-4, -inf, inf])
+            set(gca, 'XDir', 'reverse')
+
+            figure
+            loglog(radiusArray, nArray, 'Linewidth', 2)
+            xlabel('Pore radius in meters')
+            ylabel('n')
+            axis([1e-9, 1e-4, -inf, inf])
+            set(gca, 'XDir', 'reverse')
+        end
         
         
         %%% Plotting subclass functions
@@ -118,12 +185,12 @@ classdef DCHydrateRidge < BCFormation
         end
         function PlotCumPSD( obj )
             
-            [ diameter ] = obj.CalcPoreDiameterFromPcgw();
-            % diameter is in microns, plot converts to meters
+            radiusInMeters = obj.CalcPoreRadiusFromPcgw();
+            
+            
             figure
-            semilogx(diameter ./ 1e6, obj.MICP1.S_nw, 'Linewidth', 2)
-%             xlabel('Pore diameter in microns (1e-6 m)')
-            xlabel('Pore diameter in meters')
+            semilogx(radiusInMeters, obj.MICP1.S_nw, 'Linewidth', 2)
+            xlabel('Pore radius in meters')
             ylabel('S_n_w')
             title('Cumulative Pore Size Distribution')
             axis([1e-9, 1e-4, 0, 1])
@@ -131,15 +198,13 @@ classdef DCHydrateRidge < BCFormation
         end
         function PlotPSD( obj , stringType )
             
-            diameter = obj.CalcPoreDiameterFromPcgw();
-            slope = obj.CalcSlopeOfCumPSD( stringType );
+            radiusInMeters = obj.CalcPoreRadiusFromPcgw();
+            slope = obj.CalcSlopeOfCumPSD(stringType);
             
             
-            % diameter is in microns, plot converts to meters
             figure
-            semilogx(diameter(1:end - 1) ./ 1e6, slope, 'Linewidth', 2)
-            xlabel('Pore diameter in meters')
-%             ylabel('Frequency f(r)')
+            semilogx(radiusInMeters(1:end - 1), slope, 'Linewidth', 2)
+            xlabel('Pore radius in meters')
             switch stringType
                 case 'linear'
                     ylabel('dV/dr')

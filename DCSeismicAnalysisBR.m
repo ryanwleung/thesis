@@ -299,7 +299,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             depth = obj.depthArray ./ 1000; % convert to km
             temperature = obj.seafloorTemperature995 + depth .* obj.temperatureGradient995; % in C deg
         end
-        function [ Porosity ] = CalcPorosity( obj , Rt , Sw , temperature )
+        function [ PorosityCorrected ] = CalcPorosity( obj , Rt , Sw , temperature )
             referenceRo = obj.phiReferenceRo;
             referenceTemp = obj.phiReferenceTemp;
             
@@ -311,20 +311,17 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             Porosity = (a .* Rw ./ Rt ...
                             ./ (Sw .^ n)) ...
                             .^ (1 ./ m);
+%             sum(Sw ~= 1)
+            %%% Porosity correction
+            Ro = 0.8495 + 2.986e-4 .* obj.depthArray;
+
+            sh = 1 - (Ro ./ Rt) .^ (1 / n);
+%             sum((sh < 0))
+            sh(sh < 0) = 0;
             
-            %%% OLD CODE
-            %{
-            Assumed_PPM = 32;
-
-            % best fit function
-            Ro = .8495 + 2.986e-4.*Depth*1000;
-
-            Saturation_Hydrate = 1 - (Ro./Resistivity_t).^(1/Coeff_n);
-            Saturation_Hydrate(Saturation_Hydrate<0)=0;
-
-            Old_Porosity = (Coeff_a.*Rw./Resistivity_t).^(1/Coeff_m);
-            Old_Porosity_Corrected = Old_Porosity./(1 - Saturation_Hydrate);
-            %}
+            PorosityCorrected = Porosity ./ ...
+                                (1 - sh);
+            
         end
         function [ gasK ] = CalcGasK( obj , pressure , temperature )
             

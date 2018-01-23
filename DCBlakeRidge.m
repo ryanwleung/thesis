@@ -73,43 +73,41 @@ classdef DCBlakeRidge < BCFormation
             pchwInterp = mean( [pchw1 pchw2] , 2 );
         end
         
-        function [ diameter1 , diameter2 ] = CalcPoreDiameterFromPcgw( obj )
+        function [ radiusInMeters1 , radiusInMeters2 ] = CalcPoreRadiusFromPcgw( obj )
             % pcgw in MPa
-            % diameter in microns (1e-6 m)
+            % radius in meters
             
             pcgw1 = obj.MICP1.Pc_gw;
             pcgw2 = obj.MICP2.Pc_gw;
-            diameter1 = 4 * 0.072 ./ pcgw1;
-            diameter2 = 4 * 0.072 ./ pcgw2;
+            radiusInMicrons1 = 2 * 0.072 ./ pcgw1;
+            radiusInMicrons2 = 2 * 0.072 ./ pcgw2;
+            
+            radiusInMeters1 = radiusInMicrons1 ./ 1e6;
+            radiusInMeters2 = radiusInMicrons2 ./ 1e6;            
         end
         function [ slope1 , slope2 ] = CalcSlopeOfCumPSD( obj, stringType )
-            % pcgw in MPa
-            % diameter in microns (1e-6 m)
+            % slope is in volume fraction per radius meter
+
+            [radiusInMeters1, radiusInMeters2] = obj.CalcPoreRadiusFromPcgw();
             
-            pcgw1 = obj.MICP1.Pc_gw;
-            diameter1 = 4 * 0.072 ./ pcgw1;
             sNw1 = obj.MICP1.S_nw;
-            
-            switch stringType
-                case 'linear'
-                    slope1 =     -( sNw1(2:end) - sNw1(1:end - 1) ) ...
-                              ./ ( diameter1(2:end) - diameter1(1:end - 1) );
-                case 'log'
-                    slope1 =     -( sNw1(2:end) - sNw1(1:end - 1) ) ...
-                              ./ ( log10(diameter1(2:end)) - log10(diameter1(1:end - 1)) );
-            end
-            
-            pcgw2 = obj.MICP2.Pc_gw;
-            diameter2 = 4 * 0.072 ./ pcgw2;
             sNw2 = obj.MICP2.S_nw;
             
             switch stringType
                 case 'linear'
+                    slope1 =     -( sNw1(2:end) - sNw1(1:end - 1) ) ...
+                              ./ ( radiusInMeters1(2:end) - radiusInMeters1(1:end - 1) );
+                case 'log'
+                    slope1 =     -( sNw1(2:end) - sNw1(1:end - 1) ) ...
+                              ./ ( log10(radiusInMeters1(2:end)) - log10(radiusInMeters1(1:end - 1)) );
+            end
+            switch stringType
+                case 'linear'
                     slope2 =     -( sNw2(2:end) - sNw2(1:end - 1) ) ...
-                              ./ ( diameter2(2:end) - diameter2(1:end - 1) );
+                              ./ ( radiusInMeters2(2:end) - radiusInMeters2(1:end - 1) );
                 case 'log'
                     slope2 =     -( sNw2(2:end) - sNw2(1:end - 1) ) ...
-                              ./ ( log10(diameter2(2:end)) - log10(diameter2(1:end - 1)) );
+                              ./ ( log10(radiusInMeters2(2:end)) - log10(radiusInMeters2(1:end - 1)) );
             end
         end
         
@@ -147,15 +145,13 @@ classdef DCBlakeRidge < BCFormation
         end
         function PlotCumPSD( obj )
             
-            [ diameter1 , diameter2 ] = obj.CalcPoreDiameterFromPcgw();
-            % diameter is in microns, plot converts to meters
+            [radiusInMeters1, radiusInMeters2] = obj.CalcPoreRadiusFromPcgw();
 
             figure
-            semilogx(diameter1 ./ 1e6, obj.MICP1.S_nw, 'Linewidth', 2)
+            semilogx(radiusInMeters1, obj.MICP1.S_nw, 'Linewidth', 2)
             hold on
-            semilogx(diameter2 ./ 1e6, obj.MICP2.S_nw, 'Linewidth', 2)
-%             xlabel('Pore diameter in microns (1e-6 m)')
-            xlabel('Pore diameter in meters')
+            semilogx(radiusInMeters2, obj.MICP2.S_nw, 'Linewidth', 2)
+            xlabel('Pore radius in meters')
             ylabel('S_n_w')
             title('Cumulative Pore Size Distribution')
             axis([1e-9, 1e-4, 0, 1])
@@ -164,17 +160,15 @@ classdef DCBlakeRidge < BCFormation
         end
         function PlotPSD( obj , stringType )
             
-            [ diameter1 , diameter2 ] = obj.CalcPoreDiameterFromPcgw();
-            [ slope1 , slope2 ] = obj.CalcSlopeOfCumPSD( stringType );
+            [radiusInMeters1, radiusInMeters2] = obj.CalcPoreRadiusFromPcgw();
+            [slope1, slope2] = obj.CalcSlopeOfCumPSD( stringType );
             
             
-            % diameter is in microns, plot converts to meters
             figure
-            semilogx(diameter1(1:end - 1) ./ 1e6, slope1, 'Linewidth', 2)
+            semilogx(radiusInMeters1(1:end - 1), slope1, 'Linewidth', 2)
             hold on
-            semilogx(diameter2(1:end - 1) ./ 1e6, slope2, 'Linewidth', 2)
-            xlabel('Pore diameter in meters')
-%             ylabel('Frequency f(r)')
+            semilogx(radiusInMeters2(1:end - 1), slope2, 'Linewidth', 2)
+            xlabel('Pore radius in meters')
             switch stringType
                 case 'linear'
                     ylabel('dV/dr')
