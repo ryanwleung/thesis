@@ -314,14 +314,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
 %             sum(Sw ~= 1)
             %%% Porosity correction
             Ro = 0.8495 + 2.986e-4 .* obj.depthArray;
-
+            
             sh = 1 - (Ro ./ Rt) .^ (1 / n);
 %             sum((sh < 0))
             sh(sh < 0) = 0;
             
             PorosityCorrected = Porosity ./ ...
                                 (1 - sh);
-            
         end
         function [ gasK ] = CalcGasK( obj , pressure , temperature )
             
@@ -1167,8 +1166,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             plot(uniqueThickness, uniquePeakAmpRatio, 'ks', 'Linewidth', 1.5);
             xlabel('Transition zone thickness (m)')
             ylabel('Leading peak/trailing peak amplitude')
-%             axis([0 30 -inf inf])
-            axis([0 30 0.8 1.3])
+            axis([0 30 -inf inf])
+%             axis([0 30 0.8 1.3])
             
             
             %{

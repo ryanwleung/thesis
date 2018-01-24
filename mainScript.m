@@ -30,7 +30,7 @@ ch4Quantity = 40;
 %%% Seismic analysis for Blake Ridge
 obj = DCSeismicAnalysisBR();
 
-test = 2;
+test = 1;
 
 switch test
     case 1
@@ -40,7 +40,7 @@ switch test
         obj.PlotPhaseSaturations()
         obj.PlotBackgroundProperties(dataBase)
         obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
-        obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
+%         obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
         
     case 2
         obj.Dickens = obj.LoadDickensBlakeRidge();
@@ -48,7 +48,7 @@ switch test
         
         obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
         obj.PlotVelocityStructureOriginalResolution(WaveBaseOriginalResolution, WaveOriginalResolution)
-        obj.PlotPeakAmplitudeRatio(WaveOriginalResolution)
+%         obj.PlotPeakAmplitudeRatio(WaveOriginalResolution)
         obj.PlotDickensSeismogram(WaveOriginalResolution, WaveDickens)
         
 end
