@@ -30,7 +30,12 @@ classdef DCBlakeRidge < BCFormation
             obj.temperatureGradient = 36.9;     % C deg/km (ODP 997 - Liu and Flemings)
             obj.seafloorTemperature = 3.3;      % C deg
             obj.salinityWtPercent = 3.5;        % weight percent (wt%) of NaCl in seawater
-                        
+            
+            obj.phi0 = 0.75;
+            obj.phiInf = 0.05;
+            obj.B = 1600; % m
+            
+            
             obj.LDT = DCBlakeRidge.LoadLDT();
             obj.DIT = DCBlakeRidge.LoadDIT();
             obj.GR = DCBlakeRidge.LoadGR();
@@ -42,9 +47,9 @@ classdef DCBlakeRidge < BCFormation
         end
         
         %%% Petrophysical calculations
-        function [ bulkDensity , porosity ] = EstimateBulkDensity( obj )
+        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
             % Including the non-logged depths (in mbsf) in the effective vertical stress            
-            depth = obj.DataTable.depth;
+            depth = obj.depthArray;
             
             Phi_0 = 0.75;
             Phi_inf = 0.05;

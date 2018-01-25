@@ -23,16 +23,21 @@ classdef DCHydrateRidge < BCFormation
             obj.seafloorTemperature = 4;    % C deg
             obj.salinityWtPercent = 3.5;    % weight percent (wt%) of NaCl in seawater
             
+            obj.phi0 = 0.63;
+            obj.phiInf = 0.1;
+            obj.B = 1400; % m
+            
+            
+            
             obj.MICP1 = DCHydrateRidge.LoadMICP1();
             [obj.sNwArray, obj.radiusArray, obj.lengthArray, obj.nArray] = obj.CalcPoreVolumeDistribution();
         end
         
         %%% Petrophysical calculations
-        function [ bulkDensity , porosity ] = EstimateBulkDensity( obj )
+        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
             % Including the non-logged depths (in mbsf) in the effective vertical stress
             % This function is only used for the fracture code
-            
-            depth = obj.DataTable.depth;
+            depth = obj.depthArray;
             
             
             Phi_0 = 0.63;
@@ -43,7 +48,7 @@ classdef DCHydrateRidge < BCFormation
             Rho_grain = 2.7;   % g/cc, smectite
             
             porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
-            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;            
+            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
         end
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
             pcgwInterp = interp1( obj.MICP1.S_nw , obj.MICP1.Pc_gw , nonwettingSaturation );

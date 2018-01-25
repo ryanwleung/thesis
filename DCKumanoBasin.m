@@ -8,10 +8,6 @@ classdef DCKumanoBasin < BCFormation
     properties (Constant)
         satAxis = [0 1 400 430];
         solAxis = [0.155 0.17 400 430];
-        
-        phi0 = 0.6;
-        phiInf = 0.25;
-        depthB = 1000; % m
     end
     methods
         %%% Constructor
@@ -28,6 +24,9 @@ classdef DCKumanoBasin < BCFormation
             obj.seafloorTemperature = 2.2;    % C deg
             obj.salinityWtPercent = 3.5;    % weight percent (wt%) of NaCl in seawater
             
+            obj.phi0 = 0.6;
+            obj.phiInf = 0.25;
+            obj.depthB = 1000; % m
             
             % Loads MICP from a .mat file into the object property MICP
             [obj.MICP, obj.colorOrder, obj.depthOrder] = DCKumanoBasin.LoadMICP();
@@ -152,7 +151,7 @@ classdef DCKumanoBasin < BCFormation
         
         
         
-        function [ bulkDensity , porosity ] = EstimateBulkDensity( obj )
+        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
             % Including the non-logged depths (in mbsf) in the effective vertical stress
             % This function is only used for the fracture code
             
@@ -167,7 +166,7 @@ classdef DCKumanoBasin < BCFormation
             Rho_grain = 2.7;   % g/cc, smectite
             
             porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
-            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;            
+            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
         end
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
             n = numel(obj.MICPInterp);
