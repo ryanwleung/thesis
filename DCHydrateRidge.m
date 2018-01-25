@@ -4,8 +4,8 @@ classdef DCHydrateRidge < BCFormation
     end
     properties (Constant)
         satAxis = [0 1 100 160];
-%         solAxis = [0.08 0.125 60 160];
         solAxis = [0.1 0.125 100 160];
+        pcgwAxis = [0 2 100 160];
     end
     methods
         %%% Constructor
@@ -221,19 +221,22 @@ classdef DCHydrateRidge < BCFormation
             set(gca, 'XDir', 'reverse')
         end
         
-        % work on these next
-
-        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ pcgwFigure ] = PlotPcgw@Formation( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D );
+        
+        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
+            pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
             
             figure(pcgwFigure)
 
-            axis([0 2 100 150])
+            axis(obj.pcgwAxis)
             title('Hydrate Ridge Gas Overpressure')
             % legend('')
         end
+        
+        
+        % work on these next
+
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ ratioFigure ] = PlotRatio@Formation( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D );
+            [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D );
             
             figure(ratioFigure)
             

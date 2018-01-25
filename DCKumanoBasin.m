@@ -8,6 +8,10 @@ classdef DCKumanoBasin < BCFormation
     properties (Constant)
         satAxis = [0 1 400 430];
         solAxis = [0.155 0.17 400 430];
+        pcgwAxis = [0 2.5 400 430];
+        
+        
+
     end
     methods
         %%% Constructor
@@ -26,7 +30,7 @@ classdef DCKumanoBasin < BCFormation
             
             obj.phi0 = 0.6;
             obj.phiInf = 0.25;
-            obj.depthB = 1000; % m
+            obj.B = 1000; % m
             
             % Loads MICP from a .mat file into the object property MICP
             [obj.MICP, obj.colorOrder, obj.depthOrder] = DCKumanoBasin.LoadMICP();
@@ -169,15 +173,21 @@ classdef DCKumanoBasin < BCFormation
             bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
         end
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
-            n = numel(obj.MICPInterp);
-            pcgwArray = zeros(n, 1);
-            for i = 1:n
-                tempTable = obj.MICPInterp{i};
-                pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
+            % accepts nonwettingSaturation as an array
+            nInterpSets = numel(obj.MICPInterp);
+            nSnw = numel(nonwettingSaturation);
+            
+            pcgwSets = zeros(nSnw, nInterpSets);
+            
+            
+            for iInterpSets = 1:nInterpSets
+                tempTable = obj.MICPInterp{iInterpSets};
+                pcgwSets(:, iInterpSets) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
             end
-            pcgwInterp = mean(pcgwArray);
+            pcgwInterp = mean(pcgwSets, 2);
         end
         function [ pchwInterp ] = CalcPchw( obj , nonwettingSaturation )
+            % does not accept nonwettingSaturation as an array
             n = numel(obj.MICPInterp);
             pcgwArray = zeros(n, 1);
             for i = 1:n
@@ -220,17 +230,19 @@ classdef DCKumanoBasin < BCFormation
         end        
         
 
-        % THESE NEED TO BE REDONE -----------------
-        % work on these next
-        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ pcgwFigure ] = PlotPcgw@Formation( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
+            pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
             
             figure(pcgwFigure)
 
-            axis([0 2 100 150])
-            title('Hydrate Ridge Gas Overpressure')
+            axis(obj.pcgwAxis)
+            title('Kumano Basin Gas Overpressure')
             % legend('')
         end
+        
+        
+        
+        % work on these next
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
             [ ratioFigure ] = PlotRatio@Formation( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D );
             

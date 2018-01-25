@@ -11,8 +11,8 @@ classdef DCBlakeRidge < BCFormation
     end
     properties (Constant)
         satAxis = [0 1 460 510];
-%         solAxis = [0.155 0.205 420 520];
-        solAxis = [0.18 0.19 470 510];
+        solAxis = [0.18 0.19 460 510];
+        pcgwAxis = [0 2 460 510];
     end
     methods
         %%% Constructor
@@ -186,18 +186,17 @@ classdef DCBlakeRidge < BCFormation
         end
         
         
-        
-        
-        
-        % unfinished plotting functions below
-        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ pcgwFigure ] = PlotPcgw@Formation( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
+            pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
             
             figure(pcgwFigure)
 
-            axis([0 2 460 510])
+            axis(obj.pcgwAxis)
             title('Blake Ridge Gas Overpressure')
         end
+        
+        
+        % unfinished plotting functions below
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
             [ ratioFigure ] = PlotRatio@Formation( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D );
             

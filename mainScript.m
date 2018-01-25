@@ -10,8 +10,10 @@ obj = DCHydrateRidge();
 
 
 [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
-[exportTable.bulkDensity, exportTable.porosity] = obj.EstimateBulkDensity();
-exportTable.rockStrength = obj.CalcRockStrength(exportTable);
+[exportTable.bulkDensityKg, exportTable.porosity] = obj.EstimateBulkDensity();
+exportTable.rockStrengthPa = obj.CalcRockStrength(exportTable);
+
+
 %%% Plot results
 % obj.PlotMICP();
 % obj.PlotCumPSD();
