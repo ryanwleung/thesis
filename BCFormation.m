@@ -580,25 +580,35 @@ classdef BCFormation < handle
             lineStylePc{1} = 'r--';
             lineStylePc{2} = 'r-';            
             
+            lineStyleRatio = cell(1,3);
+            lineStyleRatio{1} = 'r--';
+            lineStyleRatio{2} = 'r-';    
+            
+            
+            
             solFigure = figure();
             sat2PFigure = figure();
             sat3PFigure = figure();
             pcgwFigure = figure();
-%             ratioFigure = figure();
+            ratioFigure = figure();
 
             solFigure = obj.PlotSol( solFigure , exportTable );
             sat2PFigure = obj.PlotSat2P( sat2PFigure , exportTable , transitionZoneProperties , lineStyle2D );
             sat3PFigure = obj.PlotSat3P( sat3PFigure , exportTable , lineStyle3D );
             
             pcgwFigure = obj.PlotRockStrength( pcgwFigure  , exportTable );
-%             [ ratioFigure ] = PlotFractureRatio( obj , ratioFigure );
             
             pcgwFigure = obj.PlotPcgw( pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
+            ratioFigure = obj.PlotRatio( ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
+            
+            
+            
+            
 %             for iStorage = ch4QuantityToPlot
 %                 iLineStyle = iLineStyle + 1;
 %                 
 %                 [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , iStorage , lineStyle2D{iLineStyle} , lineStyle3D{iLineStyle} );
-% %                 [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D{iLineStyle} , lineStyle3D{iLineStyle} );
+%                 [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D{iLineStyle} , lineStyle3D{iLineStyle} );
 %                 
 %             end
         end
@@ -710,22 +720,30 @@ classdef BCFormation < handle
             set(gca,'YDir','Reverse')
             
         end
-        
-        
-        % not done yet below
-        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
+        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             
-            depth = obj.DataTable.depth;
-            ratio2P = obj.Storage.ratio2P(:,iStorage);
-            ratio3P = obj.Storage.ratio3P(:,iStorage);
+            depth = obj.depthArray;
+            rockStrengthPa = exportTable.rockStrengthPa;
+            pcgw2PPa = exportTable.Pcgw2PPa;
+            pcgw3PPa = exportTable.Pcgw3PPa;
+            
+            
+            ratio2P = pcgw2PPa ./ rockStrengthPa;
+            ratio3P = pcgw3PPa ./ rockStrengthPa;
+            
+            bulkEquilibrium3PIndex = transitionZoneProperties.Bulk3PSolEQLIndex;
+            ratio2P(1 : bulkEquilibrium3PIndex - 1) = 0;
+            [ depthFor2P , ratio2P ] = BCFormation.GetModifiedPlotArrays2P( depth , ratio2P , bulkEquilibrium3PIndex );
+            
+            
             
             figure(ratioFigure)
-            
-            plot( ratio2P , depth , lineStyle2D , 'linewidth' , 3 )
-            hold on
-            plot( ratio3P , depth , lineStyle3D , 'linewidth' , 3 )
             hold on
             
+            plot( [1 1] , [obj.minDepth obj.maxDepth] , 'k--' , 'linewidth' , 2 )
+            
+            plot( ratio2P , depthFor2P , lineStyleRatio{1} , 'linewidth' , 3 )
+            plot( ratio3P , depth , lineStyleRatio{2} , 'linewidth' , 3 )            
             
             xlabel('Gas overpressure / rock strength')
             ylabel('Depth (mbsf)')

@@ -13,6 +13,7 @@ classdef DCBlakeRidge < BCFormation
         satAxis = [0 1 460 510];
         solAxis = [0.18 0.19 460 510];
         pcgwAxis = [0 2 460 510];
+        ratioAxis = [0 1.2 460 510];
     end
     methods
         %%% Constructor
@@ -197,19 +198,19 @@ classdef DCBlakeRidge < BCFormation
         
         
         % unfinished plotting functions below
-        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ ratioFigure ] = PlotRatio@Formation( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
+            [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
                         
             title('Blake Ridge Overpressure Ratio')
             % legend('')
-            axis([0 1.2 460 510])
-            
+            axis(obj.ratioAxis)
+
             
             
         end
-        function [ ratioFigure ] = PlotFractureRatio( ~ , ratioFigure )
+        function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
             figure(ratioFigure)
             
             plot( [1 1] , [300 600] , 'k--' , 'linewidth' , 2 )

@@ -6,6 +6,7 @@ classdef DCHydrateRidge < BCFormation
         satAxis = [0 1 100 160];
         solAxis = [0.1 0.125 100 160];
         pcgwAxis = [0 2 100 160];
+        ratioAxis = [0 3.5 100 160];
     end
     methods
         %%% Constructor
@@ -235,17 +236,17 @@ classdef DCHydrateRidge < BCFormation
         
         % work on these next
 
-        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
+            [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
             
             title('Hydrate Ridge Overpressure Ratio')
-            axis([0 2.5 100 150])            
+            axis(obj.ratioAxis)            
             % legend('')
             
         end
-        function [ ratioFigure ] = PlotFractureRatio( ~ , ratioFigure )
+        function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
             figure(ratioFigure)
             
             plot( [1 1] , [0 300] , 'k--' , 'linewidth' , 2 )

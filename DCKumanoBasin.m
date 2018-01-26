@@ -9,7 +9,7 @@ classdef DCKumanoBasin < BCFormation
         satAxis = [0 1 400 430];
         solAxis = [0.155 0.17 400 430];
         pcgwAxis = [0 2.5 400 430];
-        
+        ratioAxis = [0 1.2 400 430];
         
 
     end
@@ -243,17 +243,17 @@ classdef DCKumanoBasin < BCFormation
         
         
         % work on these next
-        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ ratioFigure ] = PlotRatio@Formation( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
+            [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
             
             title('Hydrate Ridge Overpressure Ratio')
-            axis([0 2.5 100 150])            
+            axis(obj.ratioAxis)            
             % legend('')
             
         end
-        function [ ratioFigure ] = PlotFractureRatio( ~ , ratioFigure )
+        function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
             figure(ratioFigure)
             
             plot( [1 1] , [0 300] , 'k--' , 'linewidth' , 2 )
