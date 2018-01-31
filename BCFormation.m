@@ -244,6 +244,11 @@ classdef BCFormation < handle
                     
                     sg = sg - iterationFactor * (sg - sgIterated);
                     
+                    if isnan(sg)
+                        sg
+                    end
+                    
+                    
                     deltaCellArray{1} = deltaSg;
                 end
                 
@@ -640,7 +645,7 @@ classdef BCFormation < handle
             hold on            
             plot( sol , depth , 'b' , 'linewidth' , width )
             
-            xlabel('CH4 Solubility (mol CH4/kg H2O')
+            xlabel('CH4 Solubility (mol CH4/kg H2O)')
             ylabel('Depth (mbsf)')
             set(gca, 'YDir', 'Reverse')
             legend('Bulk LG', 'Bulk LH', 'Min LG', 'Min LH', 'Max LG', 'Max LH', 'Actual solubility')

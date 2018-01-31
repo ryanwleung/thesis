@@ -3,10 +3,11 @@ close all
 clear variables
 
 ch4Quantity = 40;
+% ch4Quantity = 4;
 
-obj = DCHydrateRidge();
+% obj = DCHydrateRidge();
 % obj = DCBlakeRidge();
-% obj = DCKumanoBasin();
+obj = DCKumanoBasin();
 
 
 [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
