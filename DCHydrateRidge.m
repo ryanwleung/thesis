@@ -35,22 +35,6 @@ classdef DCHydrateRidge < BCFormation
         end
         
         %%% Petrophysical calculations
-        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
-            % Including the non-logged depths (in mbsf) in the effective vertical stress
-            % This function is only used for the fracture code
-            depth = obj.depthArray;
-            
-            
-            Phi_0 = 0.63;
-            Phi_inf = 0.1;
-            B = 1400; % meters
-            
-            Rho_fluid = 1.024; % g/cc, seawater
-            Rho_grain = 2.7;   % g/cc, smectite
-            
-            porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
-            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
-        end
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
             pcgwInterp = interp1( obj.MICP1.S_nw , obj.MICP1.Pc_gw , nonwettingSaturation );
         end
@@ -257,6 +241,22 @@ classdef DCHydrateRidge < BCFormation
     end
     % UNUSED CLASS METHODS
     %{
+        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
+            % Including the non-logged depths (in mbsf) in the effective vertical stress
+            % This function is only used for the fracture code
+            depth = obj.depthArray;
+            
+            
+            Phi_0 = 0.63;
+            Phi_inf = 0.1;
+            B = 1400; % meters
+            
+            Rho_fluid = 1.024; % g/cc, seawater
+            Rho_grain = 2.7;   % g/cc, smectite
+            
+            porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
+            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
+        end
         function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
             figure(ratioFigure)
             

@@ -1,4 +1,4 @@
-classdef DCKumanoBasin < BCFormation
+classdef DCTheoreticalFormation < BCFormation
     properties
         MICP % Cell array of tables
         colorOrder % array containing order index of loaded MICP tables
@@ -15,7 +15,7 @@ classdef DCKumanoBasin < BCFormation
     end
     methods
         %%% Constructor
-        function [ obj ] = DCKumanoBasin()
+        function [ obj ] = DCTheoreticalFormation()
             obj@BCFormation()
             
             obj.seafloorDepth = 1936;        % m
