@@ -247,7 +247,7 @@ classdef DCTheoreticalFormation < BCFormation
         function RunMethaneQuantityFractureRoutine()
             n = 1;
             seafloorDepthArray = linspace(100, 100, n);
-            errorLog = {};
+            errorLog = cell(1, 2);
             iError = 1;
             
             for i = 1:n
@@ -257,9 +257,26 @@ classdef DCTheoreticalFormation < BCFormation
                     try
                         [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
                     catch exception
-                        errorLog{iError} = 1;
+                        
+                        
+                        [~, endIndex] = regexpi(exception.message, 'calculating ')
+                        
+                        
+                        if contains(lower(exception.message), 'maxsollg')
+                            errorLog{iError, 1} = 'Gas calculation error';
+                        elseif contains(lower(exception.message), 'maxsollh')
+                            errorLog{iError, 1} = 'Hydrate calculation error';
+                        elseif contains(lower(exception.message), '3p')
+                            errorLog{iError, 1} = '3P calculation error';
+                        else
+                            errorLog{iError, 1} = 'Unknown calculation error';
+                        end
+                        errorLog{iError, 2} = ch4Quantity;
+                        iError = iError + 1;
                         
                         % condition where ch4 is too small
+                        startIndex = regexp(exception.message, '[01]\.');
+                        errorNumber = str2num(exception.message(startIndex:end));
                         ch4Quantity = ch4Quantity + 1;
                         continue
                         

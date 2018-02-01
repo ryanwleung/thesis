@@ -41,7 +41,6 @@ classdef BCFormation < handle
             
             %%% Get depth and depth dependent parameters
             depth = obj.depthArray;
-            n = numel(depth);
             pressure = obj.CalcPressure( depth );
             temperature = obj.CalcTemperature( depth );
             gasDensity = BCFormation.CalcGasDensityArray( pressure , temperature );
@@ -244,7 +243,7 @@ classdef BCFormation < handle
                     sg = sg - iterationFactor * (sg - sgIterated);
                     
                     if isnan(sg)
-                        error('NaN found when calculating MaxSolLG')
+                        error('NaN found when calculating MaxSolLG, sg2P = %.5f', gasSaturationBulk2P(i))
                     end
                     
                     
@@ -294,7 +293,7 @@ classdef BCFormation < handle
                     sh = sh - iterationFactor * (sh - shIterated);
                     
                     if isnan(sh)
-                        error('NaN found when calculating MaxSolLH')
+                        error('NaN found when calculating MaxSolLH, sh2P = %.5f', hydrateSaturationBulk2P(i))
                     end
                     
                     
