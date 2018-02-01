@@ -8,10 +8,10 @@ classdef DCKumanoBasin < BCFormation
     properties (Constant)
         satAxis = [0 1 400 430];
         solAxis = [0.155 0.17 400 430];
+        pcgwAxis = [0 2.5 400 430];
+        ratioAxis = [0 1.2 400 430];
         
-        phi0 = 0.6;
-        phiInf = 0.25;
-        depthB = 1000; % m
+
     end
     methods
         %%% Constructor
@@ -28,6 +28,9 @@ classdef DCKumanoBasin < BCFormation
             obj.seafloorTemperature = 2.2;    % C deg
             obj.salinityWtPercent = 3.5;    % weight percent (wt%) of NaCl in seawater
             
+            obj.phi0 = 0.6;
+            obj.phiInf = 0.25;
+            obj.B = 1000; % m
             
             % Loads MICP from a .mat file into the object property MICP
             [obj.MICP, obj.colorOrder, obj.depthOrder] = DCKumanoBasin.LoadMICP();
@@ -59,10 +62,6 @@ classdef DCKumanoBasin < BCFormation
                 end
             end
         end
-        
-        
-        
-        
         
         
         %%% Plotting subclass functions
@@ -147,12 +146,7 @@ classdef DCKumanoBasin < BCFormation
         end
         
         
-        
-        
-        
-        
-        
-        function [ bulkDensity , porosity ] = EstimateBulkDensity( obj )
+        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
             % Including the non-logged depths (in mbsf) in the effective vertical stress
             % This function is only used for the fracture code
             
@@ -167,18 +161,24 @@ classdef DCKumanoBasin < BCFormation
             Rho_grain = 2.7;   % g/cc, smectite
             
             porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
-            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;            
+            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
         end
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
-            n = numel(obj.MICPInterp);
-            pcgwArray = zeros(n, 1);
-            for i = 1:n
-                tempTable = obj.MICPInterp{i};
-                pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
+            % accepts nonwettingSaturation as an array
+            nInterpSets = numel(obj.MICPInterp);
+            nSnw = numel(nonwettingSaturation);
+            
+            pcgwSets = zeros(nSnw, nInterpSets);
+            
+            
+            for iInterpSets = 1:nInterpSets
+                tempTable = obj.MICPInterp{iInterpSets};
+                pcgwSets(:, iInterpSets) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
             end
-            pcgwInterp = mean(pcgwArray);
+            pcgwInterp = mean(pcgwSets, 2);
         end
         function [ pchwInterp ] = CalcPchw( obj , nonwettingSaturation )
+            % does not accept nonwettingSaturation as an array
             n = numel(obj.MICPInterp);
             pcgwArray = zeros(n, 1);
             for i = 1:n
@@ -219,34 +219,24 @@ classdef DCKumanoBasin < BCFormation
             axis(obj.satAxis)
             title('Kumano Basin - 3 Phase Case')
         end        
-        
-
-        % THESE NEED TO BE REDONE -----------------
-        % work on these next
-        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ pcgwFigure ] = PlotPcgw@Formation( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
+            pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
             
             figure(pcgwFigure)
 
-            axis([0 2 100 150])
-            title('Hydrate Ridge Gas Overpressure')
+            axis(obj.pcgwAxis)
+            title('Kumano Basin Gas Overpressure')
             % legend('')
         end
-        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ ratioFigure ] = PlotRatio@Formation( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
+            [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
             
             title('Hydrate Ridge Overpressure Ratio')
-            axis([0 2.5 100 150])            
+            axis(obj.ratioAxis)            
             % legend('')
             
-        end
-        function [ ratioFigure ] = PlotFractureRatio( ~ , ratioFigure )
-            figure(ratioFigure)
-            
-            plot( [1 1] , [0 300] , 'k--' , 'linewidth' , 2 )
-            hold on
         end
     end
     methods (Static)
@@ -367,6 +357,12 @@ classdef DCKumanoBasin < BCFormation
     end
     % UNUSED CLASS METHODS
     %{
+        function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
+            figure(ratioFigure)
+            
+            plot( [1 1] , [0 300] , 'k--' , 'linewidth' , 2 )
+            hold on
+        end
         function LoadSolubility( obj )
             load('Blake Ridge Data\Solubility Plots\HR_bulk_C_L_G.mat')
             obj.Bulk.Solubility = HR_bulk_C_L_G(:,1); % mol CH4/kg H2O

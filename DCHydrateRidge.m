@@ -4,8 +4,9 @@ classdef DCHydrateRidge < BCFormation
     end
     properties (Constant)
         satAxis = [0 1 100 160];
-%         solAxis = [0.08 0.125 60 160];
         solAxis = [0.1 0.125 100 160];
+        pcgwAxis = [0 2 100 160];
+        ratioAxis = [0 3.5 100 160];
     end
     methods
         %%% Constructor
@@ -23,16 +24,21 @@ classdef DCHydrateRidge < BCFormation
             obj.seafloorTemperature = 4;    % C deg
             obj.salinityWtPercent = 3.5;    % weight percent (wt%) of NaCl in seawater
             
+            obj.phi0 = 0.63;
+            obj.phiInf = 0.1;
+            obj.B = 1400; % m
+            
+            
+            
             obj.MICP1 = DCHydrateRidge.LoadMICP1();
             [obj.sNwArray, obj.radiusArray, obj.lengthArray, obj.nArray] = obj.CalcPoreVolumeDistribution();
         end
         
         %%% Petrophysical calculations
-        function [ bulkDensity , porosity ] = EstimateBulkDensity( obj )
+        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
             % Including the non-logged depths (in mbsf) in the effective vertical stress
             % This function is only used for the fracture code
-            
-            depth = obj.DataTable.depth;
+            depth = obj.depthArray;
             
             
             Phi_0 = 0.63;
@@ -43,7 +49,7 @@ classdef DCHydrateRidge < BCFormation
             Rho_grain = 2.7;   % g/cc, smectite
             
             porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
-            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;            
+            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
         end
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
             pcgwInterp = interp1( obj.MICP1.S_nw , obj.MICP1.Pc_gw , nonwettingSaturation );
@@ -215,34 +221,26 @@ classdef DCHydrateRidge < BCFormation
             axis([1e-9, 1e-4, -inf, inf])
             set(gca, 'XDir', 'reverse')
         end
-        
-        % work on these next
-
-        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ pcgwFigure ] = PlotPcgw@Formation( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
+            pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
             
             figure(pcgwFigure)
 
-            axis([0 2 100 150])
+            axis(obj.pcgwAxis)
             title('Hydrate Ridge Gas Overpressure')
             % legend('')
         end
-        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ ratioFigure ] = PlotRatio@Formation( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
+            [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
             
             title('Hydrate Ridge Overpressure Ratio')
-            axis([0 2.5 100 150])            
+            axis(obj.ratioAxis)            
             % legend('')
             
         end
-        function [ ratioFigure ] = PlotFractureRatio( ~ , ratioFigure )
-            figure(ratioFigure)
-            
-            plot( [1 1] , [0 300] , 'k--' , 'linewidth' , 2 )
-            hold on
-        end
+        
     end
     methods (Static)
         function [ result ] = LoadMICP1()
@@ -259,6 +257,12 @@ classdef DCHydrateRidge < BCFormation
     end
     % UNUSED CLASS METHODS
     %{
+        function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
+            figure(ratioFigure)
+            
+            plot( [1 1] , [0 300] , 'k--' , 'linewidth' , 2 )
+            hold on
+        end
         function LoadSolubility( obj )
             load('Blake Ridge Data\Solubility Plots\HR_bulk_C_L_G.mat')
             obj.Bulk.Solubility = HR_bulk_C_L_G(:,1); % mol CH4/kg H2O

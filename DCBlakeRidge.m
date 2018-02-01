@@ -11,8 +11,9 @@ classdef DCBlakeRidge < BCFormation
     end
     properties (Constant)
         satAxis = [0 1 460 510];
-%         solAxis = [0.155 0.205 420 520];
-        solAxis = [0.18 0.19 470 510];
+        solAxis = [0.18 0.19 460 510];
+        pcgwAxis = [0 2 460 510];
+        ratioAxis = [0 1.2 460 510];
     end
     methods
         %%% Constructor
@@ -30,7 +31,12 @@ classdef DCBlakeRidge < BCFormation
             obj.temperatureGradient = 36.9;     % C deg/km (ODP 997 - Liu and Flemings)
             obj.seafloorTemperature = 3.3;      % C deg
             obj.salinityWtPercent = 3.5;        % weight percent (wt%) of NaCl in seawater
-                        
+            
+            obj.phi0 = 0.75;
+            obj.phiInf = 0.05;
+            obj.B = 1600; % m
+            
+            
             obj.LDT = DCBlakeRidge.LoadLDT();
             obj.DIT = DCBlakeRidge.LoadDIT();
             obj.GR = DCBlakeRidge.LoadGR();
@@ -42,9 +48,9 @@ classdef DCBlakeRidge < BCFormation
         end
         
         %%% Petrophysical calculations
-        function [ bulkDensity , porosity ] = EstimateBulkDensity( obj )
+        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
             % Including the non-logged depths (in mbsf) in the effective vertical stress            
-            depth = obj.DataTable.depth;
+            depth = obj.depthArray;
             
             Phi_0 = 0.75;
             Phi_inf = 0.05;
@@ -179,38 +185,27 @@ classdef DCBlakeRidge < BCFormation
             axis([1e-9, 1e-4, -inf, inf])
             set(gca, 'XDir', 'reverse')
         end
-        
-        
-        
-        
-        
-        % unfinished plotting functions below
-        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ pcgwFigure ] = PlotPcgw@Formation( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
+            pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
             
             figure(pcgwFigure)
 
-            axis([0 2 460 510])
+            axis(obj.pcgwAxis)
             title('Blake Ridge Gas Overpressure')
         end
-        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
-            [ ratioFigure ] = PlotRatio@Formation( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D );
+        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
+            [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
                         
             title('Blake Ridge Overpressure Ratio')
             % legend('')
-            axis([0 1.2 460 510])
-            
+            axis(obj.ratioAxis)
+
             
             
         end
-        function [ ratioFigure ] = PlotFractureRatio( ~ , ratioFigure )
-            figure(ratioFigure)
-            
-            plot( [1 1] , [300 600] , 'k--' , 'linewidth' , 2 )
-            hold on
-        end
+        
     end
     methods (Static)
         function [ result ] = LoadLDT()
@@ -420,6 +415,12 @@ classdef DCBlakeRidge < BCFormation
     end
     % UNUSED CLASS METHODS
     %{
+        function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
+            figure(ratioFigure)
+            
+            plot( [1 1] , [300 600] , 'k--' , 'linewidth' , 2 )
+            hold on
+        end
         function LoadSolubility( obj )
             load('Blake Ridge Data\Solubility Plots\BR_bulk_C_L_G.mat')
             obj.Bulk.Solubility = BR_bulk_C_L_G(:,1); % mol CH4/kg H2O

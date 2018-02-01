@@ -1,7 +1,5 @@
 classdef BCFormation < handle
     properties
-        Bulk % remove this later
-
         depthArray
         seafloorDepth
         minDepth
@@ -20,7 +18,9 @@ classdef BCFormation < handle
         nArray
         
         
-        
+        phi0
+        phiInf
+        B
     end
     properties (Constant)
         waterDensity = 1024;        % kg H2O/m^3 H2O
@@ -42,6 +42,7 @@ classdef BCFormation < handle
             
             %%% Get depth and depth dependent parameters
             depth = obj.depthArray;
+            n = numel(depth);
             pressure = obj.CalcPressure( depth );
             temperature = obj.CalcTemperature( depth );
             gasDensity = BCFormation.CalcGasDensityArray( pressure , temperature );
@@ -114,7 +115,23 @@ classdef BCFormation < handle
             sg(indexArrayOf3PZone) = sg3P;
             sh(indexArrayOf3PZone) = sh3P;
             sol(indexArrayOf3PZone) = sol3P;
-
+            
+            %%% Calculating gas capillary pressure using a for loop because
+%             pcgw = zeros(n, 1);
+%             for i = 1:n
+%                 pcgw(i) = [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation );
+%             end
+            
+            
+            
+            pcgw2PMPa = obj.CalcPcgw(sg2P);
+            pcgw2PPa = pcgw2PMPa .* 1e6;
+            
+            pcgw3PMPa = obj.CalcPcgw(sg);
+            pcgw3PPa = pcgw3PMPa .* 1e6;
+            
+            
+            
             %%% Compiling arrays into a table for exporting
             exportTable = table();
             exportTable.Depth = depth;
@@ -133,6 +150,8 @@ classdef BCFormation < handle
             exportTable.GasSat3P = sg;
             exportTable.HydrateSat3P = sh;
             exportTable.OverallSol = sol;
+            exportTable.Pcgw2PPa = pcgw2PPa;
+            exportTable.Pcgw3PPa = pcgw3PPa;
             
             %%% Compiling transition zone properties into a structure
             transitionZoneProperties.Top3PIndex = top3PIndex;
@@ -154,10 +173,26 @@ classdef BCFormation < handle
             temperature = obj.seafloorTemperature + depth .* temperatureGradientMeters; % C
             temperature = temperature + 273.15; % K
         end
-        function [ rockStrength ] = CalcRockStrength( obj )
-            verticalEffectiveStress = (obj.DataTable.bulkDensity - obj.waterDensity) .* 1000 .* 9.81 ./ 1e6;
+        function [ bulkDensityKg , porosity ] = EstimateBulkDensity( obj )
+            % Including the non-logged depths (in mbsf) in the effective vertical stress
+            % This function is only used for the fracture code
+            
+            rhoFluid = 1.024; % g/cc, seawater
+            rhoGrain = 2.7;   % g/cc, smectite
+            
+            porosity = obj.phiInf + (obj.phi0 - obj.phiInf) .* exp(-obj.depthArray ./ obj.B);
+            bulkDensityG = porosity .* rhoFluid + (1 - porosity) .* rhoGrain;
+            bulkDensityKg = bulkDensityG .* 1000;
+        end
+        function [ rockStrengthPa ] = CalcRockStrength( obj , exportTable )
+            % Need to change bulkDensity from g to kg
+            verticalEffectiveStress = (exportTable.bulkDensityKg - obj.waterDensity )  .* 9.81; % Pa/m
             minHorizontalEffectiveStress = (obj.poissonsRatio / (1 - obj.poissonsRatio)) .* verticalEffectiveStress;
-            rockStrength = cumsum(minHorizontalEffectiveStress);
+            
+%             rockStrengthPa = cumsum(minHorizontalEffectiveStress);
+            rockStrengthPa = cumsum(minHorizontalEffectiveStress .* obj.depthIncrement);
+            
+            
         end        
         
         %%% 2P calculations
@@ -209,6 +244,11 @@ classdef BCFormation < handle
                     
                     sg = sg - iterationFactor * (sg - sgIterated);
                     
+                    if isnan(sg)
+                        error('NaN found when calculating MaxSolLG')
+                    end
+                    
+                    
                     deltaCellArray{1} = deltaSg;
                 end
                 
@@ -254,6 +294,11 @@ classdef BCFormation < handle
                     
                     sh = sh - iterationFactor * (sh - shIterated);
                     
+                    if isnan(sh)
+                        error('NaN found when calculating MaxSolLH')
+                    end
+                    
+                    
                     deltaCellArray{1} = deltaSh;
                 end
                 
@@ -298,20 +343,15 @@ classdef BCFormation < handle
             % Initial guess of solubility
             solubility = hydrateMaxSolubilityAtTop;
             
-            
-            
-            figure
-            hold on
-            
-            
-            
+%             figure
+%             hold on            
             
             i = 1;
             while i <= n
                 i3P = indexArrayOf3PZone(i);
                 
                 if reached2ndPhase
-                    i3P
+%                     i3P
                     
                     solubility = solubilityPhase2(i3P);
                     
@@ -370,38 +410,20 @@ classdef BCFormation < handle
                         end
                     end
                     
-                    
-                    
-%                     pcgw = BCFormation.CalcPcgwFromSolLG( gasBulkSolubility(i3P) , solubility , pressure(i3P) );
-%                     pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
-%                     radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
-%                     radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
-%                     if solubility > 
-                        
                     if solubility > solubilityPhase2(i3P)
-                        
                         if reached2ndPhase
                             error('2nd phase of 3P calc activated twice')
                         end
                         reached2ndPhase = true
                         continue
                     end
-                    
-                    
-                end
-                
-                
-                
-                pcgw = BCFormation.CalcPcgwFromSolLG( gasBulkSolubility(i3P) , solubility , pressure(i3P) );
-                pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
-                radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
-                radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
-%                 scatter(obj.depthArray(i3P), radiusG, 'r', 'filled')
-%                 scatter(obj.depthArray(i3P), radiusH, 'g', 'filled')
-                scatter(radiusG, obj.depthArray(i3P), 'r', 'filled')
-                scatter(radiusH, obj.depthArray(i3P), 'g', 'filled')
-                
-                
+                end                
+%                 pcgw = BCFormation.CalcPcgwFromSolLG( gasBulkSolubility(i3P) , solubility , pressure(i3P) );
+%                 pchw = BCFormation.CalcPchwFromSolLH( hydrateBulkSolubility(i3P) , solubility , temperature(i3P) );
+%                 radiusG = BCFormation.CalcRadiusGasFromPcgw( pcgw );
+%                 radiusH = BCFormation.CalcRadiusHydrateFromPchw( pchw );
+%                 scatter(radiusG, obj.depthArray(i3P), 'r', 'filled')
+%                 scatter(radiusH, obj.depthArray(i3P), 'g', 'filled')
                 
                 sg3P(i) = sg;
                 sh3P(i) = sh;
@@ -409,11 +431,9 @@ classdef BCFormation < handle
                 
                 i = i + 1;
             end
-            
-            
-            xlabel('Pore size in m^3')
-            ylabel('Depth in mbsf')
-            set(gca, 'YDir', 'Reverse')
+%             xlabel('Pore size in m^3')
+%             ylabel('Depth in mbsf')
+%             set(gca, 'YDir', 'Reverse')
         end
         function [ sh , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
                                                                                 sg , solubility , ...
@@ -466,6 +486,7 @@ classdef BCFormation < handle
             solubilityLH = BCFormation.CalcSolubilityLH( hydrateBulkSolubility , pchwPa , temperature );
         end
         
+        %%% Unused calculations
         function [ sg , sh ] = Calc3P2ndPhase( obj , targetSolubility , shInitialGuess , pressure , temperature , bulkSolubilityLG , bulkSolubilityLH  , ...
                                                     ch4Quantity , gasDensity )
             eps = -1e-6;
@@ -559,27 +580,40 @@ classdef BCFormation < handle
             lineStyle2D = cell(1,3);
             lineStyle2D{1} = 'r--';
             lineStyle2D{2} = 'g--';
-%             lineStyle2D{3} = 'r--';
             
             lineStyle3D = cell(1,3);
             lineStyle3D{1} = 'r-';
             lineStyle3D{2} = 'g-';
-%             lineStyle3D{3} = 'r-';
+            
+            
+            lineStylePc = cell(1,3);
+            lineStylePc{1} = 'r--';
+            lineStylePc{2} = 'r-';            
+            
+            lineStyleRatio = cell(1,3);
+            lineStyleRatio{1} = 'r--';
+            lineStyleRatio{2} = 'r-';    
+            
+            
             
             solFigure = figure();
             sat2PFigure = figure();
             sat3PFigure = figure();
-%             pcgwFigure = figure();
-%             ratioFigure = figure();
+            pcgwFigure = figure();
+            ratioFigure = figure();
 
             solFigure = obj.PlotSol( solFigure , exportTable );
             sat2PFigure = obj.PlotSat2P( sat2PFigure , exportTable , transitionZoneProperties , lineStyle2D );
             sat3PFigure = obj.PlotSat3P( sat3PFigure , exportTable , lineStyle3D );
             
-%             [ pcgwFigure ] = PlotRockStrength( obj , pcgwFigure );
-%             [ ratioFigure ] = PlotFractureRatio( obj , ratioFigure );
-%             
-%             
+            pcgwFigure = obj.PlotRockStrength( pcgwFigure  , exportTable );
+            
+            pcgwFigure = obj.PlotPcgw( pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
+            ratioFigure = obj.PlotRatio( ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
+            
+            
+            
+            
 %             for iStorage = ch4QuantityToPlot
 %                 iLineStyle = iLineStyle + 1;
 %                 
@@ -616,7 +650,7 @@ classdef BCFormation < handle
             hold on            
             plot( sol , depth , 'b' , 'linewidth' , width )
             
-            xlabel('CH4 Solubility (mol CH4/kg H2O')
+            xlabel('CH4 Solubility (mol CH4/kg H2O)')
             ylabel('Depth (mbsf)')
             set(gca, 'YDir', 'Reverse')
             legend('Bulk LG', 'Bulk LH', 'Min LG', 'Min LH', 'Max LG', 'Max LH', 'Actual solubility')
@@ -635,8 +669,8 @@ classdef BCFormation < handle
             [ ~ , sh2P ] = BCFormation.GetModifiedPlotArrays2P( depth , sh2P , bulkEquilibrium3PIndex );
 
             figure(sat2PFigure)
-            plot( sg2P , depth , lineStyle{1} , 'linewidth' , 3 )
             hold on
+            plot( sg2P , depth , lineStyle{1} , 'linewidth' , 3 )
             plot( sh2P , depth , lineStyle{2} , 'linewidth' , 3 )
             xlabel('Saturation')
             ylabel('Depth (mbsf)')
@@ -649,70 +683,77 @@ classdef BCFormation < handle
             sh3P = exportTable.HydrateSat3P;
             
             figure(sg3PFigure)
-            plot( sg3P , depth , lineStyle{1} , 'linewidth' , 3 )
             hold on
+            plot( sg3P , depth , lineStyle{1} , 'linewidth' , 3 )
             plot( sh3P , depth , lineStyle{2} , 'linewidth' , 3 )
             xlabel('Saturation')
             ylabel('Depth (mbsf)')
             legend('Gas', 'Hydrate')
             set(gca, 'YDir', 'Reverse')
         end
-        
-        % not done yet below
-
-        function [ pcgwFigure ] = PlotRockStrength( obj , pcgwFigure )
+        function [ pcgwFigure ] = PlotRockStrength( obj , pcgwFigure , exportTable )
             
-            depth = obj.DataTable.depth;
-            rockStrength = obj.DataTable.rockStrength;
+            depth = obj.depthArray;
+            rockStrengthPa = exportTable.rockStrengthPa;
             
             figure(pcgwFigure)
             
-            plot( rockStrength , depth , 'k' , 'linewidth' , 3 )
+            plot(rockStrengthPa ./ 1e6, depth, 'k', 'linewidth', 3)
             hold on
-
+            
             xlabel('Pressure (MPa)')
             ylabel('Depth (mbsf)')
             set(gca,'YDir','Reverse')
-
         end
-        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , iStorage , lineStyle2D , lineStyle3D )
+        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
             
-            depth = obj.DataTable.depth;
-            pcgw2P = obj.Storage.pcgw2P(:,iStorage);
+            depth = obj.depthArray;
+            pcgw2PPa = exportTable.Pcgw2PPa;
+            pcgw3PPa = exportTable.Pcgw3PPa;
             
-            sg2P = obj.Storage.sg2P(:,iStorage);
-            bulkEquilibrium3PIndex = find( sg2P , 1 );
             
-            [ depthFor2P , pcgw2P ] = BCFormation.GetModifiedPlotArrays2P( depth , pcgw2P , bulkEquilibrium3PIndex );
+            bulkEquilibrium3PIndex = transitionZoneProperties.Bulk3PSolEQLIndex;
+            pcgw2PPa(1 : bulkEquilibrium3PIndex - 1) = 0;
+            [ depthFor2P , pcgw2PPa ] = BCFormation.GetModifiedPlotArrays2P( depth , pcgw2PPa , bulkEquilibrium3PIndex );
             
-            pcgw3P = obj.Storage.pcgw3P(:,iStorage);
+            
             
             
             figure(pcgwFigure)
+            hold on
             
-            plot( pcgw2P , depthFor2P , lineStyle2D , 'linewidth' , 3 )
-            hold on
-            plot( pcgw3P , depth , lineStyle3D , 'linewidth' , 3 )
-            hold on
+            plot( pcgw2PPa ./ 1e6 , depthFor2P , lineStylePc{1} , 'linewidth' , 3 )
+            plot( pcgw3PPa ./ 1e6 , depth , lineStylePc{2} , 'linewidth' , 3 )
             
             xlabel('Pressure (MPa)')
             ylabel('Depth (mbsf)')
             set(gca,'YDir','Reverse')
             
         end
-        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , iStorage , lineStyle2D , lineStyle3D )
+        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             
-            depth = obj.DataTable.depth;
-            ratio2P = obj.Storage.ratio2P(:,iStorage);
-            ratio3P = obj.Storage.ratio3P(:,iStorage);
+            depth = obj.depthArray;
+            rockStrengthPa = exportTable.rockStrengthPa;
+            pcgw2PPa = exportTable.Pcgw2PPa;
+            pcgw3PPa = exportTable.Pcgw3PPa;
+            
+            
+            ratio2P = pcgw2PPa ./ rockStrengthPa;
+            ratio3P = pcgw3PPa ./ rockStrengthPa;
+            
+            bulkEquilibrium3PIndex = transitionZoneProperties.Bulk3PSolEQLIndex;
+            ratio2P(1 : bulkEquilibrium3PIndex - 1) = 0;
+            [ depthFor2P , ratio2P ] = BCFormation.GetModifiedPlotArrays2P( depth , ratio2P , bulkEquilibrium3PIndex );
+            
+            
             
             figure(ratioFigure)
-            
-            plot( ratio2P , depth , lineStyle2D , 'linewidth' , 3 )
-            hold on
-            plot( ratio3P , depth , lineStyle3D , 'linewidth' , 3 )
             hold on
             
+            plot( [1 1] , [obj.minDepth obj.maxDepth] , 'k--' , 'linewidth' , 2 )
+            
+            plot( ratio2P , depthFor2P , lineStyleRatio{1} , 'linewidth' , 3 )
+            plot( ratio3P , depth , lineStyleRatio{2} , 'linewidth' , 3 )            
             
             xlabel('Gas overpressure / rock strength')
             ylabel('Depth (mbsf)')
