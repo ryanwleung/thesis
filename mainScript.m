@@ -2,8 +2,10 @@ clc
 close all
 clear variables
 
+% ch4Quantity = 115; % near max for KB
+% ch4Quantity = 55; % near max for HR
+% ch4Quantity = 120; % near max for BR
 ch4Quantity = 40;
-% ch4Quantity = 4;
 
 % obj = DCHydrateRidge();
 % obj = DCBlakeRidge();

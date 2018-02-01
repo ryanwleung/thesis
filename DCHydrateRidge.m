@@ -221,8 +221,6 @@ classdef DCHydrateRidge < BCFormation
             axis([1e-9, 1e-4, -inf, inf])
             set(gca, 'XDir', 'reverse')
         end
-        
-        
         function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
             pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
             
@@ -232,10 +230,6 @@ classdef DCHydrateRidge < BCFormation
             title('Hydrate Ridge Gas Overpressure')
             % legend('')
         end
-        
-        
-        % work on these next
-
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
@@ -246,12 +240,7 @@ classdef DCHydrateRidge < BCFormation
             % legend('')
             
         end
-        function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
-            figure(ratioFigure)
-            
-            plot( [1 1] , [0 300] , 'k--' , 'linewidth' , 2 )
-            hold on
-        end
+        
     end
     methods (Static)
         function [ result ] = LoadMICP1()
@@ -268,6 +257,12 @@ classdef DCHydrateRidge < BCFormation
     end
     % UNUSED CLASS METHODS
     %{
+        function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
+            figure(ratioFigure)
+            
+            plot( [1 1] , [0 300] , 'k--' , 'linewidth' , 2 )
+            hold on
+        end
         function LoadSolubility( obj )
             load('Blake Ridge Data\Solubility Plots\HR_bulk_C_L_G.mat')
             obj.Bulk.Solubility = HR_bulk_C_L_G(:,1); % mol CH4/kg H2O

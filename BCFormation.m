@@ -245,7 +245,7 @@ classdef BCFormation < handle
                     sg = sg - iterationFactor * (sg - sgIterated);
                     
                     if isnan(sg)
-                        sg
+                        error('NaN found when calculating MaxSolLG')
                     end
                     
                     
@@ -293,6 +293,11 @@ classdef BCFormation < handle
                     deltaSh = sh - shIterated;
                     
                     sh = sh - iterationFactor * (sh - shIterated);
+                    
+                    if isnan(sh)
+                        error('NaN found when calculating MaxSolLH')
+                    end
+                    
                     
                     deltaCellArray{1} = deltaSh;
                 end
@@ -346,7 +351,7 @@ classdef BCFormation < handle
                 i3P = indexArrayOf3PZone(i);
                 
                 if reached2ndPhase
-                    i3P
+%                     i3P
                     
                     solubility = solubilityPhase2(i3P);
                     
