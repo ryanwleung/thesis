@@ -2,19 +2,21 @@ clc
 close all
 clear variables
 
+DCTheoreticalFormation.RunMethaneQuantityFractureRoutine();
+
 % ch4Quantity = 115; % near max for KB
 % ch4Quantity = 55; % near max for HR
 % ch4Quantity = 120; % near max for BR
-ch4Quantity = 40;
-
-% obj = DCHydrateRidge();
-% obj = DCBlakeRidge();
-obj = DCKumanoBasin();
-
-
-[exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
-[exportTable.bulkDensityKg, exportTable.porosity] = obj.EstimateBulkDensity();
-exportTable.rockStrengthPa = obj.CalcRockStrength(exportTable);
+% ch4Quantity = 40;
+% % 
+% % % obj = DCHydrateRidge();
+% % % obj = DCBlakeRidge();
+% obj = DCKumanoBasin();
+% % 
+% [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
+% [exportTable.bulkDensityKg, exportTable.porosity] = obj.EstimateBulkDensity();
+% exportTable.rockStrengthPa = obj.CalcRockStrength(exportTable);
+% obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
 
 %%% Plot results
@@ -24,12 +26,15 @@ exportTable.rockStrengthPa = obj.CalcRockStrength(exportTable);
 % obj.PlotPSD('log');
 % obj.CalcPoreVolumeDistribution();
 
-obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
 %%% Utility calls
 % % Only run this static method when you need to update the way
 % % the MICP is saved in MATLAB
 % DCKumanoBasin.ExtractMICP();
+
+
+
+
 
 
 % %%% Seismic analysis for Blake Ridge

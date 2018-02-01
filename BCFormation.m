@@ -24,8 +24,7 @@ classdef BCFormation < handle
     end
     properties (Constant)
         waterDensity = 1024;        % kg H2O/m^3 H2O
-        hydrateDensity = 900;       % kg hydrate/m^3 hydrate
-        poissonsRatio = 0.4;    
+        hydrateDensity = 928.5;     % kg hydrate/m^3 hydrate
         mwCH4 = 16.043 / 1000;      % kg CH4/mol CH4
         mwH2O = 18.01528 / 1000;    % kg H2O/mol H2O
     end

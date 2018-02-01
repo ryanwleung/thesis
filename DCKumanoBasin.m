@@ -6,12 +6,12 @@ classdef DCKumanoBasin < BCFormation
         MICPInterp % Cell array of tables of MICP that will actually be used
     end
     properties (Constant)
+        poissonsRatio = 0.4;
+        
         satAxis = [0 1 400 430];
         solAxis = [0.155 0.17 400 430];
         pcgwAxis = [0 2.5 400 430];
         ratioAxis = [0 1.2 400 430];
-        
-
     end
     methods
         %%% Constructor

@@ -4,6 +4,8 @@ classdef DCTheoreticalFormation < BCFormation
         colorOrder % array containing order index of loaded MICP tables
         depthOrder % array containing depths in the order of loaded MICP tables
         MICPInterp % Cell array of tables of MICP that will actually be used
+        
+        poissonsRatio
     end
     properties (Constant)
         satAxis = [0 1 400 430];
@@ -15,29 +17,39 @@ classdef DCTheoreticalFormation < BCFormation
     end
     methods
         %%% Constructor
-        function [ obj ] = DCTheoreticalFormation()
+        function [ obj ] = DCTheoreticalFormation(seafloorDepth_, poissonsRatio_)
             obj@BCFormation()
             
-            obj.seafloorDepth = 1936;        % m
-            obj.minDepth = 1;               % mbsf
-            obj.maxDepth = 500;             % mbsf
-            obj.depthIncrement = 0.5;       % m
+            obj.poissonsRatio = poissonsRatio_;
+            
+            
+            obj.seafloorDepth = seafloorDepth_; % m
+            obj.minDepth = 1;                   % mbsf
+            obj.maxDepth = 750;                 % mbsf
+            obj.depthIncrement = 0.5;           % m
             obj.depthArray = (obj.minDepth : obj.depthIncrement : obj.maxDepth)';
             
-            obj.temperatureGradient = 40;   % C deg/km (C0002 - Daigle and Dugan 2014)            
-            obj.seafloorTemperature = 2.2;    % C deg
-            obj.salinityWtPercent = 3.5;    % weight percent (wt%) of NaCl in seawater
+            obj.temperatureGradient = 40;       % C deg/km (C0002 - Daigle and Dugan 2014)            
+            obj.seafloorTemperature = 3.167;    % C deg
+            obj.salinityWtPercent = 3.5;        % weight percent (wt%) of NaCl in seawater
             
-            obj.phi0 = 0.6;
-            obj.phiInf = 0.25;
-            obj.B = 1000; % m
+            obj.phi0 = 0.66;
+            obj.phiInf = 0.1333;
+            obj.B = 1333; % m
+            
+            
+            
+            
             
             % Loads MICP from a .mat file into the object property MICP
-            [obj.MICP, obj.colorOrder, obj.depthOrder] = DCKumanoBasin.LoadMICP();
-            obj.MICPInterp = DCKumanoBasin.SelectMICPForInterp(obj.MICP, obj.depthOrder);
+            obj.MICP = DCTheoreticalFormation.LoadMICP();
             
-            % Testing plots only on selected MICP data for interpolation
-            obj.MICP = obj.MICPInterp;
+            
+            
+            obj.MICPInterp = DCTheoreticalFormation.SelectMICPForInterp(obj.MICP);
+%             
+%             % Testing plots only on selected MICP data for interpolation
+%             obj.MICP = obj.MICPInterp;
         end
         
         %%% Petrophysical calculations
@@ -148,28 +160,35 @@ classdef DCTheoreticalFormation < BCFormation
         
         
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
-            % accepts nonwettingSaturation as an array
-            nInterpSets = numel(obj.MICPInterp);
-            nSnw = numel(nonwettingSaturation);
             
-            pcgwSets = zeros(nSnw, nInterpSets);
+            pcgwInterp = interp1(obj.MICPInterp.SNW, obj.MICPInterp.PcGW, nonwettingSaturation);
             
             
-            for iInterpSets = 1:nInterpSets
-                tempTable = obj.MICPInterp{iInterpSets};
-                pcgwSets(:, iInterpSets) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
-            end
-            pcgwInterp = mean(pcgwSets, 2);
+%             % accepts nonwettingSaturation as an array
+%             nInterpSets = numel(obj.MICPInterp);
+%             nSnw = numel(nonwettingSaturation);
+%             
+%             pcgwSets = zeros(nSnw, nInterpSets);
+%             
+%             
+%             for iInterpSets = 1:nInterpSets
+%                 tempTable = obj.MICPInterp{iInterpSets};
+%                 pcgwSets(:, iInterpSets) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
+%             end
+%             pcgwInterp = mean(pcgwSets, 2);
         end
         function [ pchwInterp ] = CalcPchw( obj , nonwettingSaturation )
-            % does not accept nonwettingSaturation as an array
-            n = numel(obj.MICPInterp);
-            pcgwArray = zeros(n, 1);
-            for i = 1:n
-                tempTable = obj.MICPInterp{i};
-                pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcHW, nonwettingSaturation);
-            end
-            pchwInterp = mean(pcgwArray);
+            
+            pchwInterp = interp1(obj.MICPInterp.SNW, obj.MICPInterp.PcHW, nonwettingSaturation);
+            
+%             % does not accept nonwettingSaturation as an array
+%             n = numel(obj.MICPInterp);
+%             pcgwArray = zeros(n, 1);
+%             for i = 1:n
+%                 tempTable = obj.MICPInterp{i};
+%                 pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcHW, nonwettingSaturation);
+%             end
+%             pchwInterp = mean(pcgwArray);
         end
         
         function [ averagePcgwPlot , snwPlot ] = GetInterpMICPForPlotting( obj )
@@ -224,6 +243,42 @@ classdef DCTheoreticalFormation < BCFormation
         end
     end
     methods (Static)
+        %%% Main function for running 
+        function RunMethaneQuantityFractureRoutine()
+            n = 1;
+            seafloorDepthArray = linspace(100, 100, n);
+            errorLog = {};
+            iError = 1;
+            
+            for i = 1:n
+                obj = DCTheoreticalFormation(seafloorDepthArray(i), 0.4);
+                ch4Quantity = 1;
+                while true
+                    try
+                        [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
+                    catch exception
+                        errorLog{iError} = 1;
+                        
+                        % condition where ch4 is too small
+                        ch4Quantity = ch4Quantity + 1;
+                        continue
+                        
+                        
+                        % condition where ch4 is too large without hitting
+                        % fracture gradient
+                        
+                        % break
+                    end
+                    
+                    
+                    
+                    
+                    ch4Quantity = ch4Quantity + 1;
+                end
+            end
+        end
+        
+        
         function ExtractMICP()
             % Used to assign each MICP report with the core's drilled depth
             depth =  {  'TABLE_S1_KZK867.XLSX',	925.5;
@@ -307,34 +362,35 @@ classdef DCTheoreticalFormation < BCFormation
             cd(oldDir)
             save('MICP_KB.mat', 'MICPCellArray')
         end
-        function [ result , colorOrder , depthOrder ] = LoadMICP()
+        function [ result ] = LoadMICP()
             MICPCellArray = [];
             % Loads MICPCellArray
             load('MICP_KB.mat');
-            
-            n = numel(MICPCellArray);
-            depthOrder = zeros(n, 1);
-            for i = 1:n
-                depthOrder(i) = MICPCellArray{i}.Properties.UserData;
-            end
-            [~, colorOrder] = sort(depthOrder);
-            result = MICPCellArray;
+%             
+%             n = numel(MICPCellArray);
+%             depthOrder = zeros(n, 1);
+%             for i = 1:n
+%                 depthOrder(i) = MICPCellArray{i}.Properties.UserData;
+%             end
+%             [~, colorOrder] = sort(depthOrder);
+%             result = MICPCellArray{8}.Properties.UserData;
+            result = MICPCellArray{8};
         end
-        function [ MICPInterp ] = SelectMICPForInterp( MICP , depthOrder )
+        function [ MICPInterp ] = SelectMICPForInterp( MICP )
 %             logicalToKeep = depthOrder > 340 & depthOrder < 500;
-            logicalToKeep = depthOrder > 400 & depthOrder < 420;
+%             logicalToKeep = depthOrder > 400 & depthOrder < 420;
             MICPInterp = MICP;
             
-            MICPInterp(~logicalToKeep) = [];
-            n = numel(MICPInterp);
+%             MICPInterp(~logicalToKeep) = [];
+%             n = numel(MICPInterp);
             
-            for i = 1:n
-                temp = MICPInterp{i};
-                firstNonZeroIndex = find(temp.SNW > 0, 1);
-                temp(1:firstNonZeroIndex - 2, :) = [];
-                
-                MICPInterp{i} = temp;
-            end
+%             for i = 1:n
+            temp = MICPInterp;
+            firstNonZeroIndex = find(temp.SNW > 0, 1);
+            temp(1:firstNonZeroIndex - 2, :) = [];
+
+            MICPInterp = temp;
+%             end
             
         end
 

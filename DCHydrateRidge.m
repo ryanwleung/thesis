@@ -3,6 +3,8 @@ classdef DCHydrateRidge < BCFormation
         MICP1
     end
     properties (Constant)
+        poissonsRatio = 0.4;
+        
         satAxis = [0 1 100 160];
         solAxis = [0.1 0.125 100 160];
         pcgwAxis = [0 2 100 160];

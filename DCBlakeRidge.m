@@ -10,6 +10,8 @@ classdef DCBlakeRidge < BCFormation
         MICP2
     end
     properties (Constant)
+        poissonsRatio = 0.4;
+        
         satAxis = [0 1 460 510];
         solAxis = [0.18 0.19 460 510];
         pcgwAxis = [0 2 460 510];
