@@ -6,14 +6,14 @@ classdef DCTheoreticalFormation < BCFormation
         MICPInterp % Cell array of tables of MICP that will actually be used
         
         poissonsRatio
+        solAxis
     end
     properties (Constant)
         satAxis = [0 1 400 430];
-        solAxis = [0.155 0.17 400 430];
+%         solAxis = [0.155 0.17 400 430];
         pcgwAxis = [0 2.5 400 430];
         ratioAxis = [0 1.2 400 430];
         
-
     end
     methods
         %%% Constructor
@@ -77,6 +77,23 @@ classdef DCTheoreticalFormation < BCFormation
         
         
         %%% Plotting subclass functions
+        function PlotSolLooped( obj , solFigure , exportTable , transitionZoneProperties , doPlotBulkAndMinSol )
+            
+            expandAxisLimitFactor = 0.1;
+            iTop = transitionZoneProperties.Top3PIndex;
+            iBottom = transitionZoneProperties.Bottom3PIndex;
+            
+            minSolubility = exportTable.OverallSol(iTop) * (1 - expandAxisLimitFactor);
+            maxSolubility = exportTable.OverallSol(iBottom) * (1 + expandAxisLimitFactor);
+            
+            minDepth = exportTable.Depth(iTop) * (1 - expandAxisLimitFactor);
+            maxDepth = exportTable.Depth(iBottom) * (1 + expandAxisLimitFactor);
+            
+            
+            
+            obj.solAxis = [minSolubility, maxSolubility, minDepth, maxDepth];
+            obj.PlotSol( solFigure , exportTable , doPlotBulkAndMinSol );
+        end
         function PlotMICP( obj )
             figure
             n = numel(obj.MICP);            
@@ -201,26 +218,26 @@ classdef DCTheoreticalFormation < BCFormation
             end
         end
         
-        function [ solFigure ] = PlotSol( obj , solFigure , exportTable )
-            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
+        function [ solFigure ] = PlotSol( obj , solFigure , exportTable , doPlotBulkAndMinSol )
+            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable , doPlotBulkAndMinSol );
             
             figure(solFigure)
             axis(obj.solAxis)
-            title('Kumano Basin - Solubility Path')
+            title('Theoretical Formation - Solubility Path')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
             sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
             figure(sat2PFigure)
             axis(obj.satAxis)
-            title('Kumano Basin - 2 Phase Case')
+            title('Theoretical Formation - 2 Phase Case')
         end
         function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
             sat3PFigure = obj.PlotSat3P@BCFormation( sat3PFigure , exportTable , lineStyle );
             
             figure(sat3PFigure)
             axis(obj.satAxis)
-            title('Kumano Basin - 3 Phase Case')
+            title('Theoretical Formation - 3 Phase Case')
         end        
         function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
             pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
@@ -228,7 +245,7 @@ classdef DCTheoreticalFormation < BCFormation
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Kumano Basin Gas Overpressure')
+            title('Theoretical Formation Gas Overpressure')
             % legend('')
         end
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
@@ -236,7 +253,7 @@ classdef DCTheoreticalFormation < BCFormation
             
             figure(ratioFigure)
             
-            title('Hydrate Ridge Overpressure Ratio')
+            title('Theoretical Formation Overpressure Ratio')
             axis(obj.ratioAxis)            
             % legend('')
             
@@ -246,54 +263,111 @@ classdef DCTheoreticalFormation < BCFormation
         %%% Main function for running 
         function RunMethaneQuantityFractureRoutine()
             n = 1;
-            seafloorDepthArray = linspace(100, 100, n);
+            seafloorDepthArray = linspace(1000, 1000, n);
             errorLog = cell(1, 2);
             iError = 1;
+            firstTimePlottingSol = true;
+            
+            
             
             for i = 1:n
-                obj = DCTheoreticalFormation(seafloorDepthArray(i), 0.4);
+                seafloorDepth = seafloorDepthArray(i);
+                obj = DCTheoreticalFormation(seafloorDepth, 0.4);
                 ch4Quantity = 1;
+%                 ch4Quantity = 65;
+                
+                solFigure = figure();
+                
                 while true
                     try
                         [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
+                        
+                        
+                        if firstTimePlottingSol
+                            firstTimePlottingSol = false;
+                            doPlotBulkAndMinSol = true;
+                        else
+                            doPlotBulkAndMinSol = false;
+                        end
+                        obj.PlotSolLooped(solFigure, exportTable, transitionZoneProperties, doPlotBulkAndMinSol);
+                        pause(1e-3)
+                        
+                        
+                        DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', seafloorDepth, ch4Quantity, 'Completed successfully');
+                        
                     catch exception
                         
+                        DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', seafloorDepth, ch4Quantity, 'Exited on error');
+                        [errorLog, iError, executeBreak] = DCTheoreticalFormation.RunErrorRoutine(exception, ch4Quantity, errorLog, iError);
                         
-                        [~, endIndex] = regexpi(exception.message, 'calculating ')
-                        
-                        
-                        if contains(lower(exception.message), 'maxsollg')
-                            errorLog{iError, 1} = 'Gas calculation error';
-                        elseif contains(lower(exception.message), 'maxsollh')
-                            errorLog{iError, 1} = 'Hydrate calculation error';
-                        elseif contains(lower(exception.message), '3p')
-                            errorLog{iError, 1} = '3P calculation error';
-                        else
-                            errorLog{iError, 1} = 'Unknown calculation error';
+                        if executeBreak
+                            break
                         end
-                        errorLog{iError, 2} = ch4Quantity;
-                        iError = iError + 1;
                         
-                        % condition where ch4 is too small
-                        startIndex = regexp(exception.message, '[01]\.');
-                        errorNumber = str2num(exception.message(startIndex:end));
-                        ch4Quantity = ch4Quantity + 1;
-                        continue
-                        
-                        
-                        % condition where ch4 is too large without hitting
-                        % fracture gradient
-                        
-                        % break
                     end
-                    
-                    
-                    
                     
                     ch4Quantity = ch4Quantity + 1;
                 end
             end
         end
+        
+        
+        
+        
+        
+        
+        
+        function PrintRunStatus( functionString , seafloorDepth , methaneQuantity , message )
+                       
+            disp('--------------------------------------------------------')
+            disp(['Running: ', functionString])
+            disp(['Current seafloor depth (m): ', num2str(seafloorDepth)])
+            disp(['Current methane quantity (kg/m^3): ', num2str(methaneQuantity)]) 
+            disp(message)
+%             nDelta = numel(deltaCellArray);
+%             for iDelta = 1:nDelta
+%                 disp(['Delta ', num2str(iDelta), ': ', num2str(deltaCellArray{iDelta})])
+%             end
+        end
+        function [ errorLog , iError , executeBreak ] = RunErrorRoutine( exception , ch4Quantity , errorLog , iError )
+            executeBreak = false;
+            
+            isSg = contains(lower(exception.message), 'maxsollg');
+            isSh = contains(lower(exception.message), 'maxsollh');
+            is3P = contains(lower(exception.message), '3p');
+            
+            startIndex = regexp(exception.message, '[0-9]\.');
+            if isempty(startIndex)
+                errorNumber = -1;
+                string2 = string();
+            else
+                errorNumber = str2double(exception.message(startIndex:end));
+                string2 = num2str(errorNumber);
+            end
+            
+            if isSg
+                string1 = 'Sg is: ';
+            elseif isSh
+                string1 = 'Sh is: ';
+            elseif is3P
+                string1 = '3P calculation error';
+            else
+                string1 = 'Unknown calculation error';
+            end
+            
+            errorLog{iError, 2} = ch4Quantity;
+            errorLog{iError, 1} = [string1, string2];
+            
+            if errorNumber > 1
+                disp('--------------------------------------------------------')
+                disp('Found max methane quantity (2P saturation > 1), breaking search')
+                executeBreak = true;
+            end
+            iError = iError + 1;
+        end
+        
+        
+        
         
         
         function ExtractMICP()
@@ -410,7 +484,7 @@ classdef DCTheoreticalFormation < BCFormation
 %             end
             
         end
-
+        
     end
     % UNUSED CLASS METHODS
     %{

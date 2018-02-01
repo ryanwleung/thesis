@@ -146,8 +146,8 @@ classdef DCHydrateRidge < BCFormation
         
         
         %%% Plotting subclass functions
-        function [ solFigure ] = PlotSol( obj , solFigure , exportTable )
-            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
+        function [ solFigure ] = PlotSol( obj , solFigure , exportTable , doPlotBulkAndMinSol )
+            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable , doPlotBulkAndMinSol );
             
             figure(solFigure)
             axis(obj.solAxis)
