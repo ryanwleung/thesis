@@ -3,11 +3,12 @@ close all
 clear variables
 
 
+initialMethaneQuantity = 7;
 
-n = 2;
-seafloorDepthArray = linspace(1500, 1600, n);
+seafloorDepthArray = (500:100:700)';
 
-[minQuantityToFracture3PList, minQuantityToFracture2PList, errorList] = DCTheoreticalFormation.RunMethaneQuantityFractureRoutine(seafloorDepthArray);
+[minQuantityToFracture3PList, minQuantityToFracture2PList, errorList] = ...
+    DCTheoreticalFormation.RunMethaneQuantityFractureRoutine(seafloorDepthArray, initialMethaneQuantity);
 
 % ch4Quantity = 115; % near max for KB
 % ch4Quantity = 55; % near max for HR

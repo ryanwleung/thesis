@@ -244,30 +244,30 @@ classdef DCTheoreticalFormation < BCFormation
     end
     methods (Static)
         %%% Main function for running 
-        function [ minQuantityToFracture3PList , minQuantityToFracture2PList , errorList ] = RunMethaneQuantityFractureRoutine( seafloorDepthArray )
+        function [ minQuantityToFracture3PList , minQuantityToFracture2PList , errorList ] = RunMethaneQuantityFractureRoutine( seafloorDepthArray , initialMethaneQuantity )
             n = numel(seafloorDepthArray);
             errorList = cell(n, 1);
             minQuantityToFracture3PList = zeros(n, 1);
             minQuantityToFracture2PList = zeros(n, 1);
-            iError = 1;
             
             
             
             for i = 1:n
-                
+                iError = 1;
                 errorLog = cell(1, 2);
                 errorLog{1} = 'SolubilitySaturationRoutine ran and exited without errors';
                 found3PFracture = false;
                 found2PFracture = false;
                 firstTimePlottingSol = true;
                 
+                transitionZoneProperties.Top3PIndex = [];
+                transitionZoneProperties.Bottom3PIndex = [];
                 
                 seafloorDepth = seafloorDepthArray(i);
                 obj = DCTheoreticalFormation(seafloorDepth, 0.4);
                 
                 if i == 1
-%                     ch4Quantity = 40;
-                    ch4Quantity = 50;
+                    ch4Quantity = initialMethaneQuantity;
                 else
                     ch4Quantity = minQuantityToFracture2PList(i - 1);
                 end
@@ -278,6 +278,10 @@ classdef DCTheoreticalFormation < BCFormation
                     try
                         [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
                         exportTable = obj.RunRockAndRatioRoutine(exportTable);
+                        
+                        if isempty(transitionZoneProperties.Bottom3PIndex)
+                            error('Cannot find bottom of three-phase zone')
+                        end
                         
                         [hasFractured3PLogical, hasFractured2PLogical] = obj.CheckFractureStatus(exportTable, transitionZoneProperties);
                         
@@ -302,8 +306,15 @@ classdef DCTheoreticalFormation < BCFormation
                         pause(1e-3)
                         
                         
-                        DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', ...
-                            seafloorDepth, ch4Quantity, found3PFracture, found2PFracture, 'Completed successfully');
+                        
+                        
+                        input.seafloorDepth = seafloorDepth;
+                        input.ch4Quantity = ch4Quantity;
+                        input.found3PFracture = found3PFracture;
+                        input.found2PFracture = found2PFracture;
+                        input.iTop3P = transitionZoneProperties.Top3PIndex;
+                        input.iBottom3P = transitionZoneProperties.Bottom3PIndex;
+                        DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', 'Completed successfully', input);
                         
                         
                         
@@ -314,8 +325,13 @@ classdef DCTheoreticalFormation < BCFormation
                         end
                     catch exception
                         
-                        DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', ...
-                            seafloorDepth, ch4Quantity, found3PFracture, found2PFracture, 'Exited on error');
+                        input.seafloorDepth = seafloorDepth;
+                        input.ch4Quantity = ch4Quantity;
+                        input.found3PFracture = found3PFracture;
+                        input.found2PFracture = found2PFracture;
+                        input.iTop3P = transitionZoneProperties.Top3PIndex;
+                        input.iBottom3P = transitionZoneProperties.Bottom3PIndex;
+                        DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', 'Exited on error', input);
                         
                         [errorLog, iError, executeBreak] = DCTheoreticalFormation.RunErrorRoutine(exception, ch4Quantity, errorLog, iError);
                         
@@ -339,14 +355,26 @@ classdef DCTheoreticalFormation < BCFormation
         
         
         
-        function PrintRunStatus( functionString , seafloorDepth , methaneQuantity , found3PFracture , found2PFracture , message )
+        function PrintRunStatus( functionString , message , input )
+            
             disp('--------------------------------------------------------')
             disp(['Running: ', functionString])
-            disp(['Current seafloor depth (m): ', num2str(seafloorDepth)])
-            disp(['Current methane quantity (kg/m^3): ', num2str(methaneQuantity)])
-            disp(['3P fracture found: ', char(string(found3PFracture))])
-            disp(['2P fracture found: ', char(string(found2PFracture))])
+            disp(['Current seafloor depth (m): ', num2str(input.seafloorDepth)])
+            disp(['Current methane quantity (kg/m^3): ', num2str(input.ch4Quantity)])
+            disp(['3P fracture found: ', char(string(input.found3PFracture))])
+            disp(['2P fracture found: ', char(string(input.found2PFracture))])
+            if isempty(input.iTop3P)
+                disp('Index of 3P zone top: not found')
+            else
+                disp(['Index of 3P zone top: ', num2str(input.iTop3P)])
+            end
+            if isempty(input.iBottom3P)
+                disp('Index of 3P zone bottom: not found')
+            else
+                disp(['Index of 3P zone top: ', num2str(input.iBottom3P)])
+            end
             disp(message)
+            
         end
         function [ errorLog , iError , executeBreak ] = RunErrorRoutine( exception , ch4Quantity , errorLog , iError )
             executeBreak = false;
