@@ -244,12 +244,8 @@ classdef DCTheoreticalFormation < BCFormation
     end
     methods (Static)
         %%% Main function for running 
-        function [ minQuantityToFracture3PList , minQuantityToFracture2PList , errorList ] = RunMethaneQuantityFractureRoutine()
-            n = 2;
-            
-%             seafloorDepthArray = linspace(100, 100, n);
-            seafloorDepthArray = linspace(1000, 1100, n);
-            
+        function [ minQuantityToFracture3PList , minQuantityToFracture2PList , errorList ] = RunMethaneQuantityFractureRoutine( seafloorDepthArray )
+            n = numel(seafloorDepthArray);
             errorList = cell(n, 1);
             minQuantityToFracture3PList = zeros(n, 1);
             minQuantityToFracture2PList = zeros(n, 1);
@@ -270,12 +266,13 @@ classdef DCTheoreticalFormation < BCFormation
                 obj = DCTheoreticalFormation(seafloorDepth, 0.4);
                 
                 if i == 1
-                    ch4Quantity = 40;
+%                     ch4Quantity = 40;
+                    ch4Quantity = 50;
                 else
                     ch4Quantity = minQuantityToFracture2PList(i - 1);
                 end
                 
-%                 solFigure = figure();
+                solFigure = figure();
                 
                 while true
                     try
@@ -295,14 +292,14 @@ classdef DCTheoreticalFormation < BCFormation
                         
                         
                         
-%                         if firstTimePlottingSol
-%                             firstTimePlottingSol = false;
-%                             doPlotBulkAndMinSol = true;
-%                         else
-%                             doPlotBulkAndMinSol = false;
-%                         end
-%                         obj.PlotSolLooped(solFigure, exportTable, transitionZoneProperties, doPlotBulkAndMinSol);
-%                         pause(1e-3)
+                        if firstTimePlottingSol
+                            firstTimePlottingSol = false;
+                            doPlotBulkAndMinSol = true;
+                        else
+                            doPlotBulkAndMinSol = false;
+                        end
+                        obj.PlotSolLooped(solFigure, exportTable, transitionZoneProperties, doPlotBulkAndMinSol);
+                        pause(1e-3)
                         
                         
                         DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', ...

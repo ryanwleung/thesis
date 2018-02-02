@@ -1086,23 +1086,8 @@ classdef BCSolubilityUtil < handle
         end
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
     end
     
-        
-        
-        
-        
         
 end
 

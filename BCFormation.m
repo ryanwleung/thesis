@@ -224,7 +224,7 @@ classdef BCFormation < handle
                 
                 doWhileFlag = true;
                 iteration = 0;
-                iterationFactor = 0.75;
+                iterationFactor = 1;
                 deltaCellArray = cell(1, 1);
                 while doWhileFlag || abs(deltaSg) > 1e-7 
                     doWhileFlag = false;
@@ -234,8 +234,8 @@ classdef BCFormation < handle
                     [solLGIterated, sgIterated] = obj.CalcMaxSolLGIteration(sg, gasBulkSolubility(i), ch4Quantity, pressure(i), gasDensity(i));
                     deltaSg = sg - sgIterated;
                     
-                    
-                    sg = sg - iterationFactor * (sg - sgIterated);
+                    sg = sgIterated;
+%                     sg = sg - iterationFactor * (sg - sgIterated);
                     
                     if isnan(sg)
                         error('NaN found when calculating MaxSolLG, sg2P = %.5f', gasSaturationBulk2P(i))
@@ -277,7 +277,7 @@ classdef BCFormation < handle
                 
                 doWhileFlag = true;
                 iteration = 0;
-                iterationFactor = 0.75;
+                iterationFactor = 1;
                 deltaCellArray = cell(1, 1);
                 while doWhileFlag || abs( deltaSh ) > 1e-7
                     doWhileFlag = false;
@@ -286,7 +286,8 @@ classdef BCFormation < handle
                     [solLHIterated, shIterated] = obj.CalcMaxSolLHIteration(sh, hydrateBulkSolubility(i), ch4Quantity, temperature(i));
                     deltaSh = sh - shIterated;
                     
-                    sh = sh - iterationFactor * (sh - shIterated);
+                    sh = shIterated;
+%                     sh = sh - iterationFactor * (sh - shIterated);
                     
                     if isnan(sh)
                         error('NaN found when calculating MaxSolLH, sh2P = %.5f', hydrateSaturationBulk2P(i))
@@ -339,7 +340,7 @@ classdef BCFormation < handle
             solubility = hydrateMaxSolubilityAtTop;
             
 %             figure
-%             hold on            
+%             hold on
             
             i = 1;
             while i <= n
@@ -872,7 +873,59 @@ classdef BCFormation < handle
     end
     % UNUSED CODE
     %{
-function [ sg3P , sh3P , adjustedSol ] = Calc3PReverse( obj , ch4Quantity , indexArrayOf3PZone , ...
+        function [ maxSolLG , sg2P ] = CalcMaxSolLG( obj , ch4Quantity , pressure , gasDensity , gasBulkSolubility )
+            n = numel(pressure);
+            tempSg2P = zeros(n, 1);
+            tempSolLG2P = zeros(n, 1);
+            
+            eps = 1e-3;
+            
+            gasSaturationBulk2P = obj.CalcSg2P( ch4Quantity , gasBulkSolubility , gasDensity );
+            
+            for i = 1:n
+                
+                sg = gasSaturationBulk2P(i);
+                
+                doWhileFlag = true;
+                iteration = 0;
+                iterationFactor = 1;
+                deltaCellArray = cell(1, 1);
+                while doWhileFlag || abs(deltaSg) > 1e-7 
+                    doWhileFlag = false;
+                    iteration = iteration + 1;
+                    
+                    %%% f(x)
+                    [solLGIterated, sgIterated] = obj.CalcMaxSolLGIteration(sg, gasBulkSolubility(i), ch4Quantity, pressure(i), gasDensity(i));
+                    deltaSg = sg - sgIterated;
+                    
+                    
+                    %%% f'(x)
+%                     [solLGPerturbed, sgPerturbed] = obj.CalcMaxSolLGIteration(sg + eps, gasBulkSolubility(i), ch4Quantity, pressure(i), gasDensity(i));
+%                     deltaSgPerturbed = sg - sgPerturbed;
+%                     slope = (deltaSgPerturbed - deltaSg)/eps;
+%                     
+%                     % Calculating next iteration sg
+%                     sg = sg - iterationFactor * deltaSg/slope;
+                    sg = sgIterated;
+                    
+                    if isnan(sg)
+                        error('NaN found when calculating MaxSolLG, sg2P = %.5f', gasSaturationBulk2P(i))
+                    end
+                    
+                    
+                    deltaCellArray{1} = deltaSg;
+                end
+                
+                %%% Print run status
+                BCFormation.PrintIterationData( 'CalcMaxSolLG' , i , n , iteration , iterationFactor , deltaCellArray )
+                
+                tempSg2P(i) = sg;
+                tempSolLG2P(i) = solLGIterated;
+            end
+            sg2P = tempSg2P;
+            maxSolLG = tempSolLG2P;
+        end
+        function [ sg3P , sh3P , adjustedSol ] = Calc3PReverse( obj , ch4Quantity , indexArrayOf3PZone , ...
                                                         pressure , temperature , gasDensity , ...
                                                         gasBulkSolubility , hydrateBulkSolubility , hydrateMaxSolubilityAtTop )
             n = numel(indexArrayOf3PZone);
