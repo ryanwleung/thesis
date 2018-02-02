@@ -2,20 +2,20 @@ clc
 close all
 clear variables
 
-DCTheoreticalFormation.RunMethaneQuantityFractureRoutine();
+[minQuantityToFracture3PList, minQuantityToFracture2PList, errorList] = DCTheoreticalFormation.RunMethaneQuantityFractureRoutine();
 
 % ch4Quantity = 115; % near max for KB
 % ch4Quantity = 55; % near max for HR
 % ch4Quantity = 120; % near max for BR
 % ch4Quantity = 40;
-% % 
-% % % obj = DCHydrateRidge();
-% % % obj = DCBlakeRidge();
+
+% obj = DCHydrateRidge();
+% obj = DCBlakeRidge();
 % obj = DCKumanoBasin();
-% % 
+
 % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
-% [exportTable.bulkDensityKg, exportTable.porosity] = obj.EstimateBulkDensity();
-% exportTable.rockStrengthPa = obj.CalcRockStrength(exportTable);
+% exportTable = obj.RunRockAndRatioRoutine(exportTable);
+
 % obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
 

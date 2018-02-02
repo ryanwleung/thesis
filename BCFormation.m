@@ -139,6 +139,19 @@ classdef BCFormation < handle
             transitionZoneProperties.Thickness = [];
             transitionZoneProperties.Bulk3PSolEQLIndex = index3PBulkSolEQL;
         end
+        function [ exportTable ] = RunRockAndRatioRoutine( obj , exportTable )
+            [exportTable.bulkDensityKg, exportTable.porosity] = obj.EstimateBulkDensity();
+            exportTable.rockStrengthPa = obj.CalcRockStrength(exportTable);
+            
+            
+            rockStrengthPa = exportTable.rockStrengthPa;
+            pcgw2PPa = exportTable.Pcgw2PPa;
+            pcgw3PPa = exportTable.Pcgw3PPa;
+            
+            exportTable.ratio2P = pcgw2PPa ./ rockStrengthPa;
+            exportTable.ratio3P = pcgw3PPa ./ rockStrengthPa;            
+        end        
+        
         
         %%% General calculations
         function [ pressure ] = CalcPressure( obj , depth )
@@ -174,7 +187,7 @@ classdef BCFormation < handle
             
             
         end        
-        
+
         %%% 2P calculations
         % Saturations
         function [ gasSaturation ] = CalcSg2P( obj , ch4Quantity , solubilityLG , gasDensity )
@@ -389,10 +402,10 @@ classdef BCFormation < handle
                     
                     if solubility > solubilityPhase2(i3P)
                         if reached2ndPhase
-                            disp('2nd phase of 3P calc activated twice')
+                            disp('------------------------ 2nd phase of 3P calc activated twice ------------------------')
                             error('2nd phase of 3P calc activated twice')
                         end
-                        reached2ndPhase = true
+                        reached2ndPhase = true;
                         bottom3PIndex = i3P;
                         continue
                     end

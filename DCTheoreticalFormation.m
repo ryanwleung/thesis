@@ -53,6 +53,14 @@ classdef DCTheoreticalFormation < BCFormation
         end
         
         %%% Petrophysical calculations
+        function [ hasFractured3PLogical , hasFractured2PLogical ] = CheckFractureStatus( ~ , exportTable , transitionZoneProperties )
+            iTopGas3P = find(exportTable.GasSat3P > 0, 1);
+            iTopGas2P = transitionZoneProperties.Bulk3PSolEQLIndex;
+            
+            hasFractured3PLogical = find(exportTable.ratio3P(iTopGas3P:end) >= 1);
+            hasFractured2PLogical = find(exportTable.ratio2P(iTopGas2P:end) >= 1);
+            
+        end
         function [ slope ] = CalcSlopeOfCumPSD( obj, stringType )
             % slope is in volume fraction per radius meter
             
@@ -177,35 +185,10 @@ classdef DCTheoreticalFormation < BCFormation
         
         
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
-            
             pcgwInterp = interp1(obj.MICPInterp.SNW, obj.MICPInterp.PcGW, nonwettingSaturation);
-            
-            
-%             % accepts nonwettingSaturation as an array
-%             nInterpSets = numel(obj.MICPInterp);
-%             nSnw = numel(nonwettingSaturation);
-%             
-%             pcgwSets = zeros(nSnw, nInterpSets);
-%             
-%             
-%             for iInterpSets = 1:nInterpSets
-%                 tempTable = obj.MICPInterp{iInterpSets};
-%                 pcgwSets(:, iInterpSets) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
-%             end
-%             pcgwInterp = mean(pcgwSets, 2);
         end
         function [ pchwInterp ] = CalcPchw( obj , nonwettingSaturation )
-            
             pchwInterp = interp1(obj.MICPInterp.SNW, obj.MICPInterp.PcHW, nonwettingSaturation);
-            
-%             % does not accept nonwettingSaturation as an array
-%             n = numel(obj.MICPInterp);
-%             pcgwArray = zeros(n, 1);
-%             for i = 1:n
-%                 tempTable = obj.MICPInterp{i};
-%                 pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcHW, nonwettingSaturation);
-%             end
-%             pchwInterp = mean(pcgwArray);
         end
         
         function [ averagePcgwPlot , snwPlot ] = GetInterpMICPForPlotting( obj )
@@ -261,43 +244,82 @@ classdef DCTheoreticalFormation < BCFormation
     end
     methods (Static)
         %%% Main function for running 
-        function RunMethaneQuantityFractureRoutine()
-            n = 1;
-            seafloorDepthArray = linspace(1000, 1000, n);
-            errorLog = cell(1, 2);
+        function [ minQuantityToFracture3PList , minQuantityToFracture2PList , errorList ] = RunMethaneQuantityFractureRoutine()
+            n = 2;
+            
+%             seafloorDepthArray = linspace(100, 100, n);
+            seafloorDepthArray = linspace(1000, 1100, n);
+            
+            errorList = cell(n, 1);
+            minQuantityToFracture3PList = zeros(n, 1);
+            minQuantityToFracture2PList = zeros(n, 1);
             iError = 1;
-            firstTimePlottingSol = true;
             
             
             
             for i = 1:n
+                
+                errorLog = cell(1, 2);
+                errorLog{1} = 'SolubilitySaturationRoutine ran and exited without errors';
+                found3PFracture = false;
+                found2PFracture = false;
+                firstTimePlottingSol = true;
+                
+                
                 seafloorDepth = seafloorDepthArray(i);
                 obj = DCTheoreticalFormation(seafloorDepth, 0.4);
-                ch4Quantity = 1;
-%                 ch4Quantity = 65;
                 
-                solFigure = figure();
+                if i == 1
+                    ch4Quantity = 40;
+                else
+                    ch4Quantity = minQuantityToFracture2PList(i - 1);
+                end
+                
+%                 solFigure = figure();
                 
                 while true
                     try
                         [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
+                        exportTable = obj.RunRockAndRatioRoutine(exportTable);
                         
+                        [hasFractured3PLogical, hasFractured2PLogical] = obj.CheckFractureStatus(exportTable, transitionZoneProperties);
                         
-                        if firstTimePlottingSol
-                            firstTimePlottingSol = false;
-                            doPlotBulkAndMinSol = true;
-                        else
-                            doPlotBulkAndMinSol = false;
+                        if ~found3PFracture && any(hasFractured3PLogical)
+                            minQuantityToFracture3PList(i) = ch4Quantity;
+                            found3PFracture = true;
                         end
-                        obj.PlotSolLooped(solFigure, exportTable, transitionZoneProperties, doPlotBulkAndMinSol);
-                        pause(1e-3)
+                        if  ~found2PFracture && any(hasFractured2PLogical)
+                            minQuantityToFracture2PList(i) = ch4Quantity;
+                            found2PFracture = true;
+                        end
                         
                         
-                        DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', seafloorDepth, ch4Quantity, 'Completed successfully');
                         
+%                         if firstTimePlottingSol
+%                             firstTimePlottingSol = false;
+%                             doPlotBulkAndMinSol = true;
+%                         else
+%                             doPlotBulkAndMinSol = false;
+%                         end
+%                         obj.PlotSolLooped(solFigure, exportTable, transitionZoneProperties, doPlotBulkAndMinSol);
+%                         pause(1e-3)
+                        
+                        
+                        DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', ...
+                            seafloorDepth, ch4Quantity, found3PFracture, found2PFracture, 'Completed successfully');
+                        
+                        
+                        
+                        if found3PFracture && found2PFracture
+                            disp('--------------------------------------------------------')
+                            disp('Found both methane quantities to fracture 2P and 3P, breaking search')
+                            break
+                        end
                     catch exception
                         
-                        DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', seafloorDepth, ch4Quantity, 'Exited on error');
+                        DCTheoreticalFormation.PrintRunStatus('RunSolubilitySaturationRoutine', ...
+                            seafloorDepth, ch4Quantity, found3PFracture, found2PFracture, 'Exited on error');
+                        
                         [errorLog, iError, executeBreak] = DCTheoreticalFormation.RunErrorRoutine(exception, ch4Quantity, errorLog, iError);
                         
                         if executeBreak
@@ -308,6 +330,9 @@ classdef DCTheoreticalFormation < BCFormation
                     
                     ch4Quantity = ch4Quantity + 1;
                 end
+                
+                
+                errorList{i} = errorLog;
             end
         end
         
@@ -317,20 +342,18 @@ classdef DCTheoreticalFormation < BCFormation
         
         
         
-        function PrintRunStatus( functionString , seafloorDepth , methaneQuantity , message )
-                       
+        function PrintRunStatus( functionString , seafloorDepth , methaneQuantity , found3PFracture , found2PFracture , message )
             disp('--------------------------------------------------------')
             disp(['Running: ', functionString])
             disp(['Current seafloor depth (m): ', num2str(seafloorDepth)])
-            disp(['Current methane quantity (kg/m^3): ', num2str(methaneQuantity)]) 
+            disp(['Current methane quantity (kg/m^3): ', num2str(methaneQuantity)])
+            disp(['3P fracture found: ', char(string(found3PFracture))])
+            disp(['2P fracture found: ', char(string(found2PFracture))])
             disp(message)
-%             nDelta = numel(deltaCellArray);
-%             for iDelta = 1:nDelta
-%                 disp(['Delta ', num2str(iDelta), ': ', num2str(deltaCellArray{iDelta})])
-%             end
         end
         function [ errorLog , iError , executeBreak ] = RunErrorRoutine( exception , ch4Quantity , errorLog , iError )
             executeBreak = false;
+            replaceMessageWithException = false;
             
             isSg = contains(lower(exception.message), 'maxsollg');
             isSh = contains(lower(exception.message), 'maxsollh');
@@ -352,11 +375,15 @@ classdef DCTheoreticalFormation < BCFormation
             elseif is3P
                 string1 = '3P calculation error';
             else
-                string1 = 'Unknown calculation error';
+                string1 = '';
+                replaceMessageWithException = true;
             end
             
             errorLog{iError, 2} = ch4Quantity;
             errorLog{iError, 1} = [string1, string2];
+            if replaceMessageWithException
+                errorLog{iError, 1} = exception;
+            end
             
             if errorNumber > 1
                 disp('--------------------------------------------------------')
