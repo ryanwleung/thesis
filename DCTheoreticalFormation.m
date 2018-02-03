@@ -9,10 +9,9 @@ classdef DCTheoreticalFormation < BCFormation
         solAxis
     end
     properties (Constant)
-        satAxis = [0 1 400 430];
-%         solAxis = [0.155 0.17 400 430];
-        pcgwAxis = [0 2.5 400 430];
-        ratioAxis = [0 1.2 400 430];
+        satAxis = [0 1 0 750];
+        pcgwAxis = [0 2.5 0 750];
+        ratioAxis = [0 1.2 0 750];
         
     end
     methods
@@ -272,7 +271,7 @@ classdef DCTheoreticalFormation < BCFormation
                     ch4Quantity = minQuantityToFracture2PList(i - 1);
                 end
                 
-                solFigure = figure();
+%                 solFigure = figure();
                 
                 while true
                     try
@@ -296,14 +295,14 @@ classdef DCTheoreticalFormation < BCFormation
                         
                         
                         
-                        if firstTimePlottingSol
-                            firstTimePlottingSol = false;
-                            doPlotBulkAndMinSol = true;
-                        else
-                            doPlotBulkAndMinSol = false;
-                        end
-                        obj.PlotSolLooped(solFigure, exportTable, transitionZoneProperties, doPlotBulkAndMinSol);
-                        pause(1e-3)
+%                         if firstTimePlottingSol
+%                             firstTimePlottingSol = false;
+%                             doPlotBulkAndMinSol = true;
+%                         else
+%                             doPlotBulkAndMinSol = false;
+%                         end
+%                         obj.PlotSolLooped(solFigure, exportTable, transitionZoneProperties, doPlotBulkAndMinSol);
+%                         pause(1e-3)
                         
                         
                         

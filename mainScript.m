@@ -4,11 +4,29 @@ clear variables
 
 
 initialMethaneQuantity = 7;
+% initialMethaneQuantity = 122; % max methane quantity to still fracture
 
-seafloorDepthArray = (500:100:700)';
+seafloorDepthArray = (500:50:2150)';
+% seafloorDepthArray = (2100:10:2200)';
 
+%%% max seafloor depth for current parameters is 2150
+tic
 [minQuantityToFracture3PList, minQuantityToFracture2PList, errorList] = ...
     DCTheoreticalFormation.RunMethaneQuantityFractureRoutine(seafloorDepthArray, initialMethaneQuantity);
+toc
+
+
+% obj = DCTheoreticalFormation(2150, 0.4);
+% [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(122);
+% exportTable = obj.RunRockAndRatioRoutine(exportTable);
+% obj.GenerateResultPlots(exportTable, transitionZoneProperties);
+
+
+
+
+
+
+
 
 % ch4Quantity = 115; % near max for KB
 % ch4Quantity = 55; % near max for HR
