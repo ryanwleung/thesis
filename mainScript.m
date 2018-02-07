@@ -2,18 +2,37 @@ clc
 close all
 clear variables
 
+load('180202 simulation results.mat')
+figure
+hold on
+plot(seafloorDepthArray, minQuantityToFracture2PList, 'linewidth', 3)
+plot(seafloorDepthArray, minQuantityToFracture3PList, 'linewidth', 3)
+xlabel('Seafloor depth (m)')
+ylabel('Minimum methane quantity to initiate a fracture (kg/m^3)')
+legend('2P case')
+legend('3P case')
 
-initialMethaneQuantity = 7;
-% initialMethaneQuantity = 122; % max methane quantity to still fracture
+figure
+hold on
+plot(seafloorDepthArray(1:end - 1), minQuantityToFracture2PList(2:end) - minQuantityToFracture2PList(1:end - 1), 'linewidth', 3)
+plot(seafloorDepthArray(1:end - 1), minQuantityToFracture3PList(2:end) - minQuantityToFracture3PList(1:end - 1), 'linewidth', 3)
+xlabel('Seafloor depth (m)')
+ylabel('Difference in methane quantity to initiate a fracture (kg/m^3)')
+legend('2P case')
+legend('3P case')
 
-seafloorDepthArray = (500:50:2150)';
-% seafloorDepthArray = (2100:10:2200)';
 
-%%% max seafloor depth for current parameters is 2150
-tic
-[minQuantityToFracture3PList, minQuantityToFracture2PList, errorList] = ...
-    DCTheoreticalFormation.RunMethaneQuantityFractureRoutine(seafloorDepthArray, initialMethaneQuantity);
-toc
+% initialMethaneQuantity = 7;
+% % initialMethaneQuantity = 122; % max methane quantity to still fracture
+% 
+% seafloorDepthArray = (500:50:2150)';
+% % seafloorDepthArray = (2100:10:2200)';
+% 
+% %%% max seafloor depth for current parameters is 2150
+% tic
+% [minQuantityToFracture3PList, minQuantityToFracture2PList, errorList] = ...
+%     DCTheoreticalFormation.RunMethaneQuantityFractureRoutine(seafloorDepthArray, initialMethaneQuantity);
+% toc
 
 
 % obj = DCTheoreticalFormation(2150, 0.4);
