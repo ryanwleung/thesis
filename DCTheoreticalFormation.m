@@ -29,7 +29,7 @@ classdef DCTheoreticalFormation < BCFormation
             obj.depthArray = (obj.minDepth : obj.depthIncrement : obj.maxDepth)';
             
             obj.temperatureGradient = 40;       % C deg/km (C0002 - Daigle and Dugan 2014)            
-            obj.seafloorTemperature = 3.167;    % C deg
+            obj.seafloorTemperature = 3;    % C deg
             obj.salinityWtPercent = 3.5;        % weight percent (wt%) of NaCl in seawater
             
             obj.phi0 = 0.66;
@@ -52,13 +52,24 @@ classdef DCTheoreticalFormation < BCFormation
         end
         
         %%% Petrophysical calculations
-        function [ hasFractured3PLogical , hasFractured2PLogical ] = CheckFractureStatus( ~ , exportTable , transitionZoneProperties )
+        function [ sg3PAtFracture , sg2PAtFracture ] = CheckFractureStatus( ~ , exportTable , transitionZoneProperties )
+            sg3PAtFracture = [];
+            sg2PAtFracture = [];
+            
             iTopGas3P = find(exportTable.GasSat3P > 0, 1);
             iTopGas2P = transitionZoneProperties.Bulk3PSolEQLIndex;
             
-            hasFractured3PLogical = find(exportTable.ratio3P(iTopGas3P:end) >= 1);
-            hasFractured2PLogical = find(exportTable.ratio2P(iTopGas2P:end) >= 1);
+            fractured3PIndex = find(exportTable.ratio3P(iTopGas3P:end) >= 1, 1);
+            fractured2PIndex = find(exportTable.ratio2P(iTopGas2P:end) >= 1, 1);
             
+            if ~isempty(fractured3PIndex)
+                actual3PIndex = iTopGas3P + fractured3PIndex - 1;
+                sg3PAtFracture = exportTable.GasSat3P(actual3PIndex);
+            end
+            if ~isempty(fractured2PIndex)
+                actual2PIndex = iTopGas2P + fractured2PIndex - 1;
+                sg2PAtFracture = exportTable.GasSat2P(actual2PIndex);
+            end
         end
         function [ slope ] = CalcSlopeOfCumPSD( obj, stringType )
             % slope is in volume fraction per radius meter
@@ -243,13 +254,14 @@ classdef DCTheoreticalFormation < BCFormation
     end
     methods (Static)
         %%% Main function for running 
-        function [ minQuantityToFracture3PList , minQuantityToFracture2PList , errorList ] = RunMethaneQuantityFractureRoutine( seafloorDepthArray , initialMethaneQuantity )
+        function [ minQuantityToFracture3PList , minQuantityToFracture2PList , sgFracture3PList , sgFracture2PList , errorList , depthStructList ] = RunMethaneQuantityFractureRoutine( seafloorDepthArray , initialMethaneQuantity )
             n = numel(seafloorDepthArray);
             errorList = cell(n, 1);
             minQuantityToFracture3PList = zeros(n, 1);
             minQuantityToFracture2PList = zeros(n, 1);
-            
-            
+            sgFracture3PList = zeros(n, 1);
+            sgFracture2PList = zeros(n, 1);
+            depthStructList = cell(n, 1);
             
             for i = 1:n
                 iError = 1;
@@ -271,6 +283,12 @@ classdef DCTheoreticalFormation < BCFormation
                     ch4Quantity = minQuantityToFracture2PList(i - 1);
                 end
                 
+                
+                depthStruct = struct();
+                depthStruct.Top3P = [];
+                depthStruct.Bottom3P = [];
+                depthStruct.BulkEQL3Pfor2P = [];
+                
 %                 solFigure = figure();
                 
                 while true
@@ -282,14 +300,19 @@ classdef DCTheoreticalFormation < BCFormation
                             error('Cannot find bottom of three-phase zone')
                         end
                         
-                        [hasFractured3PLogical, hasFractured2PLogical] = obj.CheckFractureStatus(exportTable, transitionZoneProperties);
+                        [sg3PAtFracture, sg2PAtFracture] = obj.CheckFractureStatus(exportTable, transitionZoneProperties);
                         
-                        if ~found3PFracture && any(hasFractured3PLogical)
+                        if ~found3PFracture && ~isempty(sg3PAtFracture)
                             minQuantityToFracture3PList(i) = ch4Quantity;
+                            sgFracture3PList(i) = sg3PAtFracture;
+                            depthStruct.Top3P = exportTable.Depth(transitionZoneProperties.Top3PIndex);
+                            depthStruct.Bottom3P = exportTable.Depth(transitionZoneProperties.Bottom3PIndex);
                             found3PFracture = true;
                         end
-                        if  ~found2PFracture && any(hasFractured2PLogical)
+                        if  ~found2PFracture && ~isempty(sg2PAtFracture)
                             minQuantityToFracture2PList(i) = ch4Quantity;
+                            sgFracture2PList(i) = sg2PAtFracture;
+                            depthStruct.BulkEQL3Pfor2P = transitionZoneProperties.Bulk3PSolEQLIndex;
                             found2PFracture = true;
                         end
                         
@@ -343,17 +366,74 @@ classdef DCTheoreticalFormation < BCFormation
                     ch4Quantity = ch4Quantity + 1;
                 end
                 
-                
+                depthStructList{i} = depthStruct;
                 errorList{i} = errorLog;
             end
         end
         
+        %%% Plotting functions
+        function PlotMethaneQuantities( seafloorDepthArray , minQuantityToFracture2PList , minQuantityToFracture3PList )
+            figure
+            hold on
+            plot(seafloorDepthArray, minQuantityToFracture2PList, 'linewidth', 3)
+            plot(seafloorDepthArray, minQuantityToFracture3PList, 'linewidth', 3)
+            xlabel('Seafloor depth (m)')
+            ylabel('Minimum methane quantity to initiate a fracture (kg/m^3)')
+            legend('2P case', '3P case')
+            
+%             figure
+%             hold on
+%             plot(seafloorDepthArray(1:end - 1), minQuantityToFracture2PList(2:end) - minQuantityToFracture2PList(1:end - 1), 'linewidth', 3)
+%             plot(seafloorDepthArray(1:end - 1), minQuantityToFracture3PList(2:end) - minQuantityToFracture3PList(1:end - 1), 'linewidth', 3)
+%             xlabel('Seafloor depth (m)')
+%             ylabel('Difference in methane quantity to initiate a fracture (kg/m^3)')
+%             legend('2P case', '3P case')
+        end
+        function PlotGasSaturations( seafloorDepthArray , sgFracture2PList , sgFracture3PList )
+            figure
+            hold on
+            plot(seafloorDepthArray, sgFracture2PList, 'linewidth', 3)
+            plot(seafloorDepthArray, sgFracture3PList, 'linewidth', 3)
+            xlabel('Seafloor depth (m)')
+            ylabel('Gas Saturation at fracture initiation')
+            legend('2P case', '3P case')
+        end
+        function PlotDepths( seafloorDepthArray , depthStructList )
+            n = numel(depthStructList);
+            
+            top3PDepths = nan(n, 1);
+            bottom3PDepths = nan(n, 1);
+            bulkEQL3PDepths = nan(n, 1);
+            
+            for i = 1:n
+                depthStruct = depthStructList{i};
+                if ~isempty(depthStruct.BulkEQL3Pfor2P)
+                    bulkEQL3PDepths(i) = depthStruct.BulkEQL3Pfor2P;
+                end
+                
+                if ~isempty(depthStruct.Top3P)
+                    top3PDepths(i) = depthStruct.Top3P;
+                end
+                if ~isempty(depthStruct.Bottom3P)
+                    bottom3PDepths(i) = depthStruct.Bottom3P;
+                end
+            end
+            
+            
+            figure
+            hold on
+%             scatter(seafloorDepthArray, bulkEQL3PDepths, 50)
+            scatter(seafloorDepthArray, bulkEQL3PDepths ./ 2, 50) % hotfix because i didn't save the depths @@@ NEED TO FIX
+            plot(seafloorDepthArray, top3PDepths, 'linewidth', 3)
+            plot(seafloorDepthArray, bottom3PDepths, 'linewidth', 3)
+            xlabel('Seafloor depth (m)')
+            ylabel('Depth (mbsf)')
+            legend('2P Case - Bulk equilibrium depth at fracture', '3P case - Top of 3P zone at fracture', '3P case - Bottom of 3P zone at fracture')
+            set(gca, 'YDir', 'Reverse')
+        end        
         
         
-        
-        
-        
-        
+        %%% Error and logging functions
         function PrintRunStatus( functionString , message , input )
             
             disp('--------------------------------------------------------')
@@ -370,7 +450,7 @@ classdef DCTheoreticalFormation < BCFormation
             if isempty(input.iBottom3P)
                 disp('Index of 3P zone bottom: not found')
             else
-                disp(['Index of 3P zone top: ', num2str(input.iBottom3P)])
+                disp(['Index of 3P zone bottom: ', num2str(input.iBottom3P)])
             end
             disp(message)
             
@@ -420,7 +500,7 @@ classdef DCTheoreticalFormation < BCFormation
         
         
         
-        
+        %%% MICP functions
         function ExtractMICP()
             % Used to assign each MICP report with the core's drilled depth
             depth =  {  'TABLE_S1_KZK867.XLSX',	925.5;

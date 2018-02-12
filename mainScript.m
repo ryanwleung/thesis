@@ -2,39 +2,27 @@ clc
 close all
 clear variables
 
-load('180202 simulation results.mat')
-figure
-hold on
-plot(seafloorDepthArray, minQuantityToFracture2PList, 'linewidth', 3)
-plot(seafloorDepthArray, minQuantityToFracture3PList, 'linewidth', 3)
-xlabel('Seafloor depth (m)')
-ylabel('Minimum methane quantity to initiate a fracture (kg/m^3)')
-legend('2P case')
-legend('3P case')
+% load('180202 simulation results.mat')
+load('180211 simulation results.mat')
+DCTheoreticalFormation.PlotMethaneQuantities(seafloorDepthArray, minQuantityToFracture2PList, minQuantityToFracture3PList);
+DCTheoreticalFormation.PlotGasSaturations(seafloorDepthArray, sgFracture2PList, sgFracture3PList);
+DCTheoreticalFormation.PlotDepths(seafloorDepthArray, depthStructList);
 
-figure
-hold on
-plot(seafloorDepthArray(1:end - 1), minQuantityToFracture2PList(2:end) - minQuantityToFracture2PList(1:end - 1), 'linewidth', 3)
-plot(seafloorDepthArray(1:end - 1), minQuantityToFracture3PList(2:end) - minQuantityToFracture3PList(1:end - 1), 'linewidth', 3)
-xlabel('Seafloor depth (m)')
-ylabel('Difference in methane quantity to initiate a fracture (kg/m^3)')
-legend('2P case')
-legend('3P case')
 
 
 % initialMethaneQuantity = 7;
 % % initialMethaneQuantity = 122; % max methane quantity to still fracture
 % 
-% seafloorDepthArray = (500:50:2150)';
-% % seafloorDepthArray = (2100:10:2200)';
+% seafloorDepthArray = (500:50:2100)';
+% % seafloorDepthArray = (500:50:700)';
 % 
 % %%% max seafloor depth for current parameters is 2150
 % tic
-% [minQuantityToFracture3PList, minQuantityToFracture2PList, errorList] = ...
+% [minQuantityToFracture3PList, minQuantityToFracture2PList, sgFracture3PList, sgFracture2PList, errorList, depthStructList] = ...
 %     DCTheoreticalFormation.RunMethaneQuantityFractureRoutine(seafloorDepthArray, initialMethaneQuantity);
 % toc
 
-
+% 
 % obj = DCTheoreticalFormation(2150, 0.4);
 % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(122);
 % exportTable = obj.RunRockAndRatioRoutine(exportTable);
