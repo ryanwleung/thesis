@@ -3,27 +3,29 @@ close all
 clear variables
 
 % load('180202 simulation results.mat')
-load('180211 simulation results.mat')
-DCTheoreticalFormation.PlotMethaneQuantities(seafloorDepthArray, minQuantityToFracture2PList, minQuantityToFracture3PList);
-DCTheoreticalFormation.PlotGasSaturations(seafloorDepthArray, sgFracture2PList, sgFracture3PList);
-DCTheoreticalFormation.PlotDepths(seafloorDepthArray, depthStructList);
+% load('180211 simulation results.mat')
+% DCTheoreticalFormation.PlotMethaneQuantities(seafloorDepthArray, minQuantityToFracture2PList, minQuantityToFracture3PList);
+% DCTheoreticalFormation.PlotGasSaturations(seafloorDepthArray, sgFracture2PList, sgFracture3PList);
+% DCTheoreticalFormation.PlotDepths(seafloorDepthArray, depthStructList);
+
+PlotAllMICP()
 
 
-
-% initialMethaneQuantity = 7;
-% % initialMethaneQuantity = 122; % max methane quantity to still fracture
-% 
+%%% max seafloor depth for current parameters is 2100
 % seafloorDepthArray = (500:50:2100)';
-% % seafloorDepthArray = (500:50:700)';
-% 
-% %%% max seafloor depth for current parameters is 2150
+% initialMethaneQuantity = 7;
+
+
+% seafloorDepthArray = (500:50:700)';
+% initialMethaneQuantity = 122; % max methane quantity to still fracture
+
 % tic
 % [minQuantityToFracture3PList, minQuantityToFracture2PList, sgFracture3PList, sgFracture2PList, errorList, depthStructList] = ...
 %     DCTheoreticalFormation.RunMethaneQuantityFractureRoutine(seafloorDepthArray, initialMethaneQuantity);
 % toc
 
-% 
-% obj = DCTheoreticalFormation(2150, 0.4);
+
+% obj = DCTheoreticalFormation(2100, 0.4);
 % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(122);
 % exportTable = obj.RunRockAndRatioRoutine(exportTable);
 % obj.GenerateResultPlots(exportTable, transitionZoneProperties);
@@ -94,3 +96,25 @@ DCTheoreticalFormation.PlotDepths(seafloorDepthArray, depthStructList);
 %         
 % end
 
+function PlotAllMICP()
+    figure
+    
+    obj = DCHydrateRidge();
+    % Copied from DCHydrateRidge method
+    semilogy(1 - obj.MICP1.S_nw, obj.MICP1.Pc_gw, 'Linewidth', 2)
+    
+    hold on
+
+    obj = DCBlakeRidge();
+    semilogy(1 - obj.MICP1.S_nw, obj.MICP1.Pc_gw, 'Linewidth', 2)
+    semilogy(1 - obj.MICP2.S_nw, obj.MICP2.Pc_gw, 'Linewidth', 2)
+    
+    obj = DCKumanoBasin();
+    semilogy(1 - obj.MICP{1}.SNW, obj.MICP{1}.PcGW, 'Linewidth', 2)
+    
+%     xlabel('1 - S_n_w, or S_w')
+    xlabel('S_w')
+    ylabel('Pc in MPa')
+    title('Primary Drainage Capillary Pressure Curve')
+    legend('Hydrate Ridge', 'Blake Ridge 1', 'Blake Ridge 2', 'Kumano Basin')
+end
