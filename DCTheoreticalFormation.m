@@ -381,13 +381,11 @@ classdef DCTheoreticalFormation < BCFormation
             ylabel('Minimum methane quantity to initiate a fracture (kg/m^3)')
             legend('2P case', '3P case')
             
-%             figure
-%             hold on
-%             plot(seafloorDepthArray(1:end - 1), minQuantityToFracture2PList(2:end) - minQuantityToFracture2PList(1:end - 1), 'linewidth', 3)
-%             plot(seafloorDepthArray(1:end - 1), minQuantityToFracture3PList(2:end) - minQuantityToFracture3PList(1:end - 1), 'linewidth', 3)
-%             xlabel('Seafloor depth (m)')
-%             ylabel('Difference in methane quantity to initiate a fracture (kg/m^3)')
-%             legend('2P case', '3P case')
+            figure
+            hold on
+            plot(seafloorDepthArray, minQuantityToFracture3PList ./ minQuantityToFracture2PList, 'linewidth', 3)
+            xlabel('Seafloor depth (m)')
+            ylabel('Ratio of 3P over 2P required methane quantity to initiate a fracture')
         end
         function PlotGasSaturations( seafloorDepthArray , sgFracture2PList , sgFracture3PList )
             figure
