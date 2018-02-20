@@ -9,9 +9,14 @@ classdef DCTheoreticalFormation < BCFormation
         solAxis
     end
     properties (Constant)
-        satAxis = [0 1 0 750];
-        pcgwAxis = [0 2.5 0 750];
-        ratioAxis = [0 1.2 0 750];
+%         satAxis = [0 1 0 750];
+%         pcgwAxis = [0 2.5 0 750];
+%         ratioAxis = [0 1.2 0 750];
+        
+        satAxis = [0 1 365 400];
+        pcgwAxis = [0 2.5 365 400];
+        ratioAxis = [0 1.2 365 400];
+        solAxisTemp = [0.153 0.166 365 400];
         
     end
     methods
@@ -215,7 +220,9 @@ classdef DCTheoreticalFormation < BCFormation
             solFigure = obj.PlotSol@BCFormation( solFigure , exportTable , doPlotBulkAndMinSol );
             
             figure(solFigure)
-            axis(obj.solAxis)
+%             axis(obj.solAxis)
+            axis(obj.solAxisTemp)
+            
             title('Theoretical Formation - Solubility Path')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
