@@ -12,6 +12,8 @@ classdef DCTheoreticalFormation < BCFormation
 %         satAxis = [0 1 0 750];
 %         pcgwAxis = [0 2.5 0 750];
 %         ratioAxis = [0 1.2 0 750];
+
+%         finalAxis = [650 inf -inf inf];
         
         satAxis = [0 1 365 400];
         pcgwAxis = [0 2.5 365 400];
@@ -382,14 +384,16 @@ classdef DCTheoreticalFormation < BCFormation
             plot(seafloorDepthArray, minQuantityToFracture2PList, 'linewidth', 3)
             plot(seafloorDepthArray, minQuantityToFracture3PList, 'linewidth', 3)
             xlabel('Seafloor depth (m)')
-            ylabel('Minimum methane quantity to initiate a fracture (kg/m^3)')
-            legend('2P case', '3P case')
+            ylabel('Minimum methane quantity to fracture (kg/m^3)')
+            legend('2-phase case', '3-phase case')
+            axis([650 inf -inf inf])
             
             figure
             hold on
             plot(seafloorDepthArray, minQuantityToFracture3PList ./ minQuantityToFracture2PList, 'linewidth', 3)
             xlabel('Seafloor depth (m)')
-            ylabel('Ratio of 3P over 2P required methane quantity to initiate a fracture')
+            ylabel('Ratio of 3P/2P methane quantity to fracture')
+            axis([650 inf -inf inf])
         end
         function PlotGasSaturations( seafloorDepthArray , sgFracture2PList , sgFracture3PList )
             figure
@@ -397,8 +401,16 @@ classdef DCTheoreticalFormation < BCFormation
             plot(seafloorDepthArray, sgFracture2PList, 'linewidth', 3)
             plot(seafloorDepthArray, sgFracture3PList, 'linewidth', 3)
             xlabel('Seafloor depth (m)')
-            ylabel('Gas Saturation at fracture initiation')
-            legend('2P case', '3P case')
+            ylabel('Gas saturation to fracture')
+            legend('2-phase case', '3-phase case')
+            axis([650 inf -inf inf])
+            
+            figure
+            hold on
+            plot(seafloorDepthArray, sgFracture3PList ./ sgFracture2PList, 'linewidth', 3)
+            xlabel('Seafloor depth (m)')
+            ylabel('Ratio of 3P/2P gas saturation to fracture')
+            axis([650 inf 1 inf])
         end
         function PlotDepths( seafloorDepthArray , depthStructList )
             n = numel(depthStructList);
@@ -432,6 +444,7 @@ classdef DCTheoreticalFormation < BCFormation
             ylabel('Depth (mbsf)')
             legend('2P Case - Bulk equilibrium depth at fracture', '3P case - Top of 3P zone at fracture', '3P case - Bottom of 3P zone at fracture')
             set(gca, 'YDir', 'Reverse')
+            axis([650 inf -inf inf])
         end        
         
         
