@@ -628,10 +628,10 @@ classdef BCFormation < handle
             plot( solMaxLH , depth , 'g--' , 'linewidth' , width )
             plot( sol , depth , 'b' , 'linewidth' , width )
             
-            xlabel('CH4 Solubility (mol CH4/kg H2O)')
+            xlabel('CH_4 Solubility (mol CH4/kg H2O)')
             ylabel('Depth (mbsf)')
             set(gca, 'YDir', 'Reverse')
-            legend('Bulk LG', 'Bulk LH', 'Min LG', 'Min LH', 'Max LG', 'Max LH', 'Actual solubility')
+            legend('Bulk G-W', 'Bulk H-W', 'Min G-W', 'Min H-W', 'Max G-W', 'Max H-W', 'Calculated solubility')
         end       
         function [ sat2PFigure ] = PlotSat2P( ~ , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
             bulkEquilibrium3PIndex = transitionZoneProperties.Bulk3PSolEQLIndex;
@@ -689,6 +689,12 @@ classdef BCFormation < handle
             pcgw2PPa = exportTable.Pcgw2PPa;
             pcgw3PPa = exportTable.Pcgw3PPa;
             
+            %%% Hotfix to eleiminate gas capillary entry pressure
+            zeroSgLogical = exportTable.GasSat3P == 0;
+            pcgw3PPa(zeroSgLogical) = 0;
+            indexToSmooth = find(~zeroSgLogical, 1);
+            [ depthFor3P , pcgw3PPa ] = BCFormation.GetModifiedPlotArrays2P( depth , pcgw3PPa , indexToSmooth );
+            
             
             bulkEquilibrium3PIndex = transitionZoneProperties.Bulk3PSolEQLIndex;
             pcgw2PPa(1 : bulkEquilibrium3PIndex - 1) = 0;
@@ -701,12 +707,12 @@ classdef BCFormation < handle
             hold on
             
             plot( pcgw2PPa ./ 1e6 , depthFor2P , lineStylePc{1} , 'linewidth' , 3 )
-            plot( pcgw3PPa ./ 1e6 , depth , lineStylePc{2} , 'linewidth' , 3 )
+            plot( pcgw3PPa ./ 1e6 , depthFor3P , lineStylePc{2} , 'linewidth' , 3 )
             
             xlabel('Pressure (MPa)')
             ylabel('Depth (mbsf)')
             set(gca,'YDir','Reverse')
-            
+            legend('Minimum horizontal effective stress', '2-phase gas overpressure', '3-phase gas overpressure')
         end
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             
@@ -715,7 +721,7 @@ classdef BCFormation < handle
             pcgw2PPa = exportTable.Pcgw2PPa;
             pcgw3PPa = exportTable.Pcgw3PPa;
             
-            
+                        
             ratio2P = pcgw2PPa ./ rockStrengthPa;
             ratio3P = pcgw3PPa ./ rockStrengthPa;
             
@@ -723,20 +729,25 @@ classdef BCFormation < handle
             ratio2P(1 : bulkEquilibrium3PIndex - 1) = 0;
             [ depthFor2P , ratio2P ] = BCFormation.GetModifiedPlotArrays2P( depth , ratio2P , bulkEquilibrium3PIndex );
             
-            
+            %%% Hotfix to eleiminate gas capillary entry pressure
+            zeroSgLogical = exportTable.GasSat3P == 0;
+            ratio3P(zeroSgLogical) = 0;
+            indexToSmooth = find(~zeroSgLogical, 1);
+            [ depthFor3P , ratio3P ] = BCFormation.GetModifiedPlotArrays2P( depth , ratio3P , indexToSmooth );
+
             
             figure(ratioFigure)
             hold on
             
-            plot( [1 1] , [obj.minDepth obj.maxDepth] , 'k--' , 'linewidth' , 2 )
+            plot( [1 1] , [obj.minDepth obj.maxDepth] , 'k--' , 'linewidth' , 2 , 'HandleVisibility','off' )
             
             plot( ratio2P , depthFor2P , lineStyleRatio{1} , 'linewidth' , 3 )
-            plot( ratio3P , depth , lineStyleRatio{2} , 'linewidth' , 3 )            
+            plot( ratio3P , depthFor3P , lineStyleRatio{2} , 'linewidth' , 3 )            
             
             xlabel('Gas overpressure / rock strength')
             ylabel('Depth (mbsf)')
             set(gca,'YDir','Reverse')
-            
+            legend('2-phase gas overpressure', '3-phase gas overpressure')
         end
     end
     methods (Static)

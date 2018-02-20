@@ -179,19 +179,15 @@ classdef DCBlakeRidge < BCFormation
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Blake Ridge Gas Overpressure')
+            title('Blake Ridge - Gas Overpressure')
         end
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
                         
-            title('Blake Ridge Overpressure Ratio')
-            % legend('')
+            title('Blake Ridge - Overpressure Ratio')
             axis(obj.ratioAxis)
-
-            
-            
         end
         
     end

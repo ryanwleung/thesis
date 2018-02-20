@@ -245,18 +245,15 @@ classdef DCTheoreticalFormation < BCFormation
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Theoretical Formation Gas Overpressure')
-            % legend('')
+            title('Theoretical Formation - Gas Overpressure')
         end
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
             
-            title('Theoretical Formation Overpressure Ratio')
-            axis(obj.ratioAxis)            
-            % legend('')
-            
+            title('Theoretical Formation - Overpressure Ratio')
+            axis(obj.ratioAxis)
         end
     end
     methods (Static)

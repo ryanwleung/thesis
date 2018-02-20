@@ -207,24 +207,21 @@ classdef DCHydrateRidge < BCFormation
             axis([1e-9, 1e-4, -inf, inf])
             set(gca, 'XDir', 'reverse')
         end
-        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
+        function pcgwFigure = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
             pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
             
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Hydrate Ridge Gas Overpressure')
-            % legend('')
+            title('Hydrate Ridge - Gas Overpressure')
         end
-        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
+        function ratioFigure = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
             
-            title('Hydrate Ridge Overpressure Ratio')
-            axis(obj.ratioAxis)            
-            % legend('')
-            
+            title('Hydrate Ridge - Overpressure Ratio')
+            axis(obj.ratioAxis)
         end
         
     end

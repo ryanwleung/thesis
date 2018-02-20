@@ -209,18 +209,15 @@ classdef DCKumanoBasin < BCFormation
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Kumano Basin Gas Overpressure')
-            % legend('')
+            title('Kumano Basin - Gas Overpressure')
         end
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
             
-            title('Hydrate Ridge Overpressure Ratio')
-            axis(obj.ratioAxis)            
-            % legend('')
-            
+            title('Kumano Basin - Overpressure Ratio')
+            axis(obj.ratioAxis)
         end
     end
     methods (Static)
