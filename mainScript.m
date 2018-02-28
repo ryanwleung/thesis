@@ -4,10 +4,10 @@ clear variables
 
 % load('180202 simulation results.mat')
 % load('180211 simulation results.mat')
-load('180219 simulation results.mat')
-DCTheoreticalFormation.PlotMethaneQuantities(seafloorDepthArray, minQuantityToFracture2PList, minQuantityToFracture3PList);
-DCTheoreticalFormation.PlotGasSaturations(seafloorDepthArray, sgFracture2PList, sgFracture3PList);
-DCTheoreticalFormation.PlotDepths(seafloorDepthArray, depthStructList);
+% load('180219 simulation results.mat')
+% DCTheoreticalFormation.PlotMethaneQuantities(seafloorDepthArray, minQuantityToFracture2PList, minQuantityToFracture3PList);
+% DCTheoreticalFormation.PlotGasSaturations(seafloorDepthArray, sgFracture2PList, sgFracture3PList);
+% DCTheoreticalFormation.PlotDepths(seafloorDepthArray, depthStructList);
 
 % PlotAllMICP()
 
@@ -32,10 +32,11 @@ DCTheoreticalFormation.PlotDepths(seafloorDepthArray, depthStructList);
 % obj = DCTheoreticalFormation(550, 0.4);
 % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(7.4);
 
-% % obj = DCTheoreticalFormation(1800, 0.4);
-% % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(60);
-% exportTable = obj.RunRockAndRatioRoutine(exportTable);
-% obj.GenerateResultPlots(exportTable, transitionZoneProperties);
+obj = DCTheoreticalFormation(1800, 0.4);
+[exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(60);
+
+exportTable = obj.RunRockAndRatioRoutine(exportTable);
+obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
 
 
