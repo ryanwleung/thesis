@@ -24,12 +24,11 @@ classdef DCBlakeRidge < BCFormation
 
             obj.seafloorDepth = 2780;           % mbsl
             obj.minDepth = 1;                   % mbsf
-%             obj.maxDepth = 650;                 % mbsf
             obj.maxDepth = 700;                 % mbsf
             obj.depthIncrement = 0.5;           % m
             obj.depthArray = (obj.minDepth : obj.depthIncrement : obj.maxDepth)';
             
-%             obj.temperatureGradient = 38.5;     % C deg/km (ODP 995 - Guerin)
+            % obj.temperatureGradient = 38.5;     % C deg/km (ODP 995 - Guerin)
             obj.temperatureGradient = 36.9;     % C deg/km (ODP 997 - Liu and Flemings)
             obj.seafloorTemperature = 3.3;      % C deg
             obj.salinityWtPercent = 3.5;        % weight percent (wt%) of NaCl in seawater
@@ -441,7 +440,7 @@ classdef DCBlakeRidge < BCFormation
             obj.Data.log = zeros( obj.Data.depth_interval , 50 );
             obj.Data.log(:,1) = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval );
 
-%             obj.DataTable.depth = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval )';
+             obj.DataTable.depth = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval )';
             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
         end
             

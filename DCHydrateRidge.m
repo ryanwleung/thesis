@@ -19,7 +19,7 @@ classdef DCHydrateRidge < BCFormation
             obj.minDepth = 1;               % mbsf
             obj.maxDepth = 200;             % mbsf
             obj.depthIncrement = 0.5;       % m
-%             obj.depthIncrement = 0.25;       % m
+            % obj.depthIncrement = 0.25;       % m
             obj.depthArray = (obj.minDepth : obj.depthIncrement : obj.maxDepth)';
             
             obj.temperatureGradient = 59;   % C deg/km (ODP 997 - Liu and Flemings)            
@@ -81,9 +81,9 @@ classdef DCHydrateRidge < BCFormation
             sg = sg1 + sg2;
             radiusGPrime = interp1(snwArray, radiusInMetersArray, sg2);
             
-%             scatter(radiusG, snw, 'r', 'filled')
-%             scatter(radiusH, shGuess + sg2, 'g', 'filled')
-%             scatter(radiusGPrime, sg2, 'r', 'filled')
+            % scatter(radiusG, snw, 'r', 'filled')
+            % scatter(radiusH, shGuess + sg2, 'g', 'filled')
+            % scatter(radiusGPrime, sg2, 'r', 'filled')
             
             
             
@@ -94,7 +94,6 @@ classdef DCHydrateRidge < BCFormation
             
 
             numberOfPoints = 1000;
-%             numberOfPoints = 10000;
             
             slopeScalingFactor = (1e-7) ^ 2;
             lengthFactor = 3;
@@ -284,7 +283,7 @@ classdef DCHydrateRidge < BCFormation
             obj.Data.log = zeros( obj.Data.depth_interval , 50 );
             obj.Data.log(:,1) = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval );
 
-%             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
+             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
             obj.DataTable.depth = (obj.Data.depth_top : 0.5 : obj.Data.depth_bottom)';
 
         end
