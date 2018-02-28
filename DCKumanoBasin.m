@@ -318,7 +318,7 @@ classdef DCKumanoBasin < BCFormation
             result = MICPCellArray;
         end
         function [ MICPInterp ] = SelectMICPForInterp( MICP , depthOrder )
-%             logicalToKeep = depthOrder > 340 & depthOrder < 500;
+            % logicalToKeep = depthOrder > 340 & depthOrder < 500;
             logicalToKeep = depthOrder > 400 & depthOrder < 420;
             MICPInterp = MICP;
             
@@ -383,7 +383,7 @@ classdef DCKumanoBasin < BCFormation
             obj.Data.log = zeros( obj.Data.depth_interval , 50 );
             obj.Data.log(:,1) = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval );
 
-%             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
+             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
             obj.DataTable.depth = (obj.Data.depth_top : 0.5 : obj.Data.depth_bottom)';
 
         end
