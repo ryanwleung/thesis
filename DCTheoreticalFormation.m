@@ -9,11 +9,11 @@ classdef DCTheoreticalFormation < BCFormation
         solAxis
     end
     properties (Constant)
-%         satAxis = [0 1 0 750];
-%         pcgwAxis = [0 2.5 0 750];
-%         ratioAxis = [0 1.2 0 750];
+        % satAxis = [0 1 0 750];
+        % pcgwAxis = [0 2.5 0 750];
+        % ratioAxis = [0 1.2 0 750];
 
-%         finalAxis = [650 inf -inf inf];
+        % finalAxis = [650 inf -inf inf];
         
         satAxis = [0 1 365 400];
         pcgwAxis = [0 2.5 365 400];
@@ -53,9 +53,9 @@ classdef DCTheoreticalFormation < BCFormation
             
             
             obj.MICPInterp = DCTheoreticalFormation.SelectMICPForInterp(obj.MICP);
-%             
-%             % Testing plots only on selected MICP data for interpolation
-%             obj.MICP = obj.MICPInterp;
+
+            % % Testing plots only on selected MICP data for interpolation
+            % obj.MICP = obj.MICPInterp;
         end
         
         %%% Petrophysical calculations
@@ -222,7 +222,7 @@ classdef DCTheoreticalFormation < BCFormation
             solFigure = obj.PlotSol@BCFormation( solFigure , exportTable , doPlotBulkAndMinSol );
             
             figure(solFigure)
-%             axis(obj.solAxis)
+            % axis(obj.solAxis)
             axis(obj.solAxisTemp)
             
             title('Theoretical Formation - Solubility Path')
@@ -295,7 +295,7 @@ classdef DCTheoreticalFormation < BCFormation
                 depthStruct.Bottom3P = [];
                 depthStruct.BulkEQL3Pfor2P = [];
                 
-%                 solFigure = figure();
+                % solFigure = figure();
                 
                 while true
                     try
@@ -323,16 +323,16 @@ classdef DCTheoreticalFormation < BCFormation
                         end
                         
                         
-                        
-%                         if firstTimePlottingSol
-%                             firstTimePlottingSol = false;
-%                             doPlotBulkAndMinSol = true;
-%                         else
-%                             doPlotBulkAndMinSol = false;
-%                         end
-%                         obj.PlotSolLooped(solFigure, exportTable, transitionZoneProperties, doPlotBulkAndMinSol);
-%                         pause(1e-3)
-                        
+                        %{
+                        if firstTimePlottingSol
+                            firstTimePlottingSol = false;
+                            doPlotBulkAndMinSol = true;
+                        else
+                            doPlotBulkAndMinSol = false;
+                        end
+                        obj.PlotSolLooped(solFigure, exportTable, transitionZoneProperties, doPlotBulkAndMinSol);
+                        pause(1e-3)
+                        %}
                         
                         
                         
@@ -436,7 +436,7 @@ classdef DCTheoreticalFormation < BCFormation
             
             figure
             hold on
-%             scatter(seafloorDepthArray, bulkEQL3PDepths, 50)
+            % scatter(seafloorDepthArray, bulkEQL3PDepths, 50)
             scatter(seafloorDepthArray, bulkEQL3PDepths ./ 2, 50) % hotfix because i didn't save the depths @@@ NEED TO FIX
             plot(seafloorDepthArray, top3PDepths, 'linewidth', 3)
             plot(seafloorDepthArray, bottom3PDepths, 'linewidth', 3)
@@ -603,32 +603,27 @@ classdef DCTheoreticalFormation < BCFormation
             MICPCellArray = [];
             % Loads MICPCellArray
             load('MICP_KB.mat');
-%             
-%             n = numel(MICPCellArray);
-%             depthOrder = zeros(n, 1);
-%             for i = 1:n
-%                 depthOrder(i) = MICPCellArray{i}.Properties.UserData;
-%             end
-%             [~, colorOrder] = sort(depthOrder);
-%             result = MICPCellArray{8}.Properties.UserData;
+
+            %{
+            n = numel(MICPCellArray);
+            depthOrder = zeros(n, 1);
+            for i = 1:n
+                depthOrder(i) = MICPCellArray{i}.Properties.UserData;
+            end
+            [~, colorOrder] = sort(depthOrder);
+            result = MICPCellArray{8}.Properties.UserData;
+            %}
+
             result = MICPCellArray{8};
         end
         function [ MICPInterp ] = SelectMICPForInterp( MICP )
-%             logicalToKeep = depthOrder > 340 & depthOrder < 500;
-%             logicalToKeep = depthOrder > 400 & depthOrder < 420;
             MICPInterp = MICP;
-            
-%             MICPInterp(~logicalToKeep) = [];
-%             n = numel(MICPInterp);
-            
-%             for i = 1:n
+
             temp = MICPInterp;
             firstNonZeroIndex = find(temp.SNW > 0, 1);
             temp(1:firstNonZeroIndex - 2, :) = [];
 
-            MICPInterp = temp;
-%             end
-            
+            MICPInterp = temp;            
         end
         
     end
@@ -679,7 +674,7 @@ classdef DCTheoreticalFormation < BCFormation
             obj.Data.log = zeros( obj.Data.depth_interval , 50 );
             obj.Data.log(:,1) = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval );
 
-%             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
+             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
             obj.DataTable.depth = (obj.Data.depth_top : 0.5 : obj.Data.depth_bottom)';
 
         end
