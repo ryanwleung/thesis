@@ -262,7 +262,7 @@ classdef BCFormation < handle
             tempSh2P = zeros(n, 1);
             tempSolLH2P = zeros(n, 1);
             
-            hydrateSaturationBulk2P = obj.CalcSh2P(ch4Quantity ,hydrateBulkSolubility);
+            hydrateSaturationBulk2P = obj.CalcSh2P(ch4Quantity, hydrateBulkSolubility);
 
             for i = 1:n
                 sh = hydrateSaturationBulk2P(i);

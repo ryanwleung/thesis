@@ -32,11 +32,11 @@ clear variables
 % obj = DCTheoreticalFormation(550, 0.4);
 % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(7.4);
 
-obj = DCTheoreticalFormation(1800, 0.4);
-[exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(60);
-
-exportTable = obj.RunRockAndRatioRoutine(exportTable);
-obj.GenerateResultPlots(exportTable, transitionZoneProperties);
+% obj = DCTheoreticalFormation(1800, 0.4);
+% [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(60);
+% 
+% exportTable = obj.RunRockAndRatioRoutine(exportTable);
+% obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
 
 
@@ -56,7 +56,7 @@ obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
 % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
 % exportTable = obj.RunRockAndRatioRoutine(exportTable);
-
+% 
 % obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
 
