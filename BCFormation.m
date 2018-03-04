@@ -45,6 +45,11 @@ classdef BCFormation < handle
             temperature = obj.CalcTemperature( depth );
             gasDensity = BCFormation.CalcGasDensityArray( pressure , temperature );
             
+            %%% Load ch4 quantity array
+            ch4Quantity = ch4Quantity .* ones(numel(depth), 1);
+            % ch4Quantity = ch4Quantity .* zeros(numel(depth), 1);
+            % ch4Quantity(1:3:end) = 0;
+
             %%% Instantiate solubility class object
             solubilityCalculator = BCSolubilityUtil();
             
@@ -189,19 +194,24 @@ classdef BCFormation < handle
         %%% 2P calculations
         % Saturations
         function [ gasSaturation ] = CalcSg2P( obj , ch4Quantity , solubilityLG , gasDensity )
-            % Input: Mass_CH4_Quantity [g/decimeter^3], Sol_Liq_Gas [mol CH4/kg H2O],
+            % Input: Mass_CH4_Quantity [kg/m^3], Sol_Liq_Gas [mol CH4/kg H2O],
             % Density_Brine [g H2O/cm^3], Density_Gas [kg CH4/m^3]
             % Output: Sg [dimensionless volume fraction of PV]
-            gramsCH4InCubicMeterWater = solubilityLG .* obj.mwCH4 .* obj.waterDensity;
+            kgCH4InCubicMeterWater = solubilityLG .* obj.mwCH4 .* obj.waterDensity;
             
-            gasSaturation = (ch4Quantity - gramsCH4InCubicMeterWater) ./ ...
-                            (gasDensity - gramsCH4InCubicMeterWater);
+            
+            gasSaturation = (ch4Quantity - kgCH4InCubicMeterWater) ./ ...
+                            (gasDensity - kgCH4InCubicMeterWater);
+                            
+            gasSaturation(ch4Quantity < kgCH4InCubicMeterWater) = 0;
         end
         function [ hydrateSaturation ] = CalcSh2P( obj , ch4Quantity , solubilityLH )
-            gramsCH4InCubicMeterWater = solubilityLH .* obj.mwCH4 .* obj.waterDensity;
+            kgCH4InCubicMeterWater = solubilityLH .* obj.mwCH4 .* obj.waterDensity;
 
-            hydrateSaturation = (ch4Quantity - gramsCH4InCubicMeterWater) ./ ...
-                                (obj.hydrateDensity .* obj.methaneMassFractionInHydrate - gramsCH4InCubicMeterWater);
+            hydrateSaturation = (ch4Quantity - kgCH4InCubicMeterWater) ./ ...
+                                (obj.hydrateDensity .* obj.methaneMassFractionInHydrate - kgCH4InCubicMeterWater);
+            
+            hydrateSaturation(ch4Quantity < kgCH4InCubicMeterWater) = 0;
         end
         % LG solubility
         function [ maxSolLG , sg2P ] = CalcMaxSolLG( obj , ch4Quantity , pressure , gasDensity , gasBulkSolubility )
@@ -212,7 +222,14 @@ classdef BCFormation < handle
             gasSaturationBulk2P = obj.CalcSg2P( ch4Quantity , gasBulkSolubility , gasDensity );
             
             for i = 1:n
-                
+                %%% If calculated bulk sg is < 0, then all methane is dissolved
+                if gasSaturationBulk2P(i) <= 0
+                    tempSg2P(i) = 0;
+                    tempSolLG2P(i) = gasBulkSolubility(i);
+                    continue    
+                end
+
+
                 sg = gasSaturationBulk2P(i);
                 
                 doWhileFlag = true;
@@ -224,7 +241,7 @@ classdef BCFormation < handle
                     iteration = iteration + 1;
                     
                     
-                    [solLGIterated, sgIterated] = obj.CalcMaxSolLGIteration(sg, gasBulkSolubility(i), ch4Quantity, pressure(i), gasDensity(i));
+                    [solLGIterated, sgIterated] = obj.CalcMaxSolLGIteration(sg, gasBulkSolubility(i), ch4Quantity(i), pressure(i), gasDensity(i));
                     deltaSg = sg - sgIterated;
                     
                     sg = sgIterated;
@@ -265,6 +282,13 @@ classdef BCFormation < handle
             hydrateSaturationBulk2P = obj.CalcSh2P(ch4Quantity, hydrateBulkSolubility);
 
             for i = 1:n
+                if hydrateSaturationBulk2P(i) <= 0
+                    tempSh2P(i) = 0;
+                    tempSolLH2P(i) = hydrateBulkSolubility(i);
+                    continue    
+                end
+
+
                 sh = hydrateSaturationBulk2P(i);
                 
                 doWhileFlag = true;
@@ -275,7 +299,7 @@ classdef BCFormation < handle
                     doWhileFlag = false;
                     iteration = iteration + 1;
                     
-                    [solLHIterated, shIterated] = obj.CalcMaxSolLHIteration(sh, hydrateBulkSolubility(i), ch4Quantity, temperature(i));
+                    [solLHIterated, shIterated] = obj.CalcMaxSolLHIteration(sh, hydrateBulkSolubility(i), ch4Quantity(i), temperature(i));
                     deltaSh = sh - shIterated;
                     
                     sh = shIterated;
@@ -361,14 +385,14 @@ classdef BCFormation < handle
                         iteration = iteration + 1;
                         
                         % Calculating f(x)
-                        [ sh , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
+                        [ sh , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity(i3P) , ...
                                                                                     sg , solubility , ...
                                                                                     pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
                                                                                     gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
                         deltaSol = solubilityLG - solubilityLH;
                         
                         % Calculating f'(x)
-                        [ ~ , solubilityLGPerturbed , solubilityLHPerturbed ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
+                        [ ~ , solubilityLGPerturbed , solubilityLHPerturbed ] = Calc3PNewtonIteration( obj , ch4Quantity(i3P) , ...
                                                                                     sg + eps , solubility , ...
                                                                                     pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
                                                                                     gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
@@ -427,11 +451,14 @@ classdef BCFormation < handle
             % the input CH4 quantity (since gas = CH4 mass, and CH4 is
             % dissolved in the water
             
-            gramsCH4InCubicMeterWater = solubility * obj.mwCH4 * obj.waterDensity;
+            kgCH4InCubicMeterWater = solubility * obj.mwCH4 * obj.waterDensity;
             
-            sh = ( ch4Quantity - gramsCH4InCubicMeterWater + sg * (gramsCH4InCubicMeterWater - gasDensity) ) / ...
-                    (obj.hydrateDensity * obj.methaneMassFractionInHydrate - gramsCH4InCubicMeterWater );
+            sh = ( ch4Quantity - kgCH4InCubicMeterWater + sg * (kgCH4InCubicMeterWater - gasDensity) ) / ...
+                    (obj.hydrateDensity * obj.methaneMassFractionInHydrate - kgCH4InCubicMeterWater );
             
+            sg(ch4Quantity < kgCH4InCubicMeterWater) = 0;
+            sh(ch4Quantity < kgCH4InCubicMeterWater) = 0;
+
             test = 2;
             switch test
                 case 1
