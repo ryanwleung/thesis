@@ -59,6 +59,10 @@ classdef BCFormation < handle
             
             [ ~ , index3PBulkSolEQL ] = min( abs(temperature - T3PArray) );
             
+            %%% Get bulk saturation from bulk solubilities
+            sgBulk = obj.CalcSg2P( ch4Quantity , solBulkLG , gasDensity );
+            shBulk = obj.CalcSh2P( ch4Quantity , solBulkLH );
+
             %%% Get max solubility (smallest pore) for LG and LH
             %%% along with associated 2P saturations
             [ solMaxLG , sg2P ] = obj.CalcMaxSolLG( ch4Quantity , pressure , gasDensity , solBulkLG );
@@ -108,8 +112,9 @@ classdef BCFormation < handle
             
             
             
-            
-            pcgw2PMPa = obj.CalcPcgw(sg2P);
+            %%% Calculate gas capillary pressures
+            %pcgw2PMPa = obj.CalcPcgw(sg2P);
+            pcgw2PMPa = obj.CalcPcgw(sgBulk);
             pcgw2PPa = pcgw2PMPa .* 1e6;
             
             pcgw3PMPa = obj.CalcPcgw(sg);
@@ -130,8 +135,10 @@ classdef BCFormation < handle
             exportTable.HydrateBulkSol = solBulkLH;
             exportTable.HydrateMinSol = solMinLH;
             exportTable.HydrateMaxSol = solMaxLH;
-            exportTable.GasSat2P = sg2P;
-            exportTable.HydrateSat2P = sh2P;
+            %exportTable.GasSat2P = sg2P;
+            exportTable.GasSat2P = sgBulk;
+            %exportTable.HydrateSat2P = sh2P;
+            exportTable.HydrateSat2P = shBulk;
             exportTable.GasSat3P = sg;
             exportTable.HydrateSat3P = sh;
             exportTable.OverallSol = sol;
@@ -189,7 +196,7 @@ classdef BCFormation < handle
             rockStrengthPa = cumsum(minHorizontalEffectiveStress .* obj.depthIncrement);
             
             
-        end        
+        end
 
         %%% 2P calculations
         % Saturations
@@ -658,15 +665,15 @@ classdef BCFormation < handle
             sg2P(1 : bulkEquilibrium3PIndex - 1) = 0;
             
             sh2P = exportTable.HydrateSat2P;
-            sh2P(bulkEquilibrium3PIndex + 1 : end) = 0;     
+            sh2P(bulkEquilibrium3PIndex : end) = 0;     
             
-            [ depth , sg2P ] = BCFormation.GetModifiedPlotArrays2P( depth , sg2P , bulkEquilibrium3PIndex );
-            [ ~ , sh2P ] = BCFormation.GetModifiedPlotArrays2P( depth , sh2P , bulkEquilibrium3PIndex );
+            [ depthSg , sg2P ] = BCFormation.GetModifiedPlotArrays2P( depth , sg2P , bulkEquilibrium3PIndex );
+            [ depthSh , sh2P ] = BCFormation.GetModifiedPlotArrays2P( depth , sh2P , bulkEquilibrium3PIndex );
 
             figure(sat2PFigure)
             hold on
-            plot( sg2P , depth , lineStyle{1} , 'linewidth' , 3 )
-            plot( sh2P , depth , lineStyle{2} , 'linewidth' , 3 )
+            plot( sg2P , depthSg , lineStyle{1} , 'linewidth' , 3 )
+            plot( sh2P , depthSh , lineStyle{2} , 'linewidth' , 3 )
             xlabel('Saturation')
             ylabel('Depth (mbsf)')
             legend('Gas', 'Hydrate')
