@@ -57,7 +57,7 @@ classdef BCFormation < handle
             [ solBulkLG , solBulkLH , T3PArray ] = ...
                 solubilityCalculator.CalcBulkSolubilities( pressure , temperature , obj.salinityWtPercent );
             
-            [ ~ , index3PBulkSolEQL ] = min( abs(temperature - T3PArray) );
+            [ ~ , index3PBulkSolEQL ] = min(abs(temperature - T3PArray));
             
             %%% Get bulk saturation from bulk solubilities
             sgBulk = obj.CalcSg2P( ch4Quantity , solBulkLG , gasDensity );
@@ -92,7 +92,7 @@ classdef BCFormation < handle
             %%% Setting sh above 3P zone TOP -> sh 2P
             %%%            below 3P zone TOP -> 0
             sh = sh2P;
-            sh(top3PIndex :end) = 0;
+            sh(top3PIndex:end) = 0;
             
             %%% Setting overall solubility to 2P max sol LG and LH cases
             sol = solMaxLH;
@@ -736,7 +736,7 @@ classdef BCFormation < handle
             xlabel('Pressure (MPa)')
             ylabel('Depth (mbsf)')
             set(gca,'YDir','Reverse')
-            legend('Minimum horizontal effective stress', '2-phase gas overpressure', '3-phase gas overpressure')
+            legend('Minimum horizontal effective stress', 'Bulk equilibrium model', 'Three-phase stability model')
         end
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             
@@ -771,7 +771,7 @@ classdef BCFormation < handle
             xlabel('Gas overpressure / rock strength')
             ylabel('Depth (mbsf)')
             set(gca,'YDir','Reverse')
-            legend('2-phase gas overpressure', '3-phase gas overpressure')
+            legend('Bulk equilibrium model', 'Three-phase stability model')
         end
     end
     methods (Static)

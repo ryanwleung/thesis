@@ -12,10 +12,10 @@ classdef DCBlakeRidge < BCFormation
     properties (Constant)
         poissonsRatio = 0.4;
         
-        satAxis = [0 1 460 510];
-        solAxis = [0.18 0.19 460 510];
-        pcgwAxis = [0 2 460 510];
-        ratioAxis = [0 1.2 460 510];
+        satAxis = [0 1 475 500];
+        solAxis = [0.181 0.187 475 500];
+        pcgwAxis = [0 2 475 500];
+        ratioAxis = [0 1 475 500];
     end
     methods
         %%% Constructor
