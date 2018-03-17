@@ -5,10 +5,10 @@ classdef DCHydrateRidge < BCFormation
     properties (Constant)
         poissonsRatio = 0.4;
         
-        satAxis = [0 1 100 160];
-        solAxis = [0.1 0.125 100 160];
-        pcgwAxis = [0 2 100 160];
-        ratioAxis = [0 3.5 100 160];
+        satAxis = [0 1 105 155];
+        solAxis = [0.102 0.122 105 155];
+        pcgwAxis = [0 2 105 155];
+        ratioAxis = [0 3.5 105 155];
     end
     methods
         %%% Constructor
@@ -150,21 +150,21 @@ classdef DCHydrateRidge < BCFormation
             
             figure(solFigure)
             axis(obj.solAxis)
-            title('Hydrate Ridge - Solubility Path')
+            %title('Hydrate Ridge - Solubility Path')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
             sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
             figure(sat2PFigure)
             axis(obj.satAxis)
-            title('Hydrate Ridge - 2 Phase Case')
+            %title('Hydrate Ridge - 2 Phase Case')
         end
         function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
             sat3PFigure = obj.PlotSat3P@BCFormation( sat3PFigure , exportTable , lineStyle );
             
             figure(sat3PFigure)
             axis(obj.satAxis)
-            title('Hydrate Ridge - 3 Phase Case')
+            %title('Hydrate Ridge - 3 Phase Case')
         end        
         
         function PlotMICP( obj )
@@ -212,15 +212,15 @@ classdef DCHydrateRidge < BCFormation
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Hydrate Ridge - Gas Overpressure')
+            %title('Hydrate Ridge - Gas Overpressure')
         end
         function ratioFigure = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
-            
-            title('Hydrate Ridge - Overpressure Ratio')
+
             axis(obj.ratioAxis)
+            %title('Hydrate Ridge - Overpressure Ratio')
         end
         
     end

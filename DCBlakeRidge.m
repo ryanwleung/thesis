@@ -110,21 +110,21 @@ classdef DCBlakeRidge < BCFormation
             
             figure(solFigure)
             axis(obj.solAxis)
-            title('Blake Ridge - Solubility Path')
+            %title('Blake Ridge - Solubility')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
             sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
             figure(sat2PFigure)
             axis(obj.satAxis)
-            title('Blake Ridge - 2 Phase Case')
+            %title('Blake Ridge - 2 Phase Case')
         end
         function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
             sat3PFigure = PlotSat3P@BCFormation( obj , sat3PFigure , exportTable , lineStyle );
             
             figure(sat3PFigure)
             axis(obj.satAxis)
-            title('Blake Ridge - 3 Phase Case')
+            %title('Blake Ridge - 3 Phase Case')
         end
         
         function PlotMICP( obj )
@@ -178,14 +178,14 @@ classdef DCBlakeRidge < BCFormation
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Blake Ridge - Gas Overpressure')
+            %title('Blake Ridge - Gas Overpressure')
         end
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
                         
-            title('Blake Ridge - Overpressure Ratio')
+            %title('Blake Ridge - Overpressure Ratio')
             axis(obj.ratioAxis)
         end
         

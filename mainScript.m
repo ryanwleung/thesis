@@ -52,8 +52,8 @@ clear variables
 % ch4Quantity = 120; % near max for BR
 ch4Quantity = 40;
 
-% obj = DCHydrateRidge();
 obj = DCBlakeRidge();
+% obj = DCHydrateRidge();
 % obj = DCKumanoBasin();
 
 [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);

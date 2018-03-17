@@ -8,10 +8,10 @@ classdef DCKumanoBasin < BCFormation
     properties (Constant)
         poissonsRatio = 0.4;
         
-        satAxis = [0 1 400 430];
-        solAxis = [0.155 0.17 400 430];
-        pcgwAxis = [0 2.5 400 430];
-        ratioAxis = [0 1.2 400 430];
+        satAxis = [0 1 405 428];
+        solAxis = [0.159 0.167 405 428];
+        pcgwAxis = [0 2.5 405 428];
+        ratioAxis = [0 1 405 428];
     end
     methods
         %%% Constructor
@@ -187,21 +187,21 @@ classdef DCKumanoBasin < BCFormation
             
             figure(solFigure)
             axis(obj.solAxis)
-            title('Kumano Basin - Solubility Path')
+            %title('Kumano Basin - Solubility Path')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
             sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
             figure(sat2PFigure)
             axis(obj.satAxis)
-            title('Kumano Basin - 2 Phase Case')
+            %title('Kumano Basin - 2 Phase Case')
         end
         function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
             sat3PFigure = obj.PlotSat3P@BCFormation( sat3PFigure , exportTable , lineStyle );
             
             figure(sat3PFigure)
             axis(obj.satAxis)
-            title('Kumano Basin - 3 Phase Case')
+            %title('Kumano Basin - 3 Phase Case')
         end        
         function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
             pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
@@ -209,15 +209,15 @@ classdef DCKumanoBasin < BCFormation
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Kumano Basin - Gas Overpressure')
+            %title('Kumano Basin - Gas Overpressure')
         end
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
             
-            title('Kumano Basin - Overpressure Ratio')
             axis(obj.ratioAxis)
+            %title('Kumano Basin - Overpressure Ratio')
         end
     end
     methods (Static)
