@@ -381,35 +381,35 @@ classdef DCTheoreticalFormation < BCFormation
         function PlotMethaneQuantities( seafloorDepthArray , minQuantityToFracture2PList , minQuantityToFracture3PList )
             figure
             hold on
-            plot(seafloorDepthArray, minQuantityToFracture2PList, 'linewidth', 3)
-            plot(seafloorDepthArray, minQuantityToFracture3PList, 'linewidth', 3)
+            plot(seafloorDepthArray, minQuantityToFracture2PList, 'r--', 'linewidth', 3)
+            plot(seafloorDepthArray, minQuantityToFracture3PList, 'r-', 'linewidth', 3)
             xlabel('Seafloor depth (m)')
-            ylabel('Minimum methane quantity to fracture (kg/m^3)')
-            legend('2-phase case', '3-phase case')
+            ylabel('Minimum CH_4 to fracture (kg/m^3)')
+            legend('Bulk equilibrium model', 'Three-phase stability model')
             axis([650 inf -inf inf])
             
             figure
             hold on
             plot(seafloorDepthArray, minQuantityToFracture3PList ./ minQuantityToFracture2PList, 'linewidth', 3)
             xlabel('Seafloor depth (m)')
-            ylabel('Ratio of 3P/2P methane quantity to fracture')
+            ylabel('3-phase stability/Bulk EQL CH_4 ratio to fracture')
             axis([650 inf -inf inf])
         end
         function PlotGasSaturations( seafloorDepthArray , sgFracture2PList , sgFracture3PList )
             figure
             hold on
-            plot(seafloorDepthArray, sgFracture2PList, 'linewidth', 3)
-            plot(seafloorDepthArray, sgFracture3PList, 'linewidth', 3)
+            plot(seafloorDepthArray, sgFracture2PList, 'r--', 'linewidth', 3)
+            plot(seafloorDepthArray, sgFracture3PList, 'r-', 'linewidth', 3)
             xlabel('Seafloor depth (m)')
-            ylabel('Gas saturation to fracture')
-            legend('2-phase case', '3-phase case')
+            ylabel('Minimum S_g to fracture')
+            legend('Bulk equilibrium model', 'Three-phase stability model')
             axis([650 inf -inf inf])
             
             figure
             hold on
             plot(seafloorDepthArray, sgFracture3PList ./ sgFracture2PList, 'linewidth', 3)
             xlabel('Seafloor depth (m)')
-            ylabel('Ratio of 3P/2P gas saturation to fracture')
+            ylabel('3-phase stability/Bulk EQL S_g ratio to fracture')
             axis([650 inf 1 inf])
         end
         function PlotDepths( seafloorDepthArray , depthStructList )

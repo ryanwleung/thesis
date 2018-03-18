@@ -768,7 +768,7 @@ classdef BCFormation < handle
             plot( ratio2P , depthFor2P , lineStyleRatio{1} , 'linewidth' , 3 )
             plot( ratio3P , depthFor3P , lineStyleRatio{2} , 'linewidth' , 3 )            
             
-            xlabel('Gas overpressure / rock strength')
+            xlabel('Gas overpressure/minimum horizontal effective stress')
             ylabel('Depth (mbsf)')
             set(gca,'YDir','Reverse')
             legend('Bulk equilibrium model', 'Three-phase stability model')

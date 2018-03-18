@@ -10,7 +10,7 @@ clear variables
 % DCTheoreticalFormation.PlotGasSaturations(seafloorDepthArray, sgFracture2PList, sgFracture3PList);
 % DCTheoreticalFormation.PlotDepths(seafloorDepthArray, depthStructList);
 
-% PlotAllMICP()
+PlotAllMICP()
 
 
 %%% max seafloor depth for current parameters is 2100
@@ -50,16 +50,17 @@ clear variables
 % ch4Quantity = 115; % near max for KB
 % ch4Quantity = 55; % near max for HR
 % ch4Quantity = 120; % near max for BR
-ch4Quantity = 40;
 
-obj = DCBlakeRidge();
+% ch4Quantity = 40;
+
+% obj = DCBlakeRidge();
 % obj = DCHydrateRidge();
 % obj = DCKumanoBasin();
-
-[exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
-exportTable = obj.RunRockAndRatioRoutine(exportTable);
-
-obj.GenerateResultPlots(exportTable, transitionZoneProperties);
+% 
+% [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
+% exportTable = obj.RunRockAndRatioRoutine(exportTable);
+% 
+% obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
 
 %%% Plot results
@@ -109,22 +110,25 @@ obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 function PlotAllMICP()
     figure
     
+    
+
+    obj = DCBlakeRidge();
+    semilogy(1 - obj.MICP1.S_nw, obj.MICP1.Pc_gw, 'Linewidth', 4)
+    hold on
+    semilogy(1 - obj.MICP2.S_nw, obj.MICP2.Pc_gw, 'Linewidth', 4)
+    
     obj = DCHydrateRidge();
     % Copied from DCHydrateRidge method
     semilogy(1 - obj.MICP1.S_nw, obj.MICP1.Pc_gw, 'Linewidth', 4)
     
-    hold on
-
-    obj = DCBlakeRidge();
-    semilogy(1 - obj.MICP1.S_nw, obj.MICP1.Pc_gw, 'Linewidth', 4)
-    semilogy(1 - obj.MICP2.S_nw, obj.MICP2.Pc_gw, 'Linewidth', 4)
+    
     
     obj = DCKumanoBasin();
     semilogy(1 - obj.MICP{1}.SNW, obj.MICP{1}.PcGW, 'Linewidth', 4)
     
 %     xlabel('1 - S_n_w, or S_w')
     xlabel('S_w')
-    ylabel('P_c_g_w in MPa')
-    title('Primary Drainage Capillary Pressure')
-    legend('Hydrate Ridge', 'Blake Ridge 1', 'Blake Ridge 2', 'Kumano Basin')
+    ylabel('P_c_g_w (MPa)')
+%     title('Primary Drainage Capillary Pressure')
+    legend('Blake Ridge 1', 'Blake Ridge 2', 'Hydrate Ridge', 'Kumano Basin')
 end
