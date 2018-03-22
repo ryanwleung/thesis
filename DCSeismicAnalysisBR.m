@@ -37,7 +37,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         phiM = 2.7;
         phiN = 1.9386;
         
-%         gasEOS = 'IdealGasLaw';
+        %gasEOS = 'IdealGasLaw';
         gasEOS = 'Batzle';
         
         rickerFrequency = 30;
@@ -202,8 +202,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     data.Sw = 1 - data.Sh - data.Sg;
                     
                     % Sets indices of depths at BSR and BGHSZ
-%                     Wave.BSR = 354;
-%                     Wave.BGHSZ = 376;
+                    %Wave.BSR = 354;
+                    %Wave.BGHSZ = 376;
                     Wave.BSR = 469;
                     Wave.BGHSZ = 490;
                 otherwise
@@ -311,12 +311,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             Porosity = (a .* Rw ./ Rt ...
                             ./ (Sw .^ n)) ...
                             .^ (1 ./ m);
-%             sum(Sw ~= 1)
+            %sum(Sw ~= 1)
+
             %%% Porosity correction
             Ro = 0.8495 + 2.986e-4 .* obj.depthArray;
             
             sh = 1 - (Ro ./ Rt) .^ (1 / n);
-%             sum((sh < 0))
+            %sum((sh < 0))
             sh(sh < 0) = 0;
             
             PorosityCorrected = Porosity ./ ...
@@ -434,7 +435,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             waterDensity = obj.waterDensity / 1000; % g/cm^3
             gasDensity = 0.3; % g/cm^3
             hydrateDensity = (0.924 + 0.933) / 2; % g/cm^3
-%             hydrateDensity = 0.9; % g/cm^3
+            %hydrateDensity = 0.9; % g/cm^3
             clayDensity = 2.6; % g/cm^3
             sandDensity = 2.7; % g/cm^3
             
@@ -591,9 +592,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         function [ F , T , C ] = CalcSeismogram( obj , timeSeries , reflectionCoefficient )
             logical = isnan(reflectionCoefficient);
-%             if sum(logical) ~= 0
-%                 sum(logical)
-%             end
+            %if sum(logical) ~= 0
+            %    sum(logical)
+            %end
             reflectionCoefficient(logical) = 0;
             
             % Reduce frequency (double wavelength of wavelet) to account
@@ -635,7 +636,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             trailingAmp = [];
             
             [peaks, indices, widths, prominences] = findpeaks(seismogram);
-%             findpeaks(seismogram)
+            %findpeaks(seismogram)
             
             peaksNearBSR = peaks(indices >= obj.searchPeakTopIndex & indices <= obj.searchPeakBottomIndex);
             
@@ -813,7 +814,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                                                     'Color', colorStream(iQuantity,:)', ...
                                                     'linewidth', 2.5);
             end
-%             axis([380 + obj.seafloorDepth, 580 + obj.seafloorDepth, obj.axisMinAmplitude obj.axisMaxAmplitude])
+            %axis([380 + obj.seafloorDepth, 580 + obj.seafloorDepth, obj.axisMinAmplitude obj.axisMaxAmplitude])
             axis([415 + obj.seafloorDepth, 545 + obj.seafloorDepth, obj.axisMinAmplitude obj.axisMaxAmplitude])
             xlabel('Depth (mbsl)')
             ylabel('Amplitude')
@@ -829,12 +830,12 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'Color', colorStream(iQuantity,:)', ...
                     'Linewidth', 2.5)
             end       
-%             axis([4.1 4.3 obj.axisMinAmplitude obj.axisMaxAmplitude])
+            %axis([4.1 4.3 obj.axisMinAmplitude obj.axisMaxAmplitude])
             axis([4.135 4.28 obj.axisMinAmplitude obj.axisMaxAmplitude])
             xlabel('TWT time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
-%             legend( '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            %legend( '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
             
             axis5.Position = [.13 .56 .79 .39];
             axis6.Position = [.13 .07 .79 .39];
@@ -987,7 +988,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 
                 if i == 1
                     ylabel('Depth (mbsl)')
-%                     text(-13, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
+                    %text(-13, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
                     text(15, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
                     text(-28, bulkEQLLine(1), '3P EQL', 'Fontsize', labelLineFont)                    
                 end
@@ -1048,7 +1049,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                         'Color', colorStream(iQuantity,:)', ...
                         'Linewidth', 1);
             end
-%             axis([380 + obj.seafloorDepth 580 + obj.seafloorDepth -0.15 0.1])
+            %axis([380 + obj.seafloorDepth 580 + obj.seafloorDepth -0.15 0.1])
             axis([415 + obj.seafloorDepth, 545 + obj.seafloorDepth, -0.15, 0.1])
             xlabel('Depth (mbsl)')
             ylabel('Amplitude')
@@ -1069,7 +1070,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'Color', colorStream(iQuantity,:)', ...
                     'Linewidth', 1)
             end
-%             axis([4.15 4.35 -0.15 0.1])
+            %axis([4.15 4.35 -0.15 0.1])
             axis([4.19 4.33 -0.15 0.1])
             xlabel('TWT time (seconds)')
             ylabel('Amplitude')
@@ -1167,7 +1168,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xlabel('Transition zone thickness (m)')
             ylabel('Leading peak/trailing peak amplitude')
             axis([0 30 -inf inf])
-%             axis([0 30 0.8 1.3])
+            %axis([0 30 0.8 1.3])
             
             
             %{
@@ -1380,7 +1381,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             set(h,'LineWidth',2.5);
             
             
-%             mean(methaneQuantity(depth >= 3248 & depth <= 3272))
+            %mean(methaneQuantity(depth >= 3248 & depth <= 3272))
             
 
             % Fluid saturations vs depth
