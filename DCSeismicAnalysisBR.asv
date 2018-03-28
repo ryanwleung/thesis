@@ -718,9 +718,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis1 = subplot(2, 2, 4);
             hold on
             
-            if drawRectangleFlag
-                DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 1400, 2400)
-            end
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 1400, 2400)
             
             % Base case
             plot(depth, WaveBase.VPFS, 'k:', 'linewidth', 2.5)
@@ -737,9 +735,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis2 = subplot(2, 2, 3);
             hold on
             
-            if drawRectangleFlag
-                DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 530, 600)
-            end
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 530, 600)
             
             % Base case
             plot(depth, WaveBase.VSFS, 'k:', 'linewidth', 2.5)
@@ -758,9 +754,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis3 = subplot(2, 2, 2);
             hold on
             
-            if drawRectangleFlag
-                DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 1.65, 1.8)
-            end
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 1.65, 1.8)
             
             % Base case
             plot(depth, WaveBase.bulkDensityFS ./ 1000, 'k:', 'linewidth', 2.5)
@@ -777,9 +771,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             axis4 = subplot(2, 2, 1);
             hold on
             
-            if drawRectangleFlag
-                DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 3e9, 8e9)
-            end
+            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 3e9, 8e9)
             
             % Base case
             plot(depth, WaveBase.bulkKFS, 'k:', 'linewidth', 2.5)
@@ -813,9 +805,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end       
             %axis([4.1 4.3 obj.axisMinAmplitude obj.axisMaxAmplitude])
             axis([4.135 4.28 obj.axisMinAmplitude obj.axisMaxAmplitude])
-            xlabel('TWTT (seconds)')
+            xlabel('TWT time (seconds)')
             ylabel('Amplitude')
-%             title('b) Time Series')
+            title('b) Time Series')
             legend( '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
             
 %             axis5.Position = [.13 .56 .79 .39];
@@ -1068,37 +1060,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             depth = obj.depthArrayFull;
             
             
-            %%% Time series seismogram
-            hold on
-            colorStream = colormap(jet(nQuantity));
-            for iQuantity = startIndex:nQuantity
-                plot(Wave.time{iQuantity}, Wave.seismogram{iQuantity}, ...
-                    'Color', colorStream(iQuantity,:)', ...
-                    'Linewidth', 1)
-            end
-            %axis([4.15 4.35 -0.15 0.1])
-            axis([4.19 4.33 -0.15 0.1])
-            xlabel('TWTT (seconds)')
-            ylabel('Amplitude')
-            title('b) Time Series')
-            c2 = colorbar('Limits', [6 40], ...
-                          'Ticks', linspace(6, 40, 5), ...
-                          'TickLabels', linspace(6, 40, 5));
-            caxis([6 40])
-            c2.Label.String = 'Methane quantity (g/dm^3 of pore volume)';
-            c2.Label.FontSize = 8;
-            
-%             axis1.Position = [.13 .56 .63 .39];
-%             axis2.Position = [.13 .07 .61 .39];
-            
-            figure1.Position(3) = 416;
-            set(findall(figure1,'-property','FontSize'),'FontSize',8)
-            set(findall(figure1,'-property','FontName'),'FontName','Arial')
-            
-            
-            
-            %%%%% Old figure with both depth and time series
-            %{
             %%% Depth series seismogram
             axis1 = subplot(2, 1, 1);
             hold on
@@ -1152,7 +1113,6 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             figure1.Position(3) = 416;
             set(findall(figure1,'-property','FontSize'),'FontSize',8)
             set(findall(figure1,'-property','FontName'),'FontName','Arial')
-            %}
         end
         function PlotVelocityStructureOriginalResolution( obj , WaveBase , Wave )
             quantity = obj.selectedQuantities;
