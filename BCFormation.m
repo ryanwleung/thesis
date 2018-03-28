@@ -611,7 +611,17 @@ classdef BCFormation < handle
             lineStyleRatio{2} = 'r-';    
             
             
-            
+
+
+            combinedFormationFigure = figure();
+            combinedFormationFigure = obj.PlotSol( combinedFormationFigure , exportTable , true );
+            combinedFormationFigure = obj.PlotSat2P( combinedFormationFigure , exportTable , transitionZoneProperties , lineStyle2D );
+            combinedFormationFigure = obj.PlotSat3P( combinedFormationFigure , exportTable , lineStyle3D );
+
+            ratioFigure = figure();
+            ratioFigure = obj.PlotRatio( ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
+
+            %{
             solFigure = figure();
             sat2PFigure = figure();
             sat3PFigure = figure();
@@ -619,14 +629,29 @@ classdef BCFormation < handle
             ratioFigure = figure();
 
             solFigure = obj.PlotSol( solFigure , exportTable , true );
-            
+
             sat2PFigure = obj.PlotSat2P( sat2PFigure , exportTable , transitionZoneProperties , lineStyle2D );
             sat3PFigure = obj.PlotSat3P( sat3PFigure , exportTable , lineStyle3D );
             
             pcgwFigure = obj.PlotRockStrength( pcgwFigure  , exportTable );
             pcgwFigure = obj.PlotPcgw( pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
             ratioFigure = obj.PlotRatio( ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
-            
+            %}
+
+
+            %{
+            figure(solFigure)
+            solAx = gca;
+            figure(sat2PFigure)
+            sat2PAx = gca;
+            figure(sat3PFigure)
+            sat3PAx = gca;
+
+            combinedFormationFigure = figure();
+            subplot(1, 3, 1, solAx);
+            subplot(1, 3, 2, sat2PAx);
+            subplot(1, 3, 3, sat3PAx);
+            %}
         end
         function [ solFigure ] = PlotSol( ~ , solFigure , exportTable , doPlotBulkAndMinSol )
             depth = exportTable.Depth;
@@ -640,7 +665,11 @@ classdef BCFormation < handle
             
             width = 2;
             
-            figure(solFigure)
+            %figure(solFigure)
+            subplot(1, 3, 3);
+            
+
+
             hold on
             if doPlotBulkAndMinSol
                 plot( solBulkLG , depth , 'r-' , 'linewidth' , width )
@@ -670,7 +699,11 @@ classdef BCFormation < handle
             [ depthSg , sg2P ] = BCFormation.GetModifiedPlotArrays2P( depth , sg2P , bulkEquilibrium3PIndex );
             [ depthSh , sh2P ] = BCFormation.GetModifiedPlotArrays2P( depth , sh2P , bulkEquilibrium3PIndex );
 
-            figure(sat2PFigure)
+            %figure(sat2PFigure)
+
+            subplot(1, 3, 1);
+
+
             hold on
             plot( sg2P , depthSg , lineStyle{1} , 'linewidth' , 3 )
             plot( sh2P , depthSh , lineStyle{2} , 'linewidth' , 3 )
@@ -684,7 +717,11 @@ classdef BCFormation < handle
             sg3P = exportTable.GasSat3P;
             sh3P = exportTable.HydrateSat3P;
             
-            figure(sg3PFigure)
+            %figure(sg3PFigure)
+
+            subplot(1, 3, 2);
+
+
             hold on
             plot( sg3P , depth , lineStyle{1} , 'linewidth' , 3 )
             plot( sh3P , depth , lineStyle{2} , 'linewidth' , 3 )
@@ -768,7 +805,8 @@ classdef BCFormation < handle
             plot( ratio2P , depthFor2P , lineStyleRatio{1} , 'linewidth' , 3 )
             plot( ratio3P , depthFor3P , lineStyleRatio{2} , 'linewidth' , 3 )            
             
-            xlabel('Gas overpressure/minimum horizontal effective stress')
+            %xlabel('Gas overpressure/minimum horizontal effective stress')
+            xlabel('Overpressure ratio')
             ylabel('Depth (mbsf)')
             set(gca,'YDir','Reverse')
             legend('Bulk equilibrium model', 'Three-phase stability model')

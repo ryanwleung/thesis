@@ -412,6 +412,46 @@ classdef DCTheoreticalFormation < BCFormation
             ylabel('3-phase stability/Bulk EQL S_g ratio to fracture')
             axis([650 inf 1 inf])
         end
+        function PlotCombined( seafloorDepthArray , minQuantityToFracture2PList , minQuantityToFracture3PList , sgFracture2PList , sgFracture3PList )
+            figure
+
+            subplot(1, 2, 1)
+            yyaxis right
+            hold on
+            h1 = plot(seafloorDepthArray, minQuantityToFracture2PList, 'linewidth', 3);
+            h2 = plot(seafloorDepthArray, minQuantityToFracture3PList, 'linewidth', 3);
+            xlabel('Seafloor depth (m)')
+            ylabel('Minimum CH_4 to fracture (kg/m^3)')
+            %legend([h1, h2], 'Bulk equilibrium model', 'Three-phase stability model')
+            axis([650 inf -inf inf])
+            
+            yyaxis left
+            plot(seafloorDepthArray, minQuantityToFracture3PList ./ minQuantityToFracture2PList, 'linewidth', 3)
+            ylabel('3-phase stability/Bulk EQL CH_4 ratio to fracture')
+            axis([650 inf -inf inf])
+
+            legend([h1, h2], 'Bulk equilibrium model', 'Three-phase stability model')
+
+
+
+
+            subplot(1, 2, 2)
+            yyaxis right
+            hold on
+            plot(seafloorDepthArray, sgFracture2PList, 'linewidth', 3)
+            plot(seafloorDepthArray, sgFracture3PList, 'linewidth', 3)
+            xlabel('Seafloor depth (m)')
+            ylabel('Minimum S_g to fracture')
+            axis([650 inf -inf inf])
+            
+            yyaxis left
+            plot(seafloorDepthArray, sgFracture3PList ./ sgFracture2PList, 'linewidth', 3)
+            ylabel('3-phase stability/Bulk EQL S_g ratio to fracture')
+            axis([650 inf 1 inf])
+
+            
+        end
+
         function PlotDepths( seafloorDepthArray , depthStructList )
             n = numel(depthStructList);
             

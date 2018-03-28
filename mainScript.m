@@ -5,12 +5,15 @@ clear variables
 % load('180202 simulation results.mat')
 % load('180211 simulation results.mat')
 % load('180219 simulation results.mat')
-% load('180307 simulation results.mat')
+load('180307 simulation results.mat')
+DCTheoreticalFormation.PlotCombined(seafloorDepthArray, ...
+                                    minQuantityToFracture2PList, minQuantityToFracture3PList, ...
+                                    sgFracture2PList, sgFracture3PList)
 % DCTheoreticalFormation.PlotMethaneQuantities(seafloorDepthArray, minQuantityToFracture2PList, minQuantityToFracture3PList);
 % DCTheoreticalFormation.PlotGasSaturations(seafloorDepthArray, sgFracture2PList, sgFracture3PList);
 % DCTheoreticalFormation.PlotDepths(seafloorDepthArray, depthStructList);
 
-PlotAllMICP()
+% PlotAllMICP()
 
 
 %%% max seafloor depth for current parameters is 2100
@@ -52,9 +55,9 @@ PlotAllMICP()
 % ch4Quantity = 120; % near max for BR
 
 % ch4Quantity = 40;
-
-% obj = DCBlakeRidge();
-% obj = DCHydrateRidge();
+% 
+% % obj = DCBlakeRidge();
+% % obj = DCHydrateRidge();
 % obj = DCKumanoBasin();
 % 
 % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
