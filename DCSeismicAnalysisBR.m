@@ -750,7 +750,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xlabel('Depth (mbsl)')
             ylabel('Shear wave velocity (m/s)')
             axis([axisMinDepth axisMaxDepth 530 600])
-            legend( '0 g/dm^3' , '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            legend( '0 kg/m^3' , '6 kg/m^3' , '15 kg/m^3' , '23 kg/m^3' , '32 kg/m^3' , '40 kg/m^3' )
             title('c')
 
 
@@ -804,7 +804,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             %%%%% Figure 2 only time series
             figure2 = figure();
-%             axis6 = subplot(2, 1, 2);
+            % axis6 = subplot(2, 1, 2);
             hold on
             for iQuantity = quantity
                 plot(Wave.time{iQuantity}, Wave.seismogram{iQuantity}, ...
@@ -813,15 +813,15 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end       
             %axis([4.1 4.3 obj.axisMinAmplitude obj.axisMaxAmplitude])
             axis([4.135 4.28 obj.axisMinAmplitude obj.axisMaxAmplitude])
-            xlabel('TWTT (seconds)')
+            xlabel('TWTT (s)')
             ylabel('Amplitude')
-%             title('b) Time Series')
-            legend( '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            % title('b) Time Series')
+            legend( '6 kg/m^3' , '15 kg/m^3' , '23 kg/m^3' , '32 kg/m^3' , '40 kg/m^3' )
             
-%             axis5.Position = [.13 .56 .79 .39];
-%             axis6.Position = [.13 .07 .79 .39];
+            % axis5.Position = [.13 .56 .79 .39];
+            % axis6.Position = [.13 .07 .79 .39];
             
-            figure2.Position(3) = 416;
+            %figure2.Position(3) = 416;
             set(findall(figure2,'-property','FontSize'),'FontSize',8)
             set(findall(figure2,'-property','FontName'),'FontName','Arial')
             
@@ -851,7 +851,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xlabel('Depth (mbsl)')
             ylabel('Amplitude')
             title('a) Depth Series')
-            legend( [figureCellArray{:}], '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            legend( [figureCellArray{:}], '6 kg/m^3' , '15 kg/m^3' , '23 kg/m^3' , '32 kg/m^3' , '40 kg/m^3' )
             
             
             %%% Time series seismogram
@@ -867,7 +867,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xlabel('TWT time (seconds)')
             ylabel('Amplitude')
             title('b) Time Series')
-            %legend( '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' )
+            %legend( '6 kg/m^3' , '15 kg/m^3' , '23 kg/m^3' , '32 kg/m^3' , '40 kg/m^3' )
             
             axis5.Position = [.13 .56 .79 .39];
             axis6.Position = [.13 .07 .79 .39];
@@ -1051,7 +1051,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                         xData, yData, 'ks');
 
             set(axis1, 'Linewidth', 1.5)
-            xlabel('Methane quantity (g/dm^3 of pore volume)')
+            xlabel('Methane quantity (kg/m^3 of pore volume)')
             ylabel('Transition zone thickness (m)')
             axis([xData(1) xData(end) -inf inf])
             set(gca, 'XScale', 'log')
@@ -1078,20 +1078,20 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             %axis([4.15 4.35 -0.15 0.1])
             axis([4.19 4.33 -0.15 0.1])
-            xlabel('TWTT (seconds)')
+            xlabel('TWTT (s)')
             ylabel('Amplitude')
-            title('b) Time Series')
+            %title('b) Time Series')
             c2 = colorbar('Limits', [6 40], ...
                           'Ticks', linspace(6, 40, 5), ...
                           'TickLabels', linspace(6, 40, 5));
             caxis([6 40])
-            c2.Label.String = 'Methane quantity (g/dm^3 of pore volume)';
+            c2.Label.String = 'Methane quantity (kg/m^3 of pore volume)';
             c2.Label.FontSize = 8;
             
-%             axis1.Position = [.13 .56 .63 .39];
-%             axis2.Position = [.13 .07 .61 .39];
+            % axis1.Position = [.13 .56 .63 .39];
+            % axis2.Position = [.13 .07 .61 .39];
             
-            figure1.Position(3) = 416;
+            %figure1.Position(3) = 416;
             set(findall(figure1,'-property','FontSize'),'FontSize',8)
             set(findall(figure1,'-property','FontName'),'FontName','Arial')
             
@@ -1122,7 +1122,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                           'Ticks', linspace(6, 40, 5), ...
                           'TickLabels', linspace(6, 40, 5));
             caxis([6 40])
-            c1.Label.String = 'Methane quantity (g/dm^3 of pore volume)';
+            c1.Label.String = 'Methane quantity (kg/m^3 of pore volume)';
             c1.Label.FontSize = 8;
             
             %%% Time series seismogram
@@ -1143,7 +1143,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                           'Ticks', linspace(6, 40, 5), ...
                           'TickLabels', linspace(6, 40, 5));
             caxis([6 40])
-            c2.Label.String = 'Methane quantity (g/dm^3 of pore volume)';
+            c2.Label.String = 'Methane quantity (kg/m^3 of pore volume)';
             c2.Label.FontSize = 8;
             
             axis1.Position = [.13 .56 .63 .39];
@@ -1180,8 +1180,38 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xlabel('Depth (mbsl)')
             ylabel('Compressional wave velocity (m/s)')
             axis([450 + obj.seafloorDepth 510 + obj.seafloorDepth 1200 2400])
-            legend('0 g/dm^3', '6 g/dm^3', '15 g/dm^3', '23 g/dm^3', '32 g/dm^3', '40 g/dm^3')
-            title('Preupscaled Compressional Wave Velocity')
+            legend('0 kg/m^3', '6 kg/m^3', '15 kg/m^3', '23 kg/m^3', '32 kg/m^3', '40 kg/m^3')
+            %title('Preupscaled Compressional Wave Velocity')
+        end
+        function PlotTWTTLength( obj , Wave )
+            
+            startIndex = 6;
+            
+            %quantity = obj.selectedQuantities;
+            quantity = obj.quantityArray;
+
+            nQuantity = numel(quantity);
+            TTWTLength = zeros(nQuantity, 1);
+            for iQuantity = 1:nQuantity
+                [peaks, indices, widths, prominences] = findpeaks(Wave.seismogram{iQuantity});
+            
+                peakIndicies = indices(indices >= obj.searchPeakTopIndex & indices <= obj.searchPeakBottomIndex);
+            
+                if numel(peakIndicies) == 2
+                    TTWTLength(iQuantity) = Wave.time{iQuantity}(peakIndicies(2)) - Wave.time{iQuantity}(peakIndicies(1));
+                end
+            end
+
+            figure
+            %hold on
+            
+            %plot([0 30], [1 1], '--', 'Color', [.4 .4 .4], 'linewidth', 1.5)
+            
+            plot(quantity(startIndex:end), TTWTLength(startIndex:end), 'ks', 'Linewidth', 1.5);
+            xlabel('Methane quantity (kg/m^3 of pore volume)')
+            ylabel('Time difference between peaks (s)')
+            axis([quantity(startIndex) quantity(end) 0.03 0.05])
+
         end
         function PlotPeakAmplitudeRatio( ~ , Wave )
             %%% Smoothing calculation
@@ -1265,7 +1295,33 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             colorStream = jet(numel(WaveOriginalResolution.seismogram));
             
             figure1 = figure();
+
+            hold on
+            for iQuantity = quantity
+                plot(WaveOriginalResolution.time{iQuantity}, WaveOriginalResolution.seismogram{iQuantity}, ...
+                    'Color', colorStream(iQuantity,:)', ...
+                    'Linewidth', 2.5)
+            end
             
+            plot(WaveDickens.time, WaveDickens.seismogram, ...
+                    'k:', ...
+                    'Linewidth', 2.5)
+            
+            axis([4.19 4.33 -0.15 0.15])
+            xlabel('TWTT (s)')
+            ylabel('Amplitude')
+            %title('b) Time Series')
+            
+            %axis1.Position = [.15 .56 .78 .39];
+            %axis2.Position = [.15 .07 .78 .39];
+            
+            %figure1.Position(3) = 416;
+            %figure1.Position(4) = 674; %
+            %figure1.Position(2) = 10; %
+            set(findall(figure1,'-property','FontSize'),'FontSize',8)
+            set(findall(figure1,'-property','FontName'),'FontName','Arial')
+            
+            %{
             %%% Depth series seismogram
             axis1 = subplot(2, 1, 1);
             hold on
@@ -1291,7 +1347,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             xlabel('Depth (mbsl)')
             ylabel('Amplitude')
             title('a) Depth Series')
-            legend( [figureCellArray{:}], '6 g/dm^3' , '15 g/dm^3' , '23 g/dm^3' , '32 g/dm^3' , '40 g/dm^3' , 'Variable' )
+            legend( [figureCellArray{:}], '6 kg/m^3' , '15 kg/m^3' , '23 kg/m^3' , '32 kg/m^3' , '40 kg/m^3' , 'Variable' )
             
             
             %%% Time series seismogram
@@ -1320,6 +1376,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             figure1.Position(2) = 10; %
             set(findall(figure1,'-property','FontSize'),'FontSize',8)
             set(findall(figure1,'-property','FontName'),'FontName','Arial')
+            %}
         end
         
         %%% Loading methods
@@ -1440,9 +1497,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             set(gca,'YDir','Reverse')
             axis([0 40 100 + obj.seafloorDepth 600 + obj.seafloorDepth])
             % grid on
-            xlabel('Methane quantity (g/dm^3 of pore volume)')
+            xlabel('Methane quantity (kg/m^3 of pore volume)')
             ylabel('Depth (mbsl)')
-            title('a) Experimentally Measured Methane Quantity')
+            %title('a) Experimentally Measured Methane Quantity')
+            title('a')
             set(h,'LineWidth',2.5);
             
             
@@ -1467,7 +1525,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % axis([0 0.2 420 520])
             xlabel('Fluid saturations')
             ylabel('Depth (mbsl)')
-            title('b) Variable Methane Quantity Scenario')
+            %title('b) Variable Methane Quantity Scenario')
+            title('b')
             % grid on
             legend('Hydrate saturation' , 'Gas saturation' )
             
