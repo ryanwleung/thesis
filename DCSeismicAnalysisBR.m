@@ -879,12 +879,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         function PlotBackgroundProperties( obj , dataBase )
             
-            BSRTop = 456 + obj.seafloorDepth; % mbsl
-            BSRBottom = 472 + obj.seafloorDepth; % mbsl
-            bulkEQLDepth = 481 + obj.seafloorDepth; % mbsl
+            BSRTop = 3236; % mbsl
+            BSRBottom = 3252; % mbsl
+            bulkEQLDepth = 3261; % mbsl
             bulkEQLLine = [bulkEQLDepth bulkEQLDepth];
-            
-            depthAxis = [160 500] + obj.seafloorDepth;
+            drawBSRBox = false;
+
+            %depthAxis = [160 500] + obj.seafloorDepth;
+            depthAxis = [3200 3300];
             
             plotLineWidth = 1.5;
             markerLineWidth = 1.25;
@@ -992,7 +994,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 end
                 
                 if i ~= 3
-                    DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+                    if drawBSRBox
+                        DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+                    end
                 end
 
                 if i == 2
@@ -1004,7 +1008,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 elseif i == 3
                     semilogx(xLine, bulkEQLLine, 'k--', 'Linewidth', markerLineWidth)
                     hold on
-                    DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+                    if drawBSRBox
+                        DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, BSRTop, BSRBottom)
+                    end
                     semilogx(xCell{i}, yCell{i}, 'k', 'Linewidth', plotLineWidth)
                     grid on
                     axisCell{i}.XTick = xTickCell{i};
@@ -1021,9 +1027,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 
                 if i == 1
                     ylabel('Depth (mbsl)')
-                    %text(-13, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
-                    text(15, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
-                    text(-28, bulkEQLLine(1), '3P EQL', 'Fontsize', labelLineFont)                    
+                    % OLD text(-13, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
+                    %text(15, (BSRTop + BSRBottom)/2, 'BSR', 'Fontsize', labelLineFont)
+                    %text(-28, bulkEQLLine(1), '3P EQL', 'Fontsize', labelLineFont)                    
                 end
                 
                 if i ~= 3
