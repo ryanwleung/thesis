@@ -39,6 +39,12 @@ classdef BCFormation < handle
         %%% Main methods
         function [ exportTable , transitionZoneProperties ] = RunSolubilitySaturationRoutine( obj , ch4Quantity )
             
+            %%% 100 sampling points
+            %%% sol axis increasing up (not reversed) and plot all lines
+            %%% pressure 8-16 MPa
+            %%% temperature 15-20 C
+            %%% tweak ch4 quantity to match initial hydrate saturation
+            
             %%% Get depth and depth dependent parameters
             depth = obj.depthArray;
             pressure = obj.CalcPressure( depth );

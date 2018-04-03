@@ -97,7 +97,7 @@ switch test
         obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBaseParameterSensitivity)
 %         obj.PlotPhaseSaturations()
         obj.PlotBackgroundProperties(dataBase)
-%         obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
+        obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
 %         obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
         obj.PlotTWTTLength(WaveParameterSensitivity)
         
