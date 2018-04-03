@@ -21,6 +21,9 @@ classdef BCFormation < handle
         phi0
         phiInf
         B
+        
+        runDaigleCases
+        scenario
     end
     properties (Constant)
         waterDensity = 1024;        % kg H2O/m^3 H2O
@@ -33,7 +36,8 @@ classdef BCFormation < handle
         function [ obj ] = BCFormation()
             % Calculations
             obj.methaneMassFractionInHydrate = 4*obj.mwCH4 / (4*obj.mwCH4 + 23*obj.mwH2O);
-
+            obj.runDaigleCases = 0;
+            obj.scenario = 0;
         end
                 
         %%% Main methods
@@ -49,6 +53,47 @@ classdef BCFormation < handle
             depth = obj.depthArray;
             pressure = obj.CalcPressure( depth );
             temperature = obj.CalcTemperature( depth );
+            
+            if obj.runDaigleCases
+                nSamples = 100;
+                depth = -ones(nSamples, 1);
+                %%% Typed-in pressure is MPa
+                %%% Typed-in temperature is in deg C
+                %%% These are converted to Pa and K after the switch block
+                switch obj.scenario
+                    case 1
+                        temperature = 19.4 .* ones(nSamples, 1);
+                        pressure = linspace(15, 24.7, nSamples)';
+                        lognormalMu = 3;
+                        lognormalSigma = 0.69;
+                    case 2
+                        temperature = 19.4 .* ones(nSamples, 1);
+                        pressure = linspace(15, 24.7, nSamples)';
+                        lognormalMu = -0.1;
+                        lognormalSigma = 2.25;
+                        
+                        
+                    case 3
+                        temperature = 13.3 .* ones(nSamples, 1);
+                        pressure = linspace(8, 16.8, nSamples)';
+                        lognormalMu = 3;
+                        lognormalSigma = 0.69;
+                        
+                        
+                    case 4
+                        temperature = linspace(6.8, 15, nSamples)';
+                        pressure = 5.62 .* ones(nSamples, 1);
+                        lognormalMu = 3;
+                        lognormalSigma = 0.69;
+                    otherwise
+                        error('Unknown scenario number')
+                end
+                pressure = pressure .* 1e6;
+                temperature = temperature + 273.15;
+            end
+            
+            
+            
             gasDensity = BCFormation.CalcGasDensityArray( pressure , temperature );
             
             %%% Load ch4 quantity array

@@ -148,28 +148,47 @@ classdef DCKumanoBasin < BCFormation
         
         
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
-            % accepts nonwettingSaturation as an array
-            nInterpSets = numel(obj.MICPInterp);
-            nSnw = numel(nonwettingSaturation);
+            if obj.runDaigleCases
+                %%% Daigle's lognormal distribution
+                
+                
+                
+                
+            else
+                %%% Regular Kumano Basin capillary pressure
             
-            pcgwSets = zeros(nSnw, nInterpSets);
-            
-            
-            for iInterpSets = 1:nInterpSets
-                tempTable = obj.MICPInterp{iInterpSets};
-                pcgwSets(:, iInterpSets) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
+                % accepts nonwettingSaturation as an array
+                nInterpSets = numel(obj.MICPInterp);
+                nSnw = numel(nonwettingSaturation);
+
+                pcgwSets = zeros(nSnw, nInterpSets);
+
+
+                for iInterpSets = 1:nInterpSets
+                    tempTable = obj.MICPInterp{iInterpSets};
+                    pcgwSets(:, iInterpSets) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
+                end
+                pcgwInterp = mean(pcgwSets, 2);
             end
-            pcgwInterp = mean(pcgwSets, 2);
         end
         function [ pchwInterp ] = CalcPchw( obj , nonwettingSaturation )
-            % does not accept nonwettingSaturation as an array
-            n = numel(obj.MICPInterp);
-            pcgwArray = zeros(n, 1);
-            for i = 1:n
-                tempTable = obj.MICPInterp{i};
-                pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcHW, nonwettingSaturation);
+            if obj.runDaigleCases
+                %%% Daigle's lognormal distribution
+                
+                
+            else
+                %%% Regular Kumano Basin capillary pressure
+
+                % does not accept nonwettingSaturation as an array
+                n = numel(obj.MICPInterp);
+                pcgwArray = zeros(n, 1);
+                for i = 1:n
+                    tempTable = obj.MICPInterp{i};
+                    pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcHW, nonwettingSaturation);
+                end
+                pchwInterp = mean(pcgwArray);
             end
-            pchwInterp = mean(pcgwArray);
+                
         end
         
         function [ averagePcgwPlot , snwPlot ] = GetInterpMICPForPlotting( obj )

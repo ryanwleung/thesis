@@ -17,6 +17,28 @@ clear variables
 % PlotAllMICP()
 
 
+
+%%% Daigle scenario generation
+obj = DCKumanoBasin();
+obj.runDaigleCases = true;
+obj.scenario = 1;
+
+switch obj.scenario
+    case 1
+        ch4Quantity = 40;
+    case 2
+        ch4Quantity = 40;
+    case 3
+        ch4Quantity = 40;
+    case 4
+        ch4Quantity = 40;
+end
+
+[exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
+
+
+
+
 %%% max seafloor depth for current parameters is 2100
 % seafloorDepthArray = (500:50:2100)';
 % seafloorDepthArray = (500:50:800)';
@@ -56,7 +78,7 @@ clear variables
 % ch4Quantity = 120; % near max for BR
 
 % ch4Quantity = 40;
-% 
+% % 
 % % obj = DCBlakeRidge();
 % % obj = DCHydrateRidge();
 % obj = DCKumanoBasin();
@@ -86,32 +108,32 @@ clear variables
 
 
 % %%% Seismic analysis for Blake Ridge
-obj = DCSeismicAnalysisBR();
-
-test = 1;
-
-switch test
-    case 1
-        [ WaveParameterSensitivity , ~ , WaveBaseParameterSensitivity , dataBase , ~ ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity');
-
-        obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBaseParameterSensitivity)
-%         obj.PlotPhaseSaturations()
-        obj.PlotBackgroundProperties(dataBase)
-        obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
-%         obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
-        obj.PlotTWTTLength(WaveParameterSensitivity)
-        
-    case 2
-        obj.Dickens = obj.LoadDickensBlakeRidge();
-        [ WaveOriginalResolution , data , WaveBaseOriginalResolution , ~ , WaveDickens ] = obj.RunSeismicAnalysisRoutine('OriginalResolution');
-        
-        obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
-        obj.PlotVelocityStructureOriginalResolution(WaveBaseOriginalResolution, WaveOriginalResolution)
-%         obj.PlotPeakAmplitudeRatio(WaveOriginalResolution)
-        obj.PlotTWTTLength(WaveOriginalResolution)
-        obj.PlotDickensSeismogram(WaveOriginalResolution, WaveDickens)
-        
-end
+% obj = DCSeismicAnalysisBR();
+% 
+% test = 1;
+% 
+% switch test
+%     case 1
+%         [ WaveParameterSensitivity , ~ , WaveBaseParameterSensitivity , dataBase , ~ ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity');
+% 
+%         obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBaseParameterSensitivity)
+% %         obj.PlotPhaseSaturations()
+%         obj.PlotBackgroundProperties(dataBase)
+%         obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
+% %         obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
+%         obj.PlotTWTTLength(WaveParameterSensitivity)
+%         
+%     case 2
+%         obj.Dickens = obj.LoadDickensBlakeRidge();
+%         [ WaveOriginalResolution , data , WaveBaseOriginalResolution , ~ , WaveDickens ] = obj.RunSeismicAnalysisRoutine('OriginalResolution');
+%         
+%         obj.PlotSeismogramOriginalResolution(WaveOriginalResolution)
+%         obj.PlotVelocityStructureOriginalResolution(WaveBaseOriginalResolution, WaveOriginalResolution)
+% %         obj.PlotPeakAmplitudeRatio(WaveOriginalResolution)
+%         obj.PlotTWTTLength(WaveOriginalResolution)
+%         obj.PlotDickensSeismogram(WaveOriginalResolution, WaveDickens)
+%         
+% end
 
 function PlotAllMICP()
     figure
