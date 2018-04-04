@@ -25,13 +25,13 @@ obj.scenario = 4;
 
 switch obj.scenario
     case 1
-        ch4Quantity = 50;
+        ch4Quantity = 100;
     case 2
-        ch4Quantity = 50;
+        ch4Quantity = 27;
     case 3
-        ch4Quantity = 50;
+        ch4Quantity = 53;
     case 4
-        ch4Quantity = 35;
+        ch4Quantity = 38;
 end
 
 [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutineExperimental(ch4Quantity);

@@ -224,12 +224,14 @@ classdef BCFormation < handle
                 switch obj.scenario
                     case 1
                         temperature = 19.4 .* ones(nSamples, 1);
-                        pressure = linspace(15, 24.7, nSamples)';
+                        %pressure = linspace(15, 24.7, nSamples)';
+                        pressure = linspace(20, 26, nSamples)';
                         obj.lognormalMu = 3.355732273553991;
                         obj.lognormalSigma = 0.6;
                     case 2
                         temperature = 19.4 .* ones(nSamples, 1);
-                        pressure = linspace(15, 24.7, nSamples)';
+                        %pressure = linspace(15, 24.7, nSamples)';
+                        pressure = linspace(20, 26, nSamples)';
                         obj.lognormalMu = 2.810810149055314;
                         obj.lognormalSigma = 0.93;
                     case 3
@@ -238,7 +240,8 @@ classdef BCFormation < handle
                         obj.lognormalMu = 3.355732273553991;
                         obj.lognormalSigma = 0.6;
                     case 4
-                        temperature = linspace(6.8, 15, nSamples)';
+                        %temperature = linspace(6.8, 15, nSamples)';
+                        temperature = linspace(6, 12, nSamples)';
                         pressure = 5.62 .* ones(nSamples, 1);
                         obj.lognormalMu = 3.355732273553991;
                         obj.lognormalSigma = 0.6;
@@ -364,6 +367,17 @@ classdef BCFormation < handle
                         sgIterate = sgIterate - deltaSol/slope;
                         % Update solubility by taking the average of the 2
                         solIterate = (solubilityLG + solubilityLH) / 2;
+                        
+                        if sgIterate < 0
+                            sgIterate = 0;
+                            solIterate = solMaxLH(iSamples);
+                            break
+                        elseif sgIterate > 1
+                            sgIterate = 1;
+                            solIterate = solMaxLG(iSamples);
+                            break
+                        end
+                        
                     end
 
                     if solIterate < solMaxLG(iSamples)
