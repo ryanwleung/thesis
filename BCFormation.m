@@ -202,7 +202,266 @@ classdef BCFormation < handle
             transitionZoneProperties.Thickness = [];
             transitionZoneProperties.Bulk3PSolEQLIndex = index3PBulkSolEQL;
         end
-        
+        function [ exportTable , transitionZoneProperties ] = RunSolubilitySaturationRoutineExperimental( obj , ch4Quantity )
+            
+            %%% 100 sampling points
+            %%% sol axis increasing up (not reversed) and plot all lines
+            %%% pressure 8-16 MPa
+            %%% temperature 15-20 C
+            %%% tweak ch4 quantity to match initial hydrate saturation
+            
+            %%% Get depth and depth dependent parameters
+            depth = obj.depthArray;
+            pressure = obj.CalcPressure( depth );
+            temperature = obj.CalcTemperature( depth );
+            
+            if obj.runDaigleCases
+                nSamples = 100;
+                depth = -ones(nSamples, 1);
+                %%% Typed-in pressure is MPa
+                %%% Typed-in temperature is in deg C
+                %%% These are converted to Pa and K after the switch block
+                switch obj.scenario
+                    case 1
+                        temperature = 19.4 .* ones(nSamples, 1);
+                        pressure = linspace(15, 24.7, nSamples)';
+                        obj.lognormalMu = 3.355732273553991;
+                        obj.lognormalSigma = 0.6;
+                    case 2
+                        temperature = 19.4 .* ones(nSamples, 1);
+                        pressure = linspace(15, 24.7, nSamples)';
+                        obj.lognormalMu = 2.810810149055314;
+                        obj.lognormalSigma = 0.93;
+                    case 3
+                        temperature = 13.3 .* ones(nSamples, 1);
+                        pressure = linspace(8, 16.8, nSamples)';
+                        obj.lognormalMu = 3.355732273553991;
+                        obj.lognormalSigma = 0.6;
+                    case 4
+                        temperature = linspace(6.8, 15, nSamples)';
+                        pressure = 5.62 .* ones(nSamples, 1);
+                        obj.lognormalMu = 3.355732273553991;
+                        obj.lognormalSigma = 0.6;
+                    otherwise
+                        error('Unknown scenario number')
+                end
+                pressure = pressure .* 1e6;
+                temperature = temperature + 273.15;
+            end
+            
+            
+            
+            gasDensity = BCFormation.CalcGasDensityArray( pressure , temperature );
+            
+            %%% Load ch4 quantity array
+            ch4Quantity = ch4Quantity .* ones(numel(depth), 1);
+            % ch4Quantity = ch4Quantity .* zeros(numel(depth), 1);
+            % ch4Quantity(1:3:end) = 0;
+
+            %%% Instantiate solubility class object
+            solubilityCalculator = BCSolubilityUtil();
+            
+            %%% Bulk solubility calculations
+            [ solBulkLG , solBulkLH , T3PArray ] = ...
+                solubilityCalculator.CalcBulkSolubilities( pressure , temperature , obj.salinityWtPercent );
+            
+            %[ ~ , index3PBulkSolEQL ] = min(abs(temperature - T3PArray));
+            
+            %%% Get bulk saturation from bulk solubilities
+            sgBulk = obj.CalcSg2P( ch4Quantity , solBulkLG , gasDensity );
+            shBulk = obj.CalcSh2P( ch4Quantity , solBulkLH );
+
+            %%% Get max solubility (smallest pore) for LG and LH
+            %%% along with associated 2P saturations
+            [ solMaxLG , sg2P ] = obj.CalcMaxSolLG( ch4Quantity , pressure , gasDensity , solBulkLG );
+            [ solMaxLH , sh2P ] = obj.CalcMaxSolLH( ch4Quantity , temperature , solBulkLH );
+
+            %%% Get min solubility (largest pore associated with entry
+            %%% capillary pressure) for LG and LH
+            solMinLG = BCFormation.CalcSolubilityLG( solBulkLG , obj.CalcPcgw(0) * 1e6 , pressure );
+            solMinLH = BCFormation.CalcSolubilityLH( solBulkLH , obj.CalcPchw(0) * 1e6 , temperature );
+            
+            %figure
+            %plot(solMinLH, pressure, 'g-.', solMaxLH, pressure, 'g--', solMinLG, pressure, 'r-.', solMaxLG, pressure, 'r--')
+            %set(gca, 'YDir', 'Reverse')
+            
+            %%% Calculate actual sol and saturations
+
+            eps = 1e-3;
+            sg = zeros(nSamples, 1);
+            sh = zeros(nSamples, 1);
+            sol = zeros(nSamples, 1);
+            for iSamples = 1:nSamples
+                
+                if solMaxLH(iSamples) < solMinLG(iSamples)
+                    %%% 2P hydrate
+                    sol(iSamples) = solMaxLH(iSamples);
+                    sh(iSamples) = sh2P(iSamples);
+                    sg(iSamples) = 0;
+                elseif solMaxLG(iSamples) < solMinLH(iSamples)
+                    %%% 2P gas
+                    sol(iSamples) = solMaxLG(iSamples);
+                    sh(iSamples) = 0;
+                    sg(iSamples) = sg2P(iSamples);
+                else
+                    %%% 3P case check
+                    % Initial guesses                    
+                    if iSamples == 1
+                        sgIterate = sg2P(iSamples);
+                        solIterate = solMinLG(iSamples);
+                    else
+                        sgIterate = sg(iSamples - 1);
+                        solIterate = sol(iSamples - 1);
+                    end
+                    iteration = 1;
+                    doWhileFlag = true;
+                    while doWhileFlag || abs(deltaSol) > 1e-6
+                        doWhileFlag = false;
+                        iteration = iteration + 1;
+                        
+                        % Calculating f(x)
+                        [ shIterate , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity(iSamples) , ...
+                                                                                    sgIterate , solIterate , ...
+                                                                                    pressure(iSamples) , temperature(iSamples) , gasDensity(iSamples) , ...
+                                                                                    solBulkLG(iSamples) , solBulkLH(iSamples) );
+                        deltaSol = solubilityLG - solubilityLH;
+                        if isnan(sgIterate)
+                            error('sgIterate is NaN')
+                        end
+                        if isnan(shIterate)
+                            error('shIterate is NaN')
+                        end
+                        if isnan(solubilityLG)
+                            error('solubilityLG is NaN')
+                        end
+                        if isnan(solubilityLH)
+                            error('solubilityLH is NaN')
+                        end
+
+
+                        % Calculating f'(x)
+                        [ ~ , solubilityLGPerturbed , solubilityLHPerturbed ] = Calc3PNewtonIteration( obj , ch4Quantity(iSamples) , ...
+                                                                                    sgIterate + eps , solIterate , ...
+                                                                                    pressure(iSamples) , temperature(iSamples) , gasDensity(iSamples) , ...
+                                                                                    solBulkLG(iSamples) , solBulkLH(iSamples) );
+                        deltaSolPerturbed = solubilityLGPerturbed - solubilityLHPerturbed;
+                        slope = (deltaSolPerturbed - deltaSol)/eps;
+
+                        if isnan(sgIterate)
+                            error('sgIterate is NaN')
+                        end
+                        if isnan(shIterate)
+                            error('shIterate is NaN')
+                        end
+                        if isnan(solubilityLG)
+                            error('solubilityLG is NaN')
+                        end
+                        if isnan(solubilityLH)
+                            error('solubilityLH is NaN')
+                        end
+                        
+                        % Calculating next iteration sgIterate
+                        sgIterate = sgIterate - deltaSol/slope;
+                        % Update solubility by taking the average of the 2
+                        solIterate = (solubilityLG + solubilityLH) / 2;
+                    end
+
+                    if solIterate < solMaxLG(iSamples)
+                        %%% 3P
+                        sol(iSamples) = solIterate;
+                        sh(iSamples) = shIterate;
+                        sg(iSamples) = sgIterate;
+                    else
+                        %%% 2P gas
+                        sol(iSamples) = solMaxLG(iSamples);
+                        sh(iSamples) = 0;
+                        sg(iSamples) = sg2P(iSamples);
+                    end
+
+
+                end
+
+            end
+
+            %{
+            %%% Get transition zone characteristics (top, bottom, 3P zone
+            %%% thickness, and 3P indices)
+            %%%
+            %%% NOTE: returned bottom3PIndex is estimated using max LG and
+            %%% min LH
+            %top3PIndex = BCFormation.GetTop3PIndex( solMinLG , solMaxLH );
+            %[ bottom3PIndex , ~ , ~ ] = ...
+            %    BCFormation.GetBottom3PIndex( solMaxLG , solMinLH , obj.depthArray );
+            %thickness = BCFormation.GetThickness3PZone( depth , top3PIndex , bottom3PIndex );
+            %indexArrayOf3PZone = top3PIndex : bottom3PIndex;
+            
+            %%% Setting sg above 3P zone BOTTOM -> 0
+            %%%            below 3P zone BOTTOM -> sg 2P
+            sg = sg2P;
+            sg(1:bottom3PIndex) = 0;
+            
+            %%% Setting sh above 3P zone TOP -> sh 2P
+            %%%            below 3P zone TOP -> 0
+            sh = sh2P;
+            sh(top3PIndex:end) = 0;
+            
+            %%% Setting overall solubility to 2P max sol LG and LH cases
+            sol = solMaxLH;
+            sol(bottom3PIndex + 1:end) = solMaxLG(bottom3PIndex + 1:end);
+            
+            gasSolubilityPhase2 = solMaxLG;
+            
+            
+            %%% Getting saturations in 3P zone and inserting into arrays
+            %%% Returned bottom3PIndex is updated with actual result
+            [ sg3P , sh3P , sol3P , bottom3PIndex ] = obj.Calc3P( ch4Quantity , indexArrayOf3PZone , ...
+                                                pressure , temperature , gasDensity , ...
+                                                solBulkLG , solBulkLH , solMaxLH(top3PIndex) , gasSolubilityPhase2 , sg2P );
+            sg(indexArrayOf3PZone) = sg3P;
+            sh(indexArrayOf3PZone) = sh3P;
+            sol(indexArrayOf3PZone) = sol3P;
+            %}
+            
+            
+            %%% Calculate gas capillary pressures
+            %pcgw2PMPa = obj.CalcPcgw(sg2P);
+            %pcgw2PMPa = obj.CalcPcgw(sgBulk);
+            %pcgw2PPa = pcgw2PMPa .* 1e6;
+            
+            %pcgw3PMPa = obj.CalcPcgw(sg);
+            %pcgw3PPa = pcgw3PMPa .* 1e6;
+            
+            
+            
+            %%% Compiling arrays into a table for exporting
+            exportTable = table();
+            exportTable.Depth = depth;
+            exportTable.Pressure = pressure;
+            exportTable.Temperature = temperature;
+            exportTable.Temperature3P = T3PArray;
+            exportTable.GasDensity = gasDensity;
+            exportTable.GasBulkSol = solBulkLG;
+            exportTable.GasMinSol = solMinLG;
+            exportTable.GasMaxSol = solMaxLG;
+            exportTable.HydrateBulkSol = solBulkLH;
+            exportTable.HydrateMinSol = solMinLH;
+            exportTable.HydrateMaxSol = solMaxLH;
+            %exportTable.GasSat2P = sg2P;
+            %exportTable.GasSat2P = sgBulk;
+            %exportTable.HydrateSat2P = sh2P;
+            %exportTable.HydrateSat2P = shBulk;
+            exportTable.GasSat3P = sg;
+            exportTable.HydrateSat3P = sh;
+            exportTable.OverallSol = sol;
+            %exportTable.Pcgw2PPa = pcgw2PPa;
+            %exportTable.Pcgw3PPa = pcgw3PPa;
+            
+            %%% Compiling transition zone properties into a structure
+            %transitionZoneProperties.Top3PIndex = top3PIndex;
+            %transitionZoneProperties.Bottom3PIndex = bottom3PIndex;
+            transitionZoneProperties.Thickness = [];
+            %transitionZoneProperties.Bulk3PSolEQLIndex = index3PBulkSolEQL;
+        end
         function [ exportTable ] = RunRockAndRatioRoutine( obj , exportTable )
             [exportTable.bulkDensityKg, exportTable.porosity] = obj.EstimateBulkDensity();
             exportTable.rockStrengthPa = obj.CalcRockStrength(exportTable);
@@ -869,15 +1128,19 @@ classdef BCFormation < handle
                 case 1
                     yAxisData = exportTable.Pressure ./ 1e6; % convert Pa to MPa
                     yAxisLabel = 'Pressure (MPa)';
+                    titleString = 'Temperature = 19.4 C';
                 case 2
                     yAxisData = exportTable.Pressure ./ 1e6; % convert Pa to MPa
                     yAxisLabel = 'Pressure (MPa)';
+                    titleString = 'Temperature = 19.4 C';
                 case 3
                     yAxisData = exportTable.Pressure ./ 1e6; % convert Pa to MPa
                     yAxisLabel = 'Pressure (MPa)';
+                    titleString = 'Temperature = 13.3 C';
                 case 4
                     yAxisData = exportTable.Temperature - 273.15; % convert K to C
                     yAxisLabel = 'Temperature (C)';
+                    titleString = 'Pressure = 5.62 MPa';
             end
             sg3P = exportTable.GasSat3P;
             sh3P = exportTable.HydrateSat3P;
@@ -900,6 +1163,7 @@ classdef BCFormation < handle
             xlabel('Saturation')
             ylabel(yAxisLabel)
             legend('Gas', 'Hydrate')
+            title(['Scenario ' num2str(obj.scenario)])
             %set(gca, 'YDir', 'Reverse')
 
 
@@ -921,7 +1185,7 @@ classdef BCFormation < handle
             ylabel(yAxisLabel)
             %set(gca, 'YDir', 'Reverse')
             legend('Bulk G-W', 'Bulk H-W', 'Min G-W', 'Min H-W', 'Max G-W', 'Max H-W', 'Calculated solubility')
-
+            title(titleString)
         end
 
     end
