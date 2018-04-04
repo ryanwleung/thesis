@@ -32,7 +32,18 @@ pdf2 = lognpdf(radius, mu2, sigma2);
 cdf2 = logncdf(radius, mu2, sigma2);
 
 
-% logninv(0.05, mu, sigma)
+
+
+% dynes/cm
+interfacialTensionGasWater = 72;
+interfacialTensionHydrateWater = 27;
+
+%%% micron to meter and Pa to MPa conversion cancel out
+
+% cm to meter and dyn to N conversion factor
+conversionFactor = 1e2 * 1e-5;
+% logninv(.95, mu1, sigma1)
+pcgw = 2 .* interfacialTensionGasWater ./ radius .* conversionFactor;
 
 
 figure
@@ -41,7 +52,7 @@ plot(radius, pdf1)
 plot(radius, pdf2)
 xlabel('Pore radius (microns)')
 ylabel('PDF')
-legend(strcat('mu=', string(mu1), '   ', 'sigma=', string(sigma1)), strcat('mu=', string(mu2), 'sigma=', string(sigma2)))
+legend(strcat('mu=', string(mu1), 'sigma=', string(sigma1)), strcat('mu=', string(mu2), 'sigma=', string(sigma2)))
 
 
 figure
@@ -50,15 +61,15 @@ plot(radius, cdf1)
 plot(radius, cdf2)
 xlabel('Pore radius (microns)')
 ylabel('CDF')
-legend(strcat('mu=', string(mu1), '   ', 'sigma=', string(sigma1)), strcat('mu=', string(mu2), 'sigma=', string(sigma2)))
+legend(strcat('mu=', string(mu1), 'sigma=', string(sigma1)), strcat('mu=', string(mu2), 'sigma=', string(sigma2)))
 
 figure
+semilogy(cdf1, pcgw)
 hold on
-plot(1 - cdf1, radius)
-plot(1 - cdf2, radius)
+semilogy(cdf2, pcgw)
 xlabel('Sw')
-ylabel('Pore radius (microns)')
-legend(strcat('mu=', string(mu1), '   ', 'sigma=', string(sigma1)), strcat('mu=', string(mu2), 'sigma=', string(sigma2)))
+ylabel('P_c_g_w')
+legend(strcat('mu=', string(mu1), 'sigma=', string(sigma1)), strcat('mu=', string(mu2), 'sigma=', string(sigma2)))
 
 
 

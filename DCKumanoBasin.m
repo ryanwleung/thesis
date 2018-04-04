@@ -150,8 +150,23 @@ classdef DCKumanoBasin < BCFormation
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
             if obj.runDaigleCases
                 %%% Daigle's lognormal distribution
+
+                %%% micron to meter and Pa to MPa conversion cancel out
+                % dynes/cm
+                interfacialTensionGasWater = 72;
+                %interfacialTensionHydrateWater = 27;
+                % cm to meter and dyn to N conversion factor
+                conversionFactor = 1e2 * 1e-5;
+
                 
-                
+
+                sw = 1 - nonwettingSaturation;
+                %%% sw is mapped directly to the cdf of the lognormal pore size distribution
+                %%% invert the cdf to get back the pore size at this sw
+                radius = logninv(sw, obj.lognormalMu, obj.lognormalSigma);
+                % radius is in microns
+
+                pcgwInterp = 2 .* interfacialTensionGasWater ./ radius .* conversionFactor;
                 
                 
             else
@@ -174,8 +189,23 @@ classdef DCKumanoBasin < BCFormation
         function [ pchwInterp ] = CalcPchw( obj , nonwettingSaturation )
             if obj.runDaigleCases
                 %%% Daigle's lognormal distribution
+
+                %%% micron to meter and Pa to MPa conversion cancel out
+                % dynes/cm
+                %interfacialTensionGasWater = 72;
+                interfacialTensionHydrateWater = 27;
+                % cm to meter and dyn to N conversion factor
+                conversionFactor = 1e2 * 1e-5;
+
                 
-                
+
+                sw = 1 - nonwettingSaturation;
+                %%% sw is mapped directly to the cdf of the lognormal pore size distribution
+                %%% invert the cdf to get back the pore size at this sw
+                radius = logninv(sw, obj.lognormalMu, obj.lognormalSigma);
+                % radius is in microns
+
+                pchwInterp = 2 .* interfacialTensionHydrateWater ./ radius .* conversionFactor;
             else
                 %%% Regular Kumano Basin capillary pressure
 

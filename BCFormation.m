@@ -24,6 +24,8 @@ classdef BCFormation < handle
         
         runDaigleCases
         scenario
+        lognormalMu
+        lognormalSigma
     end
     properties (Constant)
         waterDensity = 1024;        % kg H2O/m^3 H2O
@@ -38,6 +40,8 @@ classdef BCFormation < handle
             obj.methaneMassFractionInHydrate = 4*obj.mwCH4 / (4*obj.mwCH4 + 23*obj.mwH2O);
             obj.runDaigleCases = 0;
             obj.scenario = 0;
+            obj.lognormalMu = 0;
+            obj.lognormalSigma = 0;
         end
                 
         %%% Main methods
@@ -64,27 +68,23 @@ classdef BCFormation < handle
                     case 1
                         temperature = 19.4 .* ones(nSamples, 1);
                         pressure = linspace(15, 24.7, nSamples)';
-                        lognormalMu = 3;
-                        lognormalSigma = 0.69;
+                        obj.lognormalMu = 3.355732273553991;
+                        obj.lognormalSigma = 0.6;
                     case 2
                         temperature = 19.4 .* ones(nSamples, 1);
                         pressure = linspace(15, 24.7, nSamples)';
-                        lognormalMu = -0.1;
-                        lognormalSigma = 2.25;
-                        
-                        
+                        obj.lognormalMu = 2.810810149055314;
+                        obj.lognormalSigma = 0.93;
                     case 3
                         temperature = 13.3 .* ones(nSamples, 1);
                         pressure = linspace(8, 16.8, nSamples)';
-                        lognormalMu = 3;
-                        lognormalSigma = 0.69;
-                        
-                        
+                        obj.lognormalMu = 3.355732273553991;
+                        obj.lognormalSigma = 0.6;
                     case 4
                         temperature = linspace(6.8, 15, nSamples)';
                         pressure = 5.62 .* ones(nSamples, 1);
-                        lognormalMu = 3;
-                        lognormalSigma = 0.69;
+                        obj.lognormalMu = 3.355732273553991;
+                        obj.lognormalSigma = 0.6;
                     otherwise
                         error('Unknown scenario number')
                 end
@@ -202,6 +202,7 @@ classdef BCFormation < handle
             transitionZoneProperties.Thickness = [];
             transitionZoneProperties.Bulk3PSolEQLIndex = index3PBulkSolEQL;
         end
+        
         function [ exportTable ] = RunRockAndRatioRoutine( obj , exportTable )
             [exportTable.bulkDensityKg, exportTable.porosity] = obj.EstimateBulkDensity();
             exportTable.rockStrengthPa = obj.CalcRockStrength(exportTable);
@@ -862,6 +863,67 @@ classdef BCFormation < handle
             set(gca,'YDir','Reverse')
             legend('Bulk equilibrium model', 'Three-phase stability model')
         end
+
+        function PlotDaigleScenario( obj , exportTable )
+            switch obj.scenario
+                case 1
+                    yAxisData = exportTable.Pressure ./ 1e6; % convert Pa to MPa
+                    yAxisLabel = 'Pressure (MPa)';
+                case 2
+                    yAxisData = exportTable.Pressure ./ 1e6; % convert Pa to MPa
+                    yAxisLabel = 'Pressure (MPa)';
+                case 3
+                    yAxisData = exportTable.Pressure ./ 1e6; % convert Pa to MPa
+                    yAxisLabel = 'Pressure (MPa)';
+                case 4
+                    yAxisData = exportTable.Temperature - 273.15; % convert K to C
+                    yAxisLabel = 'Temperature (C)';
+            end
+            sg3P = exportTable.GasSat3P;
+            sh3P = exportTable.HydrateSat3P;
+
+            solBulkLG = exportTable.GasBulkSol;
+            solMinLG = exportTable.GasMinSol;
+            solMaxLG = exportTable.GasMaxSol;
+            solBulkLH = exportTable.HydrateBulkSol;
+            solMinLH = exportTable.HydrateMinSol;
+            solMaxLH = exportTable.HydrateMaxSol;
+            sol = exportTable.OverallSol;
+
+            figure()
+
+            subplot(1, 2, 1);
+
+            hold on
+            plot( sg3P , yAxisData , 'r-', 'linewidth' , 3 )
+            plot( sh3P , yAxisData , 'g-' , 'linewidth' , 3 )
+            xlabel('Saturation')
+            ylabel(yAxisLabel)
+            legend('Gas', 'Hydrate')
+            %set(gca, 'YDir', 'Reverse')
+
+
+
+
+            subplot(1, 2, 2);
+            
+            width = 2;
+            hold on
+            plot( solBulkLG , yAxisData , 'r-' , 'linewidth' , width )
+            plot( solBulkLH , yAxisData , 'g-' , 'linewidth' , width )
+            plot( solMinLG , yAxisData , 'r-.' , 'linewidth' , width )
+            plot( solMinLH , yAxisData , 'g-.' , 'linewidth' , width )
+            plot( solMaxLG , yAxisData , 'r--' , 'linewidth' , width )
+            plot( solMaxLH , yAxisData , 'g--' , 'linewidth' , width )
+            plot( sol , yAxisData , 'b' , 'linewidth' , width )
+            
+            xlabel('CH_4 Solubility (mol CH4/kg H2O)')
+            ylabel(yAxisLabel)
+            %set(gca, 'YDir', 'Reverse')
+            legend('Bulk G-W', 'Bulk H-W', 'Min G-W', 'Min H-W', 'Max G-W', 'Max H-W', 'Calculated solubility')
+
+        end
+
     end
     methods (Static)
         %%% Utility

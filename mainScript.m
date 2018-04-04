@@ -21,21 +21,21 @@ clear variables
 %%% Daigle scenario generation
 obj = DCKumanoBasin();
 obj.runDaigleCases = true;
-obj.scenario = 1;
+obj.scenario = 4;
 
 switch obj.scenario
     case 1
-        ch4Quantity = 40;
+        ch4Quantity = 10;
     case 2
-        ch4Quantity = 40;
+        ch4Quantity = 10;
     case 3
-        ch4Quantity = 40;
+        ch4Quantity = 10;
     case 4
-        ch4Quantity = 40;
+        ch4Quantity = 10;
 end
 
 [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
-
+obj.PlotDaigleScenario(exportTable);
 
 
 
