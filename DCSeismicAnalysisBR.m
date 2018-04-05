@@ -1192,8 +1192,12 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         function PlotTWTTLength( obj , Wave )
             
             startIndex = 6;
+            bufferIndex = 10;
             
-            %quantity = obj.selectedQuantities;
+%             samplingRate = 1;
+%             window = 6;
+            
+            samplingRate = 3;
             quantity = obj.quantityArray;
 
             nQuantity = numel(quantity);
@@ -1201,19 +1205,22 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             for iQuantity = 1:nQuantity
                 [peaks, indices, widths, prominences] = findpeaks(Wave.seismogram{iQuantity});
             
-                peakIndicies = indices(indices >= obj.searchPeakTopIndex & indices <= obj.searchPeakBottomIndex);
+                peakIndicies = indices(indices >= obj.searchPeakTopIndex + bufferIndex ...
+                                        & indices <= obj.searchPeakBottomIndex - bufferIndex);
             
                 if numel(peakIndicies) == 2
                     TTWTLength(iQuantity) = Wave.time{iQuantity}(peakIndicies(2)) - Wave.time{iQuantity}(peakIndicies(1));
                 end
             end
-
+            cutQuantity = quantity(startIndex:samplingRate:end);
+            cutTWTTLength = TTWTLength(startIndex:samplingRate:end);
+            
+            movingAverageTWTTLength = cutTWTTLength;
+%             movingAverageTWTTLength = movmean(cutTWTTLength, window, 'Endpoints', 'shrink');
+            
+            
             figure
-            %hold on
-            
-            %plot([0 30], [1 1], '--', 'Color', [.4 .4 .4], 'linewidth', 1.5)
-            
-            plot(quantity(startIndex:end), TTWTLength(startIndex:end), 'ks', 'Linewidth', 1.5);
+            plot(cutQuantity, movingAverageTWTTLength, 'ks', 'Linewidth', 1.5);
             xlabel('Methane quantity (kg/m^3 of pore volume)')
             ylabel('Time difference between peaks (s)')
             axis([quantity(startIndex) quantity(end) 0.03 0.05])
