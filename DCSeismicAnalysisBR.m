@@ -19,9 +19,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         liuBottom = 3300; % mbsl
         saturationTop = 200; % mbsf
         
-        sandK = 38*10^9; % Pa
-        clayK = 21.2*10^9; % Pa
-        waterK = 2.688*10^9; % Pa
+        sandK = 38.4e9; % Pa
+        clayK = 21.2e9; % Pa
+        waterK = 2.688e9; % Pa
+        
+        gasDensity = 0.3; % g/cm^3
+        clayDensity = 2.6; % g/cm^3
+        sandDensity = 2.65; % g/cm^3
+        
         
         seaVP = 1485; % m/s
         
@@ -433,11 +438,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         end
         function [ bulkDensityFS ] = CalcBulkDensityFluidSubstituted( obj , gamma , porosity , Sw , Sg , Sh )
             waterDensity = obj.waterDensity / 1000; % g/cm^3
-            gasDensity = 0.3; % g/cm^3
-            hydrateDensity = (0.924 + 0.933) / 2; % g/cm^3
-            %hydrateDensity = 0.9; % g/cm^3
-            clayDensity = 2.6; % g/cm^3
-            sandDensity = 2.7; % g/cm^3
+            gasDensity_ = obj.gasDensity; % g/cm^3
+            hydrateDensity_ = (0.924 + 0.933) / 2; % g/cm^3
+            clayDensity_ = obj.clayDensity; % g/cm^3
+            sandDensity_ = obj.sandDensity; % g/cm^3
             
             shaleFreeSGR = 12;
             shalePureSGR = 110;
@@ -451,11 +455,11 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             porosity(porosity > 1) = 1;
             
             fluidDensity = Sw .* waterDensity ...
-                         + Sg .* gasDensity ...
-                         + Sh .* hydrateDensity;
+                         + Sg .* gasDensity_ ...
+                         + Sh .* hydrateDensity_;
              
-            matrixDensity = gammaNormalized .* clayDensity ...
-                            + (1 - gammaNormalized) .* sandDensity;
+            matrixDensity = gammaNormalized .* clayDensity_ ...
+                            + (1 - gammaNormalized) .* sandDensity_;
             
             bulkDensityFS = porosity .* fluidDensity ...
                             + (1 - porosity) .* matrixDensity;
