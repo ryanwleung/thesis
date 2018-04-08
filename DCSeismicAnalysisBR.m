@@ -10,6 +10,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         
         SaturationLF
         Dickens
+        
+        acousticImpedanceForLastMethaneQuantity
     end
     properties (Constant)
         temperatureGradient995 = 38.5;   % C deg/km (36.9 for well 997)
@@ -149,13 +151,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             
             %%% Run base case for parameter sensitivity
-            [ ~ , ~ , ~ , WaveBase ] ...
+            [ ~ , ~ , ~ , WaveBase , ~ ] ...
                     = obj.RunRockPhysicsRoutine(data, Wave, 0, caseString);
             
             %%% For loop through all methane quantities
-            for iQuantity = 1:nQuantity                
+            for iQuantity = 1:nQuantity
                 %%% Get seismogram and related outputs from routine
-                [ seismogram , timeSeries , thickness , parameterSensitivity ] ...
+                [ seismogram , timeSeries , thickness , parameterSensitivity , acousticImpedance ] ...
                     = obj.RunRockPhysicsRoutine(data, Wave, iQuantity, caseString);
                 
                 
@@ -175,24 +177,27 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     case 'OriginalResolution'
                         Wave.VPFS{iQuantity} = parameterSensitivity.VPFS;
                 end
+                if iQuantity == nQuantity
+                    obj.acousticImpedanceForLastMethaneQuantity = acousticImpedance;
+                end
             end
             
             %%% Run Dickens case
             if ~strcmp('ParameterSensitivity', caseString)
-                [ seismogram , timeSeries , ~ , ~ ] ...
+                [ seismogram , timeSeries , ~ , ~ , ~ ] ...
                         = obj.RunRockPhysicsRoutine(data, Wave, -1, caseString);
                 WaveDickens.seismogram = seismogram;
                 WaveDickens.time = timeSeries;
             end
         end
-        function [ seismogram , timeSeries , thickness , parameterSensitivity ] = ...
+        function [ seismogram , timeSeries , thickness , parameterSensitivity , acousticImpedance ] = ...
                 RunRockPhysicsRoutine( obj , data , Wave , iQuantity , caseString )
             
             seismogram = [];
             timeSeries = [];
             thickness = -100;
             parameterSensitivity = [];
-            
+            acousticImpedance = [];
             
             Wave.BSR = [];
             Wave.BGHSZ = [];
@@ -297,6 +302,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                 case 'OriginalResolution'
                     parameterSensitivity.VPFS = data.VPFS;
             end
+            acousticImpedance = dataFull.Impedance;
         end
         
         %%% Rock physics calculation methods
@@ -1394,6 +1400,21 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             set(findall(figure1,'-property','FontSize'),'FontSize',8)
             set(findall(figure1,'-property','FontName'),'FontName','Arial')
             %}
+        end
+        
+        function PlotAcousticImpedance( obj , Wave )
+            
+            timeSeries = Wave.time{end};
+            acousticImpedance = obj.acousticImpedanceForLastMethaneQuantity;
+            
+            
+            figure
+%             plot(timeSeries, acousticImpedance, 'ks', 'Linewidth', 1.5);
+            plot(timeSeries, acousticImpedance, 'Linewidth', 1.5);
+            xlabel('TWTT (s)')
+            ylabel('Acoustic impedance (rayls)')
+            axis([4.19 4.33 2.2e6 3.6e6])
+
         end
         
         %%% Loading methods

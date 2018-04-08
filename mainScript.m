@@ -110,7 +110,7 @@ clear variables
 %%% Seismic analysis for Blake Ridge
 obj = DCSeismicAnalysisBR();
 
-test = 1;
+test = 2;
 
 switch test
     case 1
@@ -132,7 +132,7 @@ switch test
 %         obj.PlotPeakAmplitudeRatio(WaveOriginalResolution)
         obj.PlotTWTTLength(WaveOriginalResolution)
         obj.PlotDickensSeismogram(WaveOriginalResolution, WaveDickens)
-        
+        obj.PlotAcousticImpedance(WaveOriginalResolution)
 end
 
 function PlotAllMICP()
