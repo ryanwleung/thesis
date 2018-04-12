@@ -22,11 +22,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         saturationTop = 200; % mbsf
         
         sandK = 38.4e9; % Pa
-        clayK = 21.2e9; % Pa
+%         clayK = 21.2e9; % Pa
+        clayK = 50e9; % Pa
         waterK = 2.688e9; % Pa
         
         gasDensity = 0.3; % g/cm^3
         clayDensity = 2.6; % g/cm^3
+%         clayDensity = 2.7; % g/cm^3
         sandDensity = 2.65; % g/cm^3
         
         
@@ -1207,7 +1209,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
 %             samplingRate = 1;
 %             window = 6;
             
-            samplingRate = 3;
+            samplingRate = 1;
+%             samplingRate = 3;
             quantity = obj.quantityArray;
 
             nQuantity = numel(quantity);
