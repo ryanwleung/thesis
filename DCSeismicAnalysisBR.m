@@ -1230,7 +1230,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             
             figure
-            plot(cutQuantity, movingAverageTWTTLength, 'ks', 'Linewidth', 1.5);
+%             plot(cutQuantity, movingAverageTWTTLength, 'ks', 'Linewidth', 1.5);
+            plot(cutQuantity, movingAverageTWTTLength, 'Linewidth', 1.5);
             xlabel('Methane quantity (kg/m^3 of pore volume)')
             ylabel('Time difference between peaks (s)')
             axis([quantity(startIndex) quantity(end) 0.03 0.05])
@@ -1317,22 +1318,29 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             quantity = obj.selectedQuantities;
             colorStream = jet(numel(WaveOriginalResolution.seismogram));
             
+            
+            figureCellArray = cell(numel(quantity) + 1, 1);
+            figureNumber = 0;
+            
             figure1 = figure();
 
             hold on
             for iQuantity = quantity
-                plot(WaveOriginalResolution.time{iQuantity}, WaveOriginalResolution.seismogram{iQuantity}, ...
-                    'Color', colorStream(iQuantity,:)', ...
-                    'Linewidth', 2.5)
+                figureNumber = figureNumber + 1;
+                figureCellArray{figureNumber} = plot(WaveOriginalResolution.time{iQuantity}, WaveOriginalResolution.seismogram{iQuantity}, ...
+                                                'Color', colorStream(iQuantity,:)', ...
+                                                'Linewidth', 2.5);
+                
             end
             
-            plot(WaveDickens.time, WaveDickens.seismogram, ...
-                    'k:', ...
-                    'Linewidth', 2.5)
+            figureCellArray{figureNumber + 1} = plot(WaveDickens.time, WaveDickens.seismogram, ...
+                                                'k:', ...
+                                                'Linewidth', 2.5);
             
             axis([4.19 4.33 -0.15 0.15])
             xlabel('TWTT (s)')
             ylabel('Amplitude')
+            legend( [figureCellArray{:}], '6 kg/m^3' , '15 kg/m^3' , '23 kg/m^3' , '32 kg/m^3' , '40 kg/m^3' , 'Variable' )
             %title('b) Time Series')
             
             %axis1.Position = [.15 .56 .78 .39];
