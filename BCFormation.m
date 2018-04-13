@@ -1270,6 +1270,8 @@ classdef BCFormation < handle
         
         %%% Get gas density using PR1978
         function [ gasDensityArray] = CalcGasDensityArray( pressureArray , temperatureArray )
+            %%% Gas density in kg/m^3
+            
             nCount = length(pressureArray);
             gasDensityArray = zeros(nCount,1);
             

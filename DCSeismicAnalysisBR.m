@@ -11,6 +11,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         SaturationLF
         Dickens
         
+        gasDensity
+        
         acousticImpedanceForLastMethaneQuantity
     end
     properties (Constant)
@@ -22,13 +24,14 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         saturationTop = 200; % mbsf
         
         sandK = 38.4e9; % Pa
-%         clayK = 21.2e9; % Pa
-        clayK = 50e9; % Pa
+        clayK = 21.2e9; % Pa
+%         clayK = 50e9; % Pa
         waterK = 2.688e9; % Pa
         
-        gasDensity = 0.3; % g/cm^3
-        clayDensity = 2.6; % g/cm^3
-%         clayDensity = 2.7; % g/cm^3
+       
+        
+%         clayDensity = 2.6; % g/cm^3
+        clayDensity = 2.7; % g/cm^3
         sandDensity = 2.65; % g/cm^3
         
         
@@ -73,6 +76,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             obj.quantityArray = (1 : 1 : 40)';
             
             obj.SaturationLF = obj.LoadPhaseBehaviorBlakeRidge();
+            
+            obj.gasDensity = 0.3; % g/cm^3
+            %obj.gasDensity = 0.22; % g/cm^3
+            
         end
         
         %%% Main methods
@@ -92,6 +99,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             data.Pressure = obj.CalcPressure(data.Depth);
             data.Temperature = obj.CalcTemperature995();
+            
+            %%% Activate gas density calculation instead of using 0.3
+            %%% g/cm^3
+            obj.gasDensity = obj.CalcGasDensityArray(data.Pressure, data.Temperature + 273.15) ./ 1000;
             
             %%% Load log data into table
             data.Resistivity = nan(nDepth, 1);
