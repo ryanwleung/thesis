@@ -110,7 +110,7 @@ clear variables
 %%% Seismic analysis for Blake Ridge
 obj = DCSeismicAnalysisBR();
 
-test = 1;
+test = 2;
 
 switch test
     case 1
@@ -119,7 +119,7 @@ switch test
         obj.PlotParameterSensitivity(WaveParameterSensitivity, WaveBaseParameterSensitivity)
 %         obj.PlotPhaseSaturations()
         obj.PlotBackgroundProperties(dataBase)
-        obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
+%         obj.PlotThicknessVsQuantity(WaveParameterSensitivity)
 %         obj.PlotPeakAmplitudeRatio(WaveParameterSensitivity)
         obj.PlotTWTTLength(WaveParameterSensitivity)
         
