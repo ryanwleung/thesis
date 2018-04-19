@@ -1246,7 +1246,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             plot(cutQuantity, movingAverageTWTTLength, 'Linewidth', 1.5);
             xlabel('Methane quantity (kg/m^3 of pore volume)')
             ylabel('Time difference between peaks (s)')
-            axis([quantity(startIndex) quantity(end) 0.03 0.05])
+            axis([quantity(startIndex) quantity(end) 0.034 0.051])
 
         end
         function PlotPeakAmplitudeRatio( ~ , Wave )
@@ -1543,6 +1543,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             % interp_methane_quantity = interp1( Dickens.MethaneQuantity(:,2) , Dickens.MethaneQuantity(:,1) , depth_array( depth_array <= lower_bound & depth_array >= upper_bound ) );
             % interp_methane_quantity(isnan(interp_methane_quantity)) = [];
             % average_methane_quantity = mean(interp_methane_quantity);
+            
+            
+            return
             
             % Methane quantity vs depth
             figure
