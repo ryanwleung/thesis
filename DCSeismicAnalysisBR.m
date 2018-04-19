@@ -731,7 +731,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             leftLimit = 3248;
             rightLimit = 3276;
             
-            drawRectangleFlag = false;
+            drawRectangleFlag = true;
+            %drawRectangleFlag = false;
             
             
             %%%%% Figure 1
@@ -793,7 +794,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             end
             xlabel('Depth (mbsl)')
             ylabel('Bulk density (g/cm^3)')
-            axis([axisMinDepth axisMaxDepth 1.65 1.8])
+            axis([axisMinDepth axisMaxDepth 1.7 1.8])
             title('b')
 
             %%% Bulk modulus
@@ -1217,11 +1218,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             startIndex = 6;
             bufferIndex = 10;
             
-%             samplingRate = 1;
-%             window = 6;
-            
-            samplingRate = 1;
-%             samplingRate = 3;
+            %samplingRate = 1;
+            samplingRate = 3;
             quantity = obj.quantityArray;
 
             nQuantity = numel(quantity);

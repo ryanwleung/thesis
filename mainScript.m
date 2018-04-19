@@ -57,12 +57,12 @@ clear variables
 % tempMethaneQuantity = [7.4];
 % 
 % 
-% obj = DCTheoreticalFormation(550, 0.4);
+% obj = DCTheoreticalFormation(440, 0.4);
 % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(7.4);
-
-% obj = DCTheoreticalFormation(1800, 0.4);
-% [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(60);
 % 
+% % obj = DCTheoreticalFormation(1800, 0.4);
+% % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(60);
+% % 
 % exportTable = obj.RunRockAndRatioRoutine(exportTable);
 % obj.GenerateResultPlots(exportTable, transitionZoneProperties);
 
@@ -107,7 +107,7 @@ clear variables
 
 
 
-%%% Seismic analysis for Blake Ridge
+%% Seismic analysis for Blake Ridge
 obj = DCSeismicAnalysisBR();
 
 test = 2;
