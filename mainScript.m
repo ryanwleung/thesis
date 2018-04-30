@@ -110,7 +110,7 @@ clear variables
 %% Seismic analysis for Blake Ridge
 obj = DCSeismicAnalysisBR();
 
-test = 2;
+test = 1;
 
 switch test
     case 1
@@ -134,6 +134,34 @@ switch test
         obj.PlotDickensSeismogram(WaveOriginalResolution, WaveDickens)
         obj.PlotAcousticImpedance(WaveOriginalResolution)
 end
+
+
+% ch4Quantity = (1 : 1 : 40)';
+% n = numel(ch4Quantity);
+% sg = cell(n, 1);
+% sh = cell(n, 1);
+% obj = DCBlakeRidge();
+% 
+% for i = 1:n
+%     [exportTable, ~] = obj.RunSolubilitySaturationRoutine(ch4Quantity(i));
+%     sg{i} = exportTable.GasSat3P;
+%     sh{i} = exportTable.HydrateSat3P;
+% end
+% figure
+% hold on
+
+% for i = [6 15 23 32 40]
+% for i = [12 26 40]
+%     figure
+%     hold on
+%     plot(sg{i}, obj.depthArray + 2780, 'r')
+%     plot(sh{i}, obj.depthArray + 2780, 'g')
+%     axis([0 1 475+2780 500+2780])
+%     set(gca, 'YDir', 'Reverse')
+% end
+% axis([0 1 475 500])
+% set(gca, 'YDir', 'Reverse')
+
 
 function PlotAllMICP()
     figure

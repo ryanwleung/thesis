@@ -25,7 +25,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         
         sandK = 38.4e9; % Pa
         clayK = 21.2e9; % Pa
-%         clayK = 36.7e9; % Pa
+%         clayK = 10.5e9; % Pa
         waterK = 2.688e9; % Pa
         
        
