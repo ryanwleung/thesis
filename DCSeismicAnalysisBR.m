@@ -735,8 +735,8 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             leftLimit = 3248;
             rightLimit = 3276;
             
-            drawRectangleFlag = true;
-            %drawRectangleFlag = false;
+            %drawRectangleFlag = true;
+            drawRectangleFlag = false;
             
             
             %%%%% Figure 1
@@ -1197,7 +1197,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             leftLimit = 3248;
             rightLimit = 3276;            
-            DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 1200, 2400)
+            %DCSeismicAnalysisBR.DrawRectangle(leftLimit, rightLimit, 1200, 2400)
 
             
             %%% VP
