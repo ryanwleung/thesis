@@ -79,9 +79,9 @@ clear variables
 
 % ch4Quantity = 40;
 % % 
-% obj = DCBlakeRidge();
+% % obj = DCBlakeRidge();
 % % obj = DCHydrateRidge();
-% % obj = DCKumanoBasin();
+% obj = DCKumanoBasin();
 % 
 % [exportTable, transitionZoneProperties] = obj.RunSolubilitySaturationRoutine(ch4Quantity);
 % exportTable = obj.RunRockAndRatioRoutine(exportTable);
@@ -110,8 +110,11 @@ clear variables
 %% Seismic analysis for Blake Ridge
 obj = DCSeismicAnalysisBR();
 
-test = 1;
+% obj.clayK = 10.5e9; % Pa
+% obj.seismogramAxis = [4.21 4.35 -0.15 0.1];
+% obj.seismogramDickensAxis = [4.21 4.35 -0.15 0.15];
 
+test = 2;
 switch test
     case 1
         [ WaveParameterSensitivity , ~ , WaveBaseParameterSensitivity , dataBase , ~ ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity');

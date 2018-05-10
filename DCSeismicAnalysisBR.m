@@ -14,6 +14,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         gasDensity
         
         acousticImpedanceForLastMethaneQuantity
+        
+        seismogramAxis
+        seismogramDickensAxis
+        clayK
     end
     properties (Constant)
         temperatureGradient995 = 38.5;   % C deg/km (36.9 for well 997)
@@ -24,13 +28,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         saturationTop = 200; % mbsf
         
         sandK = 38.4e9; % Pa
-        clayK = 21.2e9; % Pa
-%         clayK = 10.5e9; % Pa
         waterK = 2.688e9; % Pa
         
        
-        
-%         clayDensity = 2.6; % g/cm^3
         clayDensity = 2.7; % g/cm^3
         sandDensity = 2.65; % g/cm^3
         
@@ -80,6 +80,10 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             obj.gasDensity = 0.3; % g/cm^3
             %obj.gasDensity = 0.22; % g/cm^3
             
+            obj.seismogramAxis = [4.19 4.33 -0.15 0.1];
+            obj.seismogramDickensAxis = [4.19 4.33 -0.15 0.15];
+            obj.clayK = 21.2e9; % Pa
+
         end
         
         %%% Main methods
@@ -1106,8 +1110,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                     'Color', colorStream(iQuantity,:)', ...
                     'Linewidth', 1)
             end
-            %axis([4.15 4.35 -0.15 0.1])
-            axis([4.19 4.33 -0.15 0.1])
+            axis(obj.seismogramAxis)
             xlabel('TWTT (s)')
             ylabel('Amplitude')
             %title('b) Time Series')
@@ -1349,7 +1352,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
                                                 'k:', ...
                                                 'Linewidth', 2.5);
             
-            axis([4.19 4.33 -0.15 0.15])
+            axis(obj.seismogramDickensAxis)
             xlabel('TWTT (s)')
             ylabel('Amplitude')
             legend( [figureCellArray{:}], '6 kg/m^3' , '15 kg/m^3' , '23 kg/m^3' , '32 kg/m^3' , '40 kg/m^3' , 'Variable' )
