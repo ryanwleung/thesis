@@ -110,11 +110,16 @@ clear variables
 %% Seismic analysis for Blake Ridge
 obj = DCSeismicAnalysisBR();
 
+test = 1;
+obj.clayK = 10.5e9; % Pa
+obj.parameterSensitivitySeismogramAxis = [4.17 4.31 -0.11 0.06];
+
+
+% test = 2;
 % obj.clayK = 10.5e9; % Pa
 % obj.seismogramAxis = [4.21 4.35 -0.15 0.1];
 % obj.seismogramDickensAxis = [4.21 4.35 -0.15 0.15];
 
-test = 2;
 switch test
     case 1
         [ WaveParameterSensitivity , ~ , WaveBaseParameterSensitivity , dataBase , ~ ] = obj.RunSeismicAnalysisRoutine('ParameterSensitivity');

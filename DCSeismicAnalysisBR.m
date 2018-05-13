@@ -18,6 +18,9 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         seismogramAxis
         seismogramDickensAxis
         clayK
+        
+        parameterSensitivitySeismogramAxis
+        
     end
     properties (Constant)
         temperatureGradient995 = 38.5;   % C deg/km (36.9 for well 997)
@@ -57,9 +60,7 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
         searchPeakTopIndex = 3200;
         searchPeakBottomIndex = 3300;
         
-        
-        axisMaxAmplitude = 0.075;
-        axisMinAmplitude = -0.1;
+       
     end
     methods
         %%% Constructor
@@ -78,12 +79,13 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             obj.SaturationLF = obj.LoadPhaseBehaviorBlakeRidge();
             
             obj.gasDensity = 0.3; % g/cm^3
-            %obj.gasDensity = 0.22; % g/cm^3
             
             obj.seismogramAxis = [4.19 4.33 -0.15 0.1];
             obj.seismogramDickensAxis = [4.19 4.33 -0.15 0.15];
             obj.clayK = 21.2e9; % Pa
-
+            
+            obj.parameterSensitivitySeismogramAxis = [4.135 4.28 -0.1 0.075];
+            
         end
         
         %%% Main methods
@@ -832,78 +834,21 @@ classdef DCSeismicAnalysisBR < DCBlakeRidge
             
             %%%%% Figure 2 only time series
             figure2 = figure();
-            % axis6 = subplot(2, 1, 2);
             hold on
             for iQuantity = quantity
                 plot(Wave.time{iQuantity}, Wave.seismogram{iQuantity}, ...
                     'Color', colorStream(iQuantity,:)', ...
                     'Linewidth', 2.5)
-            end       
-            %axis([4.1 4.3 obj.axisMinAmplitude obj.axisMaxAmplitude])
-            axis([4.135 4.28 obj.axisMinAmplitude obj.axisMaxAmplitude])
+            end
+            axis(obj.parameterSensitivitySeismogramAxis)
             xlabel('TWTT (s)')
             ylabel('Amplitude')
-            % title('b) Time Series')
             legend( '6 kg/m^3' , '15 kg/m^3' , '23 kg/m^3' , '32 kg/m^3' , '40 kg/m^3' )
             
-            % axis5.Position = [.13 .56 .79 .39];
-            % axis6.Position = [.13 .07 .79 .39];
-            
-            %figure2.Position(3) = 416;
             set(findall(figure2,'-property','FontSize'),'FontSize',8)
             set(findall(figure2,'-property','FontName'),'FontName','Arial')
             
             
-            %%%%% Old Figure 2 with both depth and time series
-            %{
-            figure2 = figure();
-            
-            %%% Depth series seismogram
-            axis5 = subplot(2, 1, 1);
-            hold on
-            % 3 phase bulk equilibrium depth line
-            BEQL3P = 481 + obj.seafloorDepth; % mbsf
-            plot([BEQL3P, BEQL3P], [-1, 1], '--', 'Color', [.4 .4 .4], 'linewidth', 1.5);
-            
-            figureCellArray = cell(numel(quantity), 1);
-            figureNumber = 0;
-            
-            for iQuantity = quantity
-                figureNumber = figureNumber + 1;
-                figureCellArray{figureNumber} = plot(obj.depthArrayFull, Wave.seismogram{iQuantity}, ...
-                                                    'Color', colorStream(iQuantity,:)', ...
-                                                    'linewidth', 2.5);
-            end
-            %axis([380 + obj.seafloorDepth, 580 + obj.seafloorDepth, obj.axisMinAmplitude obj.axisMaxAmplitude])
-            axis([415 + obj.seafloorDepth, 545 + obj.seafloorDepth, obj.axisMinAmplitude obj.axisMaxAmplitude])
-            xlabel('Depth (mbsl)')
-            ylabel('Amplitude')
-            title('a) Depth Series')
-            legend( [figureCellArray{:}], '6 kg/m^3' , '15 kg/m^3' , '23 kg/m^3' , '32 kg/m^3' , '40 kg/m^3' )
-            
-            
-            %%% Time series seismogram
-            axis6 = subplot(2, 1, 2);
-            hold on
-            for iQuantity = quantity
-                plot(Wave.time{iQuantity}, Wave.seismogram{iQuantity}, ...
-                    'Color', colorStream(iQuantity,:)', ...
-                    'Linewidth', 2.5)
-            end       
-            %axis([4.1 4.3 obj.axisMinAmplitude obj.axisMaxAmplitude])
-            axis([4.135 4.28 obj.axisMinAmplitude obj.axisMaxAmplitude])
-            xlabel('TWT time (seconds)')
-            ylabel('Amplitude')
-            title('b) Time Series')
-            %legend( '6 kg/m^3' , '15 kg/m^3' , '23 kg/m^3' , '32 kg/m^3' , '40 kg/m^3' )
-            
-            axis5.Position = [.13 .56 .79 .39];
-            axis6.Position = [.13 .07 .79 .39];
-            
-            figure2.Position(3) = 416;
-            set(findall(figure2,'-property','FontSize'),'FontSize',8)
-            set(findall(figure2,'-property','FontName'),'FontName','Arial')
-            %}
         end
         function PlotBackgroundProperties( obj , dataBase )
             
