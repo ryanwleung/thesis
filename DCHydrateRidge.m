@@ -3,10 +3,12 @@ classdef DCHydrateRidge < BCFormation
         MICP1
     end
     properties (Constant)
-        satAxis = [0 1 100 160];
-        solAxis = [0.1 0.125 100 160];
-        pcgwAxis = [0 2 100 160];
-        ratioAxis = [0 3.5 100 160];
+        poissonsRatio = 0.4;
+        
+        satAxis = [0 1 105 155];
+        solAxis = [0.102 0.122 105 155];
+        pcgwAxis = [0 2 105 155];
+        ratioAxis = [0 3.5 105 155];
     end
     methods
         %%% Constructor
@@ -17,7 +19,7 @@ classdef DCHydrateRidge < BCFormation
             obj.minDepth = 1;               % mbsf
             obj.maxDepth = 200;             % mbsf
             obj.depthIncrement = 0.5;       % m
-%             obj.depthIncrement = 0.25;       % m
+            % obj.depthIncrement = 0.25;       % m
             obj.depthArray = (obj.minDepth : obj.depthIncrement : obj.maxDepth)';
             
             obj.temperatureGradient = 59;   % C deg/km (ODP 997 - Liu and Flemings)            
@@ -35,22 +37,6 @@ classdef DCHydrateRidge < BCFormation
         end
         
         %%% Petrophysical calculations
-        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
-            % Including the non-logged depths (in mbsf) in the effective vertical stress
-            % This function is only used for the fracture code
-            depth = obj.depthArray;
-            
-            
-            Phi_0 = 0.63;
-            Phi_inf = 0.1;
-            B = 1400; % meters
-            
-            Rho_fluid = 1.024; % g/cc, seawater
-            Rho_grain = 2.7;   % g/cc, smectite
-            
-            porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
-            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
-        end
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
             pcgwInterp = interp1( obj.MICP1.S_nw , obj.MICP1.Pc_gw , nonwettingSaturation );
         end
@@ -95,9 +81,9 @@ classdef DCHydrateRidge < BCFormation
             sg = sg1 + sg2;
             radiusGPrime = interp1(snwArray, radiusInMetersArray, sg2);
             
-%             scatter(radiusG, snw, 'r', 'filled')
-%             scatter(radiusH, shGuess + sg2, 'g', 'filled')
-%             scatter(radiusGPrime, sg2, 'r', 'filled')
+            % scatter(radiusG, snw, 'r', 'filled')
+            % scatter(radiusH, shGuess + sg2, 'g', 'filled')
+            % scatter(radiusGPrime, sg2, 'r', 'filled')
             
             
             
@@ -108,7 +94,6 @@ classdef DCHydrateRidge < BCFormation
             
 
             numberOfPoints = 1000;
-%             numberOfPoints = 10000;
             
             slopeScalingFactor = (1e-7) ^ 2;
             lengthFactor = 3;
@@ -160,26 +145,26 @@ classdef DCHydrateRidge < BCFormation
         
         
         %%% Plotting subclass functions
-        function [ solFigure ] = PlotSol( obj , solFigure , exportTable )
-            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
+        function [ solFigure ] = PlotSol( obj , solFigure , exportTable , doPlotBulkAndMinSol )
+            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable , doPlotBulkAndMinSol );
             
             figure(solFigure)
             axis(obj.solAxis)
-            title('Hydrate Ridge - Solubility Path')
+            %title('Hydrate Ridge - Solubility Path')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
             sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
             figure(sat2PFigure)
             axis(obj.satAxis)
-            title('Hydrate Ridge - 2 Phase Case')
+            %title('Hydrate Ridge - 2 Phase Case')
         end
         function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
             sat3PFigure = obj.PlotSat3P@BCFormation( sat3PFigure , exportTable , lineStyle );
             
             figure(sat3PFigure)
             axis(obj.satAxis)
-            title('Hydrate Ridge - 3 Phase Case')
+            %title('Hydrate Ridge - 3 Phase Case')
         end        
         
         function PlotMICP( obj )
@@ -221,24 +206,21 @@ classdef DCHydrateRidge < BCFormation
             axis([1e-9, 1e-4, -inf, inf])
             set(gca, 'XDir', 'reverse')
         end
-        function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
+        function pcgwFigure = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
             pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
             
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Hydrate Ridge Gas Overpressure')
-            % legend('')
+            %title('Hydrate Ridge - Gas Overpressure')
         end
-        function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
+        function ratioFigure = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
-            
-            title('Hydrate Ridge Overpressure Ratio')
-            axis(obj.ratioAxis)            
-            % legend('')
-            
+
+            axis(obj.ratioAxis)
+            %title('Hydrate Ridge - Overpressure Ratio')
         end
         
     end
@@ -257,6 +239,22 @@ classdef DCHydrateRidge < BCFormation
     end
     % UNUSED CLASS METHODS
     %{
+        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
+            % Including the non-logged depths (in mbsf) in the effective vertical stress
+            % This function is only used for the fracture code
+            depth = obj.depthArray;
+            
+            
+            Phi_0 = 0.63;
+            Phi_inf = 0.1;
+            B = 1400; % meters
+            
+            Rho_fluid = 1.024; % g/cc, seawater
+            Rho_grain = 2.7;   % g/cc, smectite
+            
+            porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
+            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
+        end
         function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
             figure(ratioFigure)
             
@@ -285,7 +283,7 @@ classdef DCHydrateRidge < BCFormation
             obj.Data.log = zeros( obj.Data.depth_interval , 50 );
             obj.Data.log(:,1) = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval );
 
-%             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
+             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
             obj.DataTable.depth = (obj.Data.depth_top : 0.5 : obj.Data.depth_bottom)';
 
         end

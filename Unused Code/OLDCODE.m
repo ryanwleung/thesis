@@ -1,5 +1,190 @@
 
-
+% from BCFormation.m
+    % UNUSED CODE
+    %{
+        function [ maxSolLG , sg2P ] = CalcMaxSolLG( obj , ch4Quantity , pressure , gasDensity , gasBulkSolubility )
+            n = numel(pressure);
+            tempSg2P = zeros(n, 1);
+            tempSolLG2P = zeros(n, 1);
+            
+            eps = 1e-3;
+            
+            gasSaturationBulk2P = obj.CalcSg2P( ch4Quantity , gasBulkSolubility , gasDensity );
+            
+            for i = 1:n
+                
+                sg = gasSaturationBulk2P(i);
+                
+                doWhileFlag = true;
+                iteration = 0;
+                iterationFactor = 1;
+                deltaCellArray = cell(1, 1);
+                while doWhileFlag || abs(deltaSg) > 1e-7 
+                    doWhileFlag = false;
+                    iteration = iteration + 1;
+                    
+                    %%% f(x)
+                    [solLGIterated, sgIterated] = obj.CalcMaxSolLGIteration(sg, gasBulkSolubility(i), ch4Quantity, pressure(i), gasDensity(i));
+                    deltaSg = sg - sgIterated;
+                    
+                    
+                    %%% f'(x)
+%                     [solLGPerturbed, sgPerturbed] = obj.CalcMaxSolLGIteration(sg + eps, gasBulkSolubility(i), ch4Quantity, pressure(i), gasDensity(i));
+%                     deltaSgPerturbed = sg - sgPerturbed;
+%                     slope = (deltaSgPerturbed - deltaSg)/eps;
+%                     
+%                     % Calculating next iteration sg
+%                     sg = sg - iterationFactor * deltaSg/slope;
+                    sg = sgIterated;
+                    
+                    if isnan(sg)
+                        error('NaN found when calculating MaxSolLG, sg2P = %.5f', gasSaturationBulk2P(i))
+                    end
+                    
+                    
+                    deltaCellArray{1} = deltaSg;
+                end
+                
+                %%% Print run status
+                BCFormation.PrintIterationData( 'CalcMaxSolLG' , i , n , iteration , iterationFactor , deltaCellArray )
+                
+                tempSg2P(i) = sg;
+                tempSolLG2P(i) = solLGIterated;
+            end
+            sg2P = tempSg2P;
+            maxSolLG = tempSolLG2P;
+        end
+        function [ sg3P , sh3P , adjustedSol ] = Calc3PReverse( obj , ch4Quantity , indexArrayOf3PZone , ...
+                                                        pressure , temperature , gasDensity , ...
+                                                        gasBulkSolubility , hydrateBulkSolubility , hydrateMaxSolubilityAtTop )
+            n = numel(indexArrayOf3PZone);
+            sg3P = zeros(n, 1);
+            sh3P = zeros(n, 1);
+            adjustedSol = zeros(n, 1);
+            
+            
+            %%% Start of Newton's method
+            
+            % Perturbation for slope calculation
+            eps = -1e-5;
+            
+            % Initial guess of solubility
+            solubility = hydrateMaxSolubilityAtTop;
+            
+            for i = n:-1:1
+                i3P = indexArrayOf3PZone(i);
+                
+                % Get previous Sg for inital guess of Sg
+                if i == n
+                    sg = 0.6;
+%                     sg = 0.12;
+                else
+                    sg = sg3P(i + 1);
+                end
+                
+                % Do while loop for Newton's method
+                % Condition is when the LG and LH solubilities become equal
+                doWhileFlag = true;
+                iteration = 0;
+                iterationFactor = 1;
+                deltaCellArray = cell(1, 1);
+                while doWhileFlag || abs(deltaSol) > 1e-6
+                    doWhileFlag = false;
+                    iteration = iteration + 1;
+                    
+                    % Calculating f(x)
+                    [ sh , solubilityLG , solubilityLH ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
+                                                                                sg , solubility , ...
+                                                                                pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
+                                                                                gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
+                    deltaSol = solubilityLG - solubilityLH;
+                    
+                    
+                    % Calculating f'(x)
+                    [ ~ , solubilityLGPerturbed , solubilityLHPerturbed ] = Calc3PNewtonIteration( obj , ch4Quantity , ...
+                                                                                sg + eps , solubility , ...
+                                                                                pressure(i3P) , temperature(i3P) , gasDensity(i3P) , ...
+                                                                                gasBulkSolubility(i3P) , hydrateBulkSolubility(i3P) );
+                    deltaSolPerturbed = solubilityLGPerturbed - solubilityLHPerturbed;
+                    slope = (deltaSolPerturbed - deltaSol)/eps;
+                    
+                    
+                    
+                    
+                    
+                    % Calculating next iteration sg
+                    sg = sg - iterationFactor * deltaSol/slope;
+                    % Update solubility by taking the average of the 2
+                    solubility = (solubilityLG + solubilityLH)/2;
+                    
+                    if isnan(sg) || isnan(sh) || isnan(solubilityLG) || isnan(solubilityLH)
+                        error('NaN found when calculating 3P saturations')
+                    end
+                    
+                    
+                    
+                    deltaCellArray{1} = deltaSol;
+                    if mod(iteration, 20) == 0 && iterationFactor > 0.01
+                        iterationFactor = iterationFactor * 0.9;
+                        BCFormation.PrintIterationData( 'Calc3P' , i , n , iteration , iterationFactor , deltaCellArray )
+                    end
+                    
+                end
+                
+                
+                
+                sg3P(i) = sg;
+                sh3P(i) = sh;
+                adjustedSol(i) = solubility;
+            end
+        end        
+    
+    
+    
+    
+            OLD CODE THAT INTERPOLATES FROM LIU AND FLEMINGS TO COMPARE
+        
+            obj.DataTable.gasBulkSolubilityInterpolated = interp1( obj.Bulk.Depth , obj.Bulk.Solubility , depth );
+        
+            % % BR adjustment to match Liu bulk sol results
+            % gasBulkSolubility = gasBulkSolubility - .002;
+            % hydrateBulkSolubility = hydrateBulkSolubility + .0024;        
+        
+            interpolatedBulkSolLogical = ~isnan(obj.DataTable.gasBulkSolubilityInterpolated);
+            tempInterpBulkSol = obj.DataTable.gasBulkSolubilityInterpolated(interpolatedBulkSolLogical);
+            tempInterpDepth = obj.DataTable.depth(interpolatedBulkSolLogical);        
+        
+            switch class(obj)
+                case 'DCHydrateRidge'
+                    tempInterpDepth = tempInterpDepth + 790;
+                    depth = depth + 790;
+                case 'DCBlakeRidge'
+                    tempInterpDepth = tempInterpDepth + 2780;
+                    depth = depth + 2780;
+            end     
+   
+            plot( tempInterpBulkSol , tempInterpDepth , 'k' , 'LineWidth' , 3 )
+            hold on        
+        
+        
+        
+            switch class(obj)
+                case 'DCHydrateRidge'
+                    load('Hydrate Ridge Data\Solubility Plots\BulkSolHR.mat')
+                    plot( BulkSolHR(:,1) , BulkSolHR(:,2) )    
+                case 'DCBlakeRidge'
+                    load('Blake Ridge Data\Solubility Plots\BulkSolBR.mat')
+                    plot( BulkSolBR(:,1) , BulkSolBR(:,2) )
+            end
+        
+        
+        
+            % gasMaxSolubility = gasMaxSolubility + 0.0062;
+        
+        
+        
+        
+        %}
 
 
 

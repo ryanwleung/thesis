@@ -14,11 +14,13 @@ classdef BCPR1978Util < handle
         function [ gasDensity ] = CalcGasDensity( obj , pressure , temperature )
             % pressure in Pa
             % temperature in K
-            
+            % density in kg/m^3
+
             % Assumes the correct z compressibility factor is z1
-            [ z1 ] = obj.CalcPR78( pressure , temperature );
+            z1 = obj.CalcPR78( pressure , temperature );
             z1 = 1;
-            gasDensity = (pressure * obj.mwCH4)/(z1 * obj.gasConstantR * temperature) / 1000; ... in kg/m^3
+            gasDensity = (pressure * obj.mwCH4)/(z1 * obj.gasConstantR * temperature) ...
+                        / 1000;
         end
         function [ Z , A , B ] = CalcPR78( obj , P , T )
             w = obj.acentricFactorCH4;
@@ -27,7 +29,7 @@ classdef BCPR1978Util < handle
             R = obj.gasConstantR;
             
             
-            if( w <= .49)
+            if w <= .49
                 K = .37464 + 1.54226*w - .26992*w^2;
             else
                 K = .37964 + w*(1.48503 + w*(-.164423 + .01666*w));
@@ -49,7 +51,7 @@ classdef BCPR1978Util < handle
             S = (R + D^(1/2))^(1/3);
             T = (R - D^(1/2))^(1/3);
             
-            if(D<0)
+            if D < 0
                 theta = acos(R/((-(Q^3))^(1/2)));
                 
                 z1 = 2*((-Q)^(1/2))*cos(theta/3) - (1/3)*a2;

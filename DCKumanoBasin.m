@@ -6,12 +6,12 @@ classdef DCKumanoBasin < BCFormation
         MICPInterp % Cell array of tables of MICP that will actually be used
     end
     properties (Constant)
-        satAxis = [0 1 400 430];
-        solAxis = [0.155 0.17 400 430];
-        pcgwAxis = [0 2.5 400 430];
-        ratioAxis = [0 1.2 400 430];
+        poissonsRatio = 0.4;
         
-
+        satAxis = [0 1 405 428];
+        solAxis = [0.159 0.167 405 428];
+        pcgwAxis = [0 2.5 405 428];
+        ratioAxis = [0 1 405 428];
     end
     methods
         %%% Constructor
@@ -146,46 +146,79 @@ classdef DCKumanoBasin < BCFormation
         end
         
         
-        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
-            % Including the non-logged depths (in mbsf) in the effective vertical stress
-            % This function is only used for the fracture code
-            
-            depth = obj.DataTable.depth;
-            
-            
-            Phi_0 = obj.phi0;
-            Phi_inf = obj.phiInf;
-            B = obj.depthB; % meters
-            
-            Rho_fluid = 1.024; % g/cc, seawater
-            Rho_grain = 2.7;   % g/cc, smectite
-            
-            porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
-            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
-        end
+        
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
-            % accepts nonwettingSaturation as an array
-            nInterpSets = numel(obj.MICPInterp);
-            nSnw = numel(nonwettingSaturation);
+            if obj.runDaigleCases
+                %%% Daigle's lognormal distribution
+
+                %%% micron to meter and Pa to MPa conversion cancel out
+                % dynes/cm
+                interfacialTensionGasWater = 72;
+                %interfacialTensionHydrateWater = 27;
+                % cm to meter and dyn to N conversion factor
+                conversionFactor = 1e2 * 1e-5;
+
+                
+
+                sw = 1 - nonwettingSaturation;
+                %%% sw is mapped directly to the cdf of the lognormal pore size distribution
+                %%% invert the cdf to get back the pore size at this sw
+                radius = logninv(sw, obj.lognormalMu, obj.lognormalSigma);
+                % radius is in microns
+
+                pcgwInterp = 2 .* interfacialTensionGasWater ./ radius .* conversionFactor;
+                
+                
+            else
+                %%% Regular Kumano Basin capillary pressure
             
-            pcgwSets = zeros(nSnw, nInterpSets);
-            
-            
-            for iInterpSets = 1:nInterpSets
-                tempTable = obj.MICPInterp{iInterpSets};
-                pcgwSets(:, iInterpSets) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
+                % accepts nonwettingSaturation as an array
+                nInterpSets = numel(obj.MICPInterp);
+                nSnw = numel(nonwettingSaturation);
+
+                pcgwSets = zeros(nSnw, nInterpSets);
+
+
+                for iInterpSets = 1:nInterpSets
+                    tempTable = obj.MICPInterp{iInterpSets};
+                    pcgwSets(:, iInterpSets) = interp1(tempTable.SNW, tempTable.PcGW, nonwettingSaturation);
+                end
+                pcgwInterp = mean(pcgwSets, 2);
             end
-            pcgwInterp = mean(pcgwSets, 2);
         end
         function [ pchwInterp ] = CalcPchw( obj , nonwettingSaturation )
-            % does not accept nonwettingSaturation as an array
-            n = numel(obj.MICPInterp);
-            pcgwArray = zeros(n, 1);
-            for i = 1:n
-                tempTable = obj.MICPInterp{i};
-                pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcHW, nonwettingSaturation);
+            if obj.runDaigleCases
+                %%% Daigle's lognormal distribution
+
+                %%% micron to meter and Pa to MPa conversion cancel out
+                % dynes/cm
+                %interfacialTensionGasWater = 72;
+                interfacialTensionHydrateWater = 27;
+                % cm to meter and dyn to N conversion factor
+                conversionFactor = 1e2 * 1e-5;
+
+                
+
+                sw = 1 - nonwettingSaturation;
+                %%% sw is mapped directly to the cdf of the lognormal pore size distribution
+                %%% invert the cdf to get back the pore size at this sw
+                radius = logninv(sw, obj.lognormalMu, obj.lognormalSigma);
+                % radius is in microns
+
+                pchwInterp = 2 .* interfacialTensionHydrateWater ./ radius .* conversionFactor;
+            else
+                %%% Regular Kumano Basin capillary pressure
+
+                % does not accept nonwettingSaturation as an array
+                n = numel(obj.MICPInterp);
+                pcgwArray = zeros(n, 1);
+                for i = 1:n
+                    tempTable = obj.MICPInterp{i};
+                    pcgwArray(i) = interp1(tempTable.SNW, tempTable.PcHW, nonwettingSaturation);
+                end
+                pchwInterp = mean(pcgwArray);
             end
-            pchwInterp = mean(pcgwArray);
+                
         end
         
         function [ averagePcgwPlot , snwPlot ] = GetInterpMICPForPlotting( obj )
@@ -198,26 +231,26 @@ classdef DCKumanoBasin < BCFormation
             end
         end
         
-        function [ solFigure ] = PlotSol( obj , solFigure , exportTable )
-            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
+        function [ solFigure ] = PlotSol( obj , solFigure , exportTable , doPlotBulkAndMinSol )
+            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable , doPlotBulkAndMinSol );
             
             figure(solFigure)
             axis(obj.solAxis)
-            title('Kumano Basin - Solubility Path')
+            %title('Kumano Basin - Solubility Path')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
             sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
             figure(sat2PFigure)
             axis(obj.satAxis)
-            title('Kumano Basin - 2 Phase Case')
+            %title('Kumano Basin - 2 Phase Case')
         end
         function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
             sat3PFigure = obj.PlotSat3P@BCFormation( sat3PFigure , exportTable , lineStyle );
             
             figure(sat3PFigure)
             axis(obj.satAxis)
-            title('Kumano Basin - 3 Phase Case')
+            %title('Kumano Basin - 3 Phase Case')
         end        
         function [ pcgwFigure ] = PlotPcgw( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc )
             pcgwFigure = PlotPcgw@BCFormation( obj , pcgwFigure , exportTable , transitionZoneProperties , lineStylePc );
@@ -225,18 +258,15 @@ classdef DCKumanoBasin < BCFormation
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Kumano Basin Gas Overpressure')
-            % legend('')
+            %title('Kumano Basin - Gas Overpressure')
         end
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
             
-            title('Hydrate Ridge Overpressure Ratio')
-            axis(obj.ratioAxis)            
-            % legend('')
-            
+            axis(obj.ratioAxis)
+            %title('Kumano Basin - Overpressure Ratio')
         end
     end
     methods (Static)
@@ -337,7 +367,7 @@ classdef DCKumanoBasin < BCFormation
             result = MICPCellArray;
         end
         function [ MICPInterp ] = SelectMICPForInterp( MICP , depthOrder )
-%             logicalToKeep = depthOrder > 340 & depthOrder < 500;
+            % logicalToKeep = depthOrder > 340 & depthOrder < 500;
             logicalToKeep = depthOrder > 400 & depthOrder < 420;
             MICPInterp = MICP;
             
@@ -357,6 +387,23 @@ classdef DCKumanoBasin < BCFormation
     end
     % UNUSED CLASS METHODS
     %{
+        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
+            % Including the non-logged depths (in mbsf) in the effective vertical stress
+            % This function is only used for the fracture code
+            
+            depth = obj.DataTable.depth;
+            
+            
+            Phi_0 = obj.phi0;
+            Phi_inf = obj.phiInf;
+            B = obj.depthB; % meters
+            
+            Rho_fluid = 1.024; % g/cc, seawater
+            Rho_grain = 2.7;   % g/cc, smectite
+            
+            porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
+            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
+        end
         function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
             figure(ratioFigure)
             
@@ -385,7 +432,7 @@ classdef DCKumanoBasin < BCFormation
             obj.Data.log = zeros( obj.Data.depth_interval , 50 );
             obj.Data.log(:,1) = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval );
 
-%             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
+             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
             obj.DataTable.depth = (obj.Data.depth_top : 0.5 : obj.Data.depth_bottom)';
 
         end

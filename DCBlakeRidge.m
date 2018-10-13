@@ -10,10 +10,12 @@ classdef DCBlakeRidge < BCFormation
         MICP2
     end
     properties (Constant)
-        satAxis = [0 1 460 510];
-        solAxis = [0.18 0.19 460 510];
-        pcgwAxis = [0 2 460 510];
-        ratioAxis = [0 1.2 460 510];
+        poissonsRatio = 0.4;
+        
+        satAxis = [0 1 475 500];
+        solAxis = [0.181 0.187 475 500];
+        pcgwAxis = [0 2 475 500];
+        ratioAxis = [0 1 475 500];
     end
     methods
         %%% Constructor
@@ -22,12 +24,11 @@ classdef DCBlakeRidge < BCFormation
 
             obj.seafloorDepth = 2780;           % mbsl
             obj.minDepth = 1;                   % mbsf
-%             obj.maxDepth = 650;                 % mbsf
             obj.maxDepth = 700;                 % mbsf
             obj.depthIncrement = 0.5;           % m
             obj.depthArray = (obj.minDepth : obj.depthIncrement : obj.maxDepth)';
             
-%             obj.temperatureGradient = 38.5;     % C deg/km (ODP 995 - Guerin)
+            % obj.temperatureGradient = 38.5;     % C deg/km (ODP 995 - Guerin)
             obj.temperatureGradient = 36.9;     % C deg/km (ODP 997 - Liu and Flemings)
             obj.seafloorTemperature = 3.3;      % C deg
             obj.salinityWtPercent = 3.5;        % weight percent (wt%) of NaCl in seawater
@@ -48,20 +49,6 @@ classdef DCBlakeRidge < BCFormation
         end
         
         %%% Petrophysical calculations
-        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
-            % Including the non-logged depths (in mbsf) in the effective vertical stress            
-            depth = obj.depthArray;
-            
-            Phi_0 = 0.75;
-            Phi_inf = 0.05;
-            B = 1600; % meters
-            
-            Rho_fluid = 1.024; % g/cc, seawater
-            Rho_grain = 2.7;   % g/cc, smectite
-            
-            porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
-            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
-        end
         function [ pcgwInterp ] = CalcPcgw( obj , nonwettingSaturation )
             % returns pcgw in MPa
             
@@ -118,26 +105,26 @@ classdef DCBlakeRidge < BCFormation
         end
         
         %%% Plotting subclass functions
-        function [ solFigure ] = PlotSol( obj , solFigure , exportTable )
-            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable );
+        function [ solFigure ] = PlotSol( obj , solFigure , exportTable , doPlotBulkAndMinSol )
+            solFigure = obj.PlotSol@BCFormation( solFigure , exportTable , doPlotBulkAndMinSol );
             
             figure(solFigure)
             axis(obj.solAxis)
-            title('Blake Ridge - Solubility Path')
+            %title('Blake Ridge - Solubility')
         end
         function [ sat2PFigure ] = PlotSat2P( obj , sat2PFigure , exportTable , transitionZoneProperties , lineStyle )
             sat2PFigure = obj.PlotSat2P@BCFormation( sat2PFigure , exportTable , transitionZoneProperties , lineStyle );
             
             figure(sat2PFigure)
             axis(obj.satAxis)
-            title('Blake Ridge - 2 Phase Case')
+            %title('Blake Ridge - 2 Phase Case')
         end
         function [ sat3PFigure ] = PlotSat3P( obj , sat3PFigure , exportTable , lineStyle )
             sat3PFigure = PlotSat3P@BCFormation( obj , sat3PFigure , exportTable , lineStyle );
             
             figure(sat3PFigure)
             axis(obj.satAxis)
-            title('Blake Ridge - 3 Phase Case')
+            %title('Blake Ridge - 3 Phase Case')
         end
         
         function PlotMICP( obj )
@@ -191,19 +178,15 @@ classdef DCBlakeRidge < BCFormation
             figure(pcgwFigure)
 
             axis(obj.pcgwAxis)
-            title('Blake Ridge Gas Overpressure')
+            %title('Blake Ridge - Gas Overpressure')
         end
         function [ ratioFigure ] = PlotRatio( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio )
             [ ratioFigure ] = PlotRatio@BCFormation( obj , ratioFigure , exportTable , transitionZoneProperties , lineStyleRatio );
             
             figure(ratioFigure)
                         
-            title('Blake Ridge Overpressure Ratio')
-            % legend('')
+            %title('Blake Ridge - Overpressure Ratio')
             axis(obj.ratioAxis)
-
-            
-            
         end
         
     end
@@ -415,6 +398,20 @@ classdef DCBlakeRidge < BCFormation
     end
     % UNUSED CLASS METHODS
     %{
+        function [ bulkDensity , porosity ] = EstimateBulkDensity1( obj )
+            % Including the non-logged depths (in mbsf) in the effective vertical stress            
+            depth = obj.depthArray;
+            
+            Phi_0 = 0.75;
+            Phi_inf = 0.05;
+            B = 1600; % meters
+            
+            Rho_fluid = 1.024; % g/cc, seawater
+            Rho_grain = 2.7;   % g/cc, smectite
+            
+            porosity = Phi_inf + (Phi_0 - Phi_inf)*exp(-depth./B);
+            bulkDensity = porosity*Rho_fluid + (1 - porosity)*Rho_grain;
+        end
         function [ ratioFigure ] = PlotFractureRatio1( ~ , ratioFigure )
             figure(ratioFigure)
             
@@ -443,7 +440,7 @@ classdef DCBlakeRidge < BCFormation
             obj.Data.log = zeros( obj.Data.depth_interval , 50 );
             obj.Data.log(:,1) = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval );
 
-%             obj.DataTable.depth = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval )';
+             obj.DataTable.depth = linspace( obj.Data.depth_top , obj.Data.depth_bottom , obj.Data.depth_interval )';
             obj.DataTable.depth = (obj.Data.depth_top : 1 : obj.Data.depth_bottom)';
         end
             
